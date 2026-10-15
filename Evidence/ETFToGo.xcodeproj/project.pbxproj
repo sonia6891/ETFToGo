@@ -1,0 +1,533 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		10F7E36B158DB7E63CA101B4 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5FE47A3C3D19B0FABF00359 /* Models.swift */; };
+		1AAA72262CE7C3A24ED720B5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 74D27FC0D6D38787C4BE5FB6 /* PrivacyInfo.xcprivacy */; };
+		2293242942C405A47B28DE85 /* PortfolioViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EA07CE1D5B62DDB5D7827A /* PortfolioViews.swift */; };
+		35DE84119451BDCC8D81B257 /* ETFToGoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5843F400A19431AB664DA7DD /* ETFToGoUITests.swift */; };
+		643F72EA9C36FF060E0C5B54 /* ETFToGoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072093705488342334C91245 /* ETFToGoApp.swift */; };
+		6DF2E960A94EA23671BE19A6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 264E61A5B7FE5D64083F2B65 /* Assets.xcassets */; };
+		6EE9393DFDC3396CE5DEA967 /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D293146BB8B94669BF6CFA5E /* ToolsView.swift */; };
+		F8D81FB1E2FD4A8601EB90F2 /* PortfolioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B6A1B483C6A1272C477FB0E /* PortfolioTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		13850996FF30C66C07B884A3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3684EFB5E3369897D5B43798 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 86A53960CC5878DB44E6891C;
+			remoteInfo = ETFToGo;
+		};
+		14D9DA336A918A5921D46692 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3684EFB5E3369897D5B43798 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 86A53960CC5878DB44E6891C;
+			remoteInfo = ETFToGo;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		072093705488342334C91245 /* ETFToGoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ETFToGoApp.swift; sourceTree = "<group>"; };
+		264E61A5B7FE5D64083F2B65 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		31EA07CE1D5B62DDB5D7827A /* PortfolioViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioViews.swift; sourceTree = "<group>"; };
+		3B6A1B483C6A1272C477FB0E /* PortfolioTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioTests.swift; sourceTree = "<group>"; };
+		4DB86CEF4552F0B7E34DD701 /* ETFToGoTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ETFToGoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FB1A178D28C7B85C6916E25 /* ETFToGo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ETFToGo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5843F400A19431AB664DA7DD /* ETFToGoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ETFToGoUITests.swift; sourceTree = "<group>"; };
+		74D27FC0D6D38787C4BE5FB6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7F7E9EEA92DA1F054BBA3D12 /* ETFToGoUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ETFToGoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D293146BB8B94669BF6CFA5E /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
+		F5FE47A3C3D19B0FABF00359 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		26B3FA78AE4408D607E5C659 = {
+			isa = PBXGroup;
+			children = (
+				FCAB97D994B54E9FAC21BE8D /* App */,
+				48E6AB249185E3565A106BC6 /* Tests */,
+				7A4ADDB0EBD8F890A6C6190C /* UITests */,
+				81D37D0BC4377944816D8499 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		48E6AB249185E3565A106BC6 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				3B6A1B483C6A1272C477FB0E /* PortfolioTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		7A4ADDB0EBD8F890A6C6190C /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				5843F400A19431AB664DA7DD /* ETFToGoUITests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+		81D37D0BC4377944816D8499 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4FB1A178D28C7B85C6916E25 /* ETFToGo.app */,
+				4DB86CEF4552F0B7E34DD701 /* ETFToGoTests.xctest */,
+				7F7E9EEA92DA1F054BBA3D12 /* ETFToGoUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		FCAB97D994B54E9FAC21BE8D /* App */ = {
+			isa = PBXGroup;
+			children = (
+				264E61A5B7FE5D64083F2B65 /* Assets.xcassets */,
+				072093705488342334C91245 /* ETFToGoApp.swift */,
+				F5FE47A3C3D19B0FABF00359 /* Models.swift */,
+				31EA07CE1D5B62DDB5D7827A /* PortfolioViews.swift */,
+				74D27FC0D6D38787C4BE5FB6 /* PrivacyInfo.xcprivacy */,
+				D293146BB8B94669BF6CFA5E /* ToolsView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2F8F41E09A39969252AF0902 /* ETFToGoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3593227288D296520CAB40F2 /* Build configuration list for PBXNativeTarget "ETFToGoTests" */;
+			buildPhases = (
+				A39F6C197FDFB4D678AFC39B /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CD7A7FD2B52B329249979FE1 /* PBXTargetDependency */,
+			);
+			name = ETFToGoTests;
+			packageProductDependencies = (
+			);
+			productName = ETFToGoTests;
+			productReference = 4DB86CEF4552F0B7E34DD701 /* ETFToGoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		86A53960CC5878DB44E6891C /* ETFToGo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 06228B0929AAE7535214950B /* Build configuration list for PBXNativeTarget "ETFToGo" */;
+			buildPhases = (
+				9579F79E4B728FB2A9AA03E2 /* Sources */,
+				E0E6479ACFA6F4DD4E329801 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ETFToGo;
+			packageProductDependencies = (
+			);
+			productName = ETFToGo;
+			productReference = 4FB1A178D28C7B85C6916E25 /* ETFToGo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DF365F5256A6D665CA95BCA6 /* ETFToGoUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F4ECBFD2BEB3B7D05FB58A8D /* Build configuration list for PBXNativeTarget "ETFToGoUITests" */;
+			buildPhases = (
+				5EC87491CB5458C6D0D61C06 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				16A24F44B4BE47BE3825AD15 /* PBXTargetDependency */,
+			);
+			name = ETFToGoUITests;
+			packageProductDependencies = (
+			);
+			productName = ETFToGoUITests;
+			productReference = 7F7E9EEA92DA1F054BBA3D12 /* ETFToGoUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		3684EFB5E3369897D5B43798 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					2F8F41E09A39969252AF0902 = {
+						ProvisioningStyle = Automatic;
+					};
+					86A53960CC5878DB44E6891C = {
+						ProvisioningStyle = Automatic;
+					};
+					DF365F5256A6D665CA95BCA6 = {
+						ProvisioningStyle = Automatic;
+						TestTargetID = 86A53960CC5878DB44E6891C;
+					};
+				};
+			};
+			buildConfigurationList = D448417D9AFE6C6E85EB7E24 /* Build configuration list for PBXProject "ETFToGo" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 26B3FA78AE4408D607E5C659;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 81D37D0BC4377944816D8499 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				86A53960CC5878DB44E6891C /* ETFToGo */,
+				2F8F41E09A39969252AF0902 /* ETFToGoTests */,
+				DF365F5256A6D665CA95BCA6 /* ETFToGoUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E0E6479ACFA6F4DD4E329801 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6DF2E960A94EA23671BE19A6 /* Assets.xcassets in Resources */,
+				1AAA72262CE7C3A24ED720B5 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5EC87491CB5458C6D0D61C06 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				35DE84119451BDCC8D81B257 /* ETFToGoUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9579F79E4B728FB2A9AA03E2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				643F72EA9C36FF060E0C5B54 /* ETFToGoApp.swift in Sources */,
+				10F7E36B158DB7E63CA101B4 /* Models.swift in Sources */,
+				2293242942C405A47B28DE85 /* PortfolioViews.swift in Sources */,
+				6EE9393DFDC3396CE5DEA967 /* ToolsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A39F6C197FDFB4D678AFC39B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F8D81FB1E2FD4A8601EB90F2 /* PortfolioTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		16A24F44B4BE47BE3825AD15 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 86A53960CC5878DB44E6891C /* ETFToGo */;
+			targetProxy = 13850996FF30C66C07B884A3 /* PBXContainerItemProxy */;
+		};
+		CD7A7FD2B52B329249979FE1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 86A53960CC5878DB44E6891C /* ETFToGo */;
+			targetProxy = 14D9DA336A918A5921D46692 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1E1783F7C2EC7764BA1B33E4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.ETFToGoUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = ETFToGo;
+			};
+			name = Release;
+		};
+		3BC0B7BBBB87749FF408DE8B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.2.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		474C7F7B44E3004CA06DE2BA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.2.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		4E077B199E857AB68C8977BD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.ETFToGoUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = ETFToGo;
+			};
+			name = Debug;
+		};
+		749A589B20EA2A33D15650F7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "ETF 袋著走";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.etftogo.uireview;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		8E24C2C476AF9D731F942C72 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "ETF 袋著走";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.etftogo.uireview;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		981EC831793F5F3A81AF8315 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.ETFToGoTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ETFToGo.app/ETFToGo";
+			};
+			name = Release;
+		};
+		FF531CDDE14F735265318E3E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.ETFToGoTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ETFToGo.app/ETFToGo";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		06228B0929AAE7535214950B /* Build configuration list for PBXNativeTarget "ETFToGo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8E24C2C476AF9D731F942C72 /* Debug */,
+				749A589B20EA2A33D15650F7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		3593227288D296520CAB40F2 /* Build configuration list for PBXNativeTarget "ETFToGoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FF531CDDE14F735265318E3E /* Debug */,
+				981EC831793F5F3A81AF8315 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D448417D9AFE6C6E85EB7E24 /* Build configuration list for PBXProject "ETFToGo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				474C7F7B44E3004CA06DE2BA /* Debug */,
+				3BC0B7BBBB87749FF408DE8B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F4ECBFD2BEB3B7D05FB58A8D /* Build configuration list for PBXNativeTarget "ETFToGoUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4E077B199E857AB68C8977BD /* Debug */,
+				1E1783F7C2EC7764BA1B33E4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 3684EFB5E3369897D5B43798 /* Project object */;
+}

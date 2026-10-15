@@ -1,0 +1,205 @@
+Command line invocation:
+    /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/xcodebuild test-without-building -project ETFToGo.xcodeproj -scheme ETFToGo -destination "platform=iOS Simulator,id=DC4CD8B3-4457-4153-9087-A0D7A2F9BFD9" -derivedDataPath build/DerivedData -resultBundlePath build/Tests.xcresult -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO
+
+Build settings from command line:
+    CODE_SIGNING_ALLOWED = NO
+
+Writing result bundle at path:
+	/Users/runner/work/ETFToGo/ETFToGo/build/Tests.xcresult
+
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:iOS Simulator, arch:arm64, id:DC4CD8B3-4457-4153-9087-A0D7A2F9BFD9, OS:18.5, name:iPhone 16 Pro }
+{ platform:iOS Simulator, arch:x86_64, id:DC4CD8B3-4457-4153-9087-A0D7A2F9BFD9, OS:18.5, name:iPhone 16 Pro }
+2026-10-15 01:04:10.844184+0000 ETFToGo[11588:36846] [library] load_eligibility_plist: Failed to open /Users/runner/Library/Developer/CoreSimulator/Devices/DC4CD8B3-4457-4153-9087-A0D7A2F9BFD9/data/Containers/Data/Application/BD706A55-D82C-487F-9122-FAEB960A8CB4/private/var/db/eligibilityd/eligibility.plist: No such file or directory(2)
+Test Suite 'All tests' started at 2026-10-15 01:04:14.830.
+Test Suite 'ETFToGoTests.xctest' started at 2026-10-15 01:04:14.831.
+Test Suite 'PortfolioTests' started at 2026-10-15 01:04:14.831.
+Test Case '-[ETFToGoTests.PortfolioTests testBackupRejectsInvalidData]' started.
+Test Case '-[ETFToGoTests.PortfolioTests testBackupRejectsInvalidData]' passed (0.024 seconds).
+Test Case '-[ETFToGoTests.PortfolioTests testMalformedFileIsNotOverwritten]' started.
+Test Case '-[ETFToGoTests.PortfolioTests testMalformedFileIsNotOverwritten]' passed (0.008 seconds).
+Test Case '-[ETFToGoTests.PortfolioTests testNoMarketValueWithoutCompleteQuotes]' started.
+Test Case '-[ETFToGoTests.PortfolioTests testNoMarketValueWithoutCompleteQuotes]' passed (0.001 seconds).
+Test Case '-[ETFToGoTests.PortfolioTests testPersistenceAndImportIdempotence]' started.
+Test Case '-[ETFToGoTests.PortfolioTests testPersistenceAndImportIdempotence]' passed (0.005 seconds).
+Test Case '-[ETFToGoTests.PortfolioTests testProjectionZeroReturnAndMonthlyTiming]' started.
+Test Case '-[ETFToGoTests.PortfolioTests testProjectionZeroReturnAndMonthlyTiming]' passed (0.001 seconds).
+Test Case '-[ETFToGoTests.PortfolioTests testQuoteValidation]' started.
+Test Case '-[ETFToGoTests.PortfolioTests testQuoteValidation]' passed (0.002 seconds).
+Test Suite 'PortfolioTests' passed at 2026-10-15 01:04:14.874.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.041 (0.043) seconds
+Test Suite 'ETFToGoTests.xctest' passed at 2026-10-15 01:04:14.876.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.041 (0.045) seconds
+Test Suite 'All tests' passed at 2026-10-15 01:04:14.876.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.041 (0.046) seconds
+2026-10-15 01:04:17.354630+0000 ETFToGoUITests-Runner[12060:38100] [Default] Running tests...
+    t =      nans Interface orientation changed to Portrait
+Test Suite 'All tests' started at 2026-10-15 01:04:26.582.
+Test Suite 'ETFToGoUITests.xctest' started at 2026-10-15 01:04:26.583.
+Test Suite 'ETFToGoUITests' started at 2026-10-15 01:04:26.584.
+Test Case '-[ETFToGoUITests.ETFToGoUITests testAllTabsAndSearch]' started.
+    t =     0.00s Start Test at 2026-10-15 01:04:26.584
+    t =     0.55s Set Up
+    t =     0.57s Open tw.sonia.etftogo.uireview
+    t =     0.57s     Launch tw.sonia.etftogo.uireview
+    t =     2.82s         Setting up automation session
+    t =     3.20s         Wait for tw.sonia.etftogo.uireview to idle
+    t =     4.97s Waiting 10.0s for "home-add-holding" Button to exist
+    t =     6.00s     Checking `Expect predicate `existsNoRetry == 1` for object "home-add-holding" Button`
+    t =     6.00s         Checking existence of `"home-add-holding" Button`
+    t =     6.16s Tap "找 ETF" Button
+    t =     6.16s     Wait for tw.sonia.etftogo.uireview to idle
+    t =     6.16s     Find the "找 ETF" Button
+    t =     6.24s     Check for interrupting elements affecting "找 ETF" Button
+    t =     6.31s     Synthesize event
+    t =     6.75s     Wait for tw.sonia.etftogo.uireview to idle
+    t =     6.98s Waiting 5.0s for "fund-search" TextField to exist
+    t =     7.99s     Checking `Expect predicate `existsNoRetry == 1` for object "fund-search" TextField`
+    t =     7.99s         Checking existence of `"fund-search" TextField`
+    t =     8.10s Tap "fund-search" TextField
+    t =     8.11s     Wait for tw.sonia.etftogo.uireview to idle
+    t =     8.12s     Find the "fund-search" TextField
+    t =     8.16s     Check for interrupting elements affecting "fund-search" TextField
+    t =     8.20s     Synthesize event
+    t =     8.53s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    10.32s Type '0050' into "fund-search" TextField
+    t =    10.32s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    10.82s     Find the "fund-search" TextField
+    t =    12.23s     Check for interrupting elements affecting "fund-search" TextField
+    t =    12.34s     Synthesize event
+    t =    12.64s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    12.64s Checking existence of `"元大台灣50" StaticText`
+    t =    12.70s Checking existence of `"國泰永續高股息" StaticText`
+    t =    12.75s Tap "我的持有" Button
+    t =    12.75s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    12.76s     Find the "我的持有" Button
+    t =    13.08s     Check for interrupting elements affecting "wallet.bifold" Button
+    t =    13.68s     Synthesize event
+    t =    13.77s         Scroll element to visible
+    t =    13.78s         Find the "wallet.bifold" Button
+    t =    13.90s         Computed hit point {-1, -1} after scrolling to visible
+    t =    13.90s         Failed: Failed to scroll to visible (by AX action) Button, {{163.0, 792.0}, {76.0, 48.0}}, identifier: 'wallet.bifold', label: '我的持有', error: Error kAXErrorCannotComplete performing AXAction kAXScrollToVisibleAction on element AX element pid: 12215, elementOrHash.elementID: 4383675040.15
+    t =    14.90s     Retrying `Tap "我的持有" Button` (attempt #2)
+    t =    14.90s         Wait for tw.sonia.etftogo.uireview to idle
+    t =    14.92s         Find the "wallet.bifold" Button
+    t =    14.98s         Check for interrupting elements affecting "wallet.bifold" Button
+    t =    15.02s         Synthesize event
+    t =    15.04s             Scroll element to visible
+    t =    15.04s             Find the "wallet.bifold" Button
+    t =    15.13s             Computed hit point {-1, -1} after scrolling to visible
+    t =    15.13s             Failed: Failed to scroll to visible (by AX action) Button, {{163.0, 792.0}, {76.0, 48.0}}, identifier: 'wallet.bifold', label: '我的持有', error: Error kAXErrorCannotComplete performing AXAction kAXScrollToVisibleAction on element AX element pid: 12215, elementOrHash.elementID: 4383675040.15
+    t =    16.14s     Retrying `Tap "我的持有" Button` (attempt #3)
+    t =    16.14s         Wait for tw.sonia.etftogo.uireview to idle
+    t =    16.15s         Find the "wallet.bifold" Button
+    t =    16.20s         Check for interrupting elements affecting "wallet.bifold" Button
+    t =    16.25s         Synthesize event
+    t =    16.26s             Scroll element to visible
+    t =    16.27s             Find the "wallet.bifold" Button
+    t =    16.36s             Computed hit point {-1, -1} after scrolling to visible
+    t =    16.36s             Failed: Failed to scroll to visible (by AX action) Button, {{163.0, 792.0}, {76.0, 48.0}}, identifier: 'wallet.bifold', label: '我的持有', error: Error kAXErrorCannotComplete performing AXAction kAXScrollToVisibleAction on element AX element pid: 12215, elementOrHash.elementID: 4383675040.15
+    t =    16.37s Requesting snapshot of accessibility hierarchy for app with pid 12215
+/Users/runner/work/ETFToGo/ETFToGo/UITests/ETFToGoUITests.swift:13: error: -[ETFToGoUITests.ETFToGoUITests testAllTabsAndSearch] : Failed to failed to scroll to visible (by AX action) Button, {{163.0, 792.0}, {76.0, 48.0}}, identifier: 'wallet.bifold', label: '我的持有', error: Error kAXErrorCannotComplete performing AXAction kAXScrollToVisibleAction on element AX element pid: 12215, elementOrHash.elementID: 4383675040.15. (Underlying Error: Error kAXErrorCannotComplete performing AXAction kAXScrollToVisibleAction on element AX element pid: 12215, elementOrHash.elementID: 4383675040.15)
+    t =    18.06s Tear Down
+Test Case '-[ETFToGoUITests.ETFToGoUITests testAllTabsAndSearch]' failed (18.379 seconds).
+Test Case '-[ETFToGoUITests.ETFToGoUITests testHoldingSurvivesRelaunch]' started.
+    t =     0.00s Start Test at 2026-10-15 01:04:44.964
+    t =     0.06s Set Up
+    t =     0.06s Open tw.sonia.etftogo.uireview
+    t =     0.06s     Launch tw.sonia.etftogo.uireview
+    t =     0.06s         Terminate tw.sonia.etftogo.uireview:12215
+    t =     4.09s         Setting up automation session
+    t =     4.53s         Wait for tw.sonia.etftogo.uireview to idle
+    t =     6.05s Tap "home-add-holding" Button
+    t =     6.06s     Wait for tw.sonia.etftogo.uireview to idle
+    t =     6.06s     Find the "home-add-holding" Button
+    t =     6.21s     Check for interrupting elements affecting "home-add-holding" Button
+    t =     6.25s     Synthesize event
+    t =     6.56s     Wait for tw.sonia.etftogo.uireview to idle
+    t =     7.25s Tap "holding-symbol" TextField
+    t =     7.26s     Wait for tw.sonia.etftogo.uireview to idle
+    t =     7.73s     Find the "holding-symbol" TextField
+    t =     8.00s     Check for interrupting elements affecting "holding-symbol" TextField
+    t =     8.10s     Synthesize event
+    t =     8.41s     Wait for tw.sonia.etftogo.uireview to idle
+    t =     8.75s Type '0050' into "holding-symbol" TextField
+    t =     8.75s     Wait for tw.sonia.etftogo.uireview to idle
+    t =     9.35s     Find the "holding-symbol" TextField
+    t =     9.53s     Check for interrupting elements affecting "holding-symbol" TextField
+    t =     9.61s     Synthesize event
+    t =     9.88s     Wait for tw.sonia.etftogo.uireview to idle
+    t =     9.89s Find the "holding-name" TextField
+    t =    10.02s Tap "holding-shares" TextField
+    t =    10.02s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    10.02s     Find the "holding-shares" TextField
+    t =    10.13s     Check for interrupting elements affecting "holding-shares" TextField
+    t =    10.24s     Synthesize event
+    t =    10.56s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    10.75s Type '1000' into "holding-shares" TextField
+    t =    10.75s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    10.82s     Find the "holding-shares" TextField
+    t =    11.32s     Check for interrupting elements affecting "holding-shares" TextField
+    t =    11.54s     Synthesize event
+    t =    11.82s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    11.82s Tap "holding-cost" TextField
+    t =    11.82s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    11.82s     Find the "holding-cost" TextField
+    t =    11.92s     Check for interrupting elements affecting "holding-cost" TextField
+    t =    11.99s     Synthesize event
+    t =    12.37s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    12.41s Type '50' into "holding-cost" TextField
+    t =    12.41s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    12.51s     Find the "holding-cost" TextField
+    t =    12.58s     Check for interrupting elements affecting "holding-cost" TextField
+    t =    12.69s     Synthesize event
+    t =    12.93s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    12.94s Tap "holding-broker" TextField
+    t =    12.94s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    12.95s     Find the "holding-broker" TextField
+    t =    13.03s     Check for interrupting elements affecting "holding-broker" TextField
+    t =    13.10s     Synthesize event
+    t =    13.41s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    13.41s Type 'Test Broker' into "holding-broker" TextField
+    t =    13.41s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    13.44s     Find the "holding-broker" TextField
+    t =    13.64s     Check for interrupting elements affecting "holding-broker" TextField
+    t =    13.78s     Synthesize event
+    t =    14.18s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    14.21s Tap "save-holding" Button
+    t =    14.21s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    14.26s     Find the "save-holding" Button
+    t =    14.38s     Check for interrupting elements affecting "save-holding" Button
+    t =    14.54s     Synthesize event
+    t =    14.91s     Wait for tw.sonia.etftogo.uireview to idle
+    t =    15.24s Waiting 5.0s for "home-add-holding" Button to exist
+    t =    16.32s     Checking `Expect predicate `existsNoRetry == 1` for object "home-add-holding" Button`
+    t =    16.32s         Checking existence of `"home-add-holding" Button`
+    t =    16.36s Terminate tw.sonia.etftogo.uireview:13234
+    t =    17.38s Open tw.sonia.etftogo.uireview
+    t =    17.38s     Launch tw.sonia.etftogo.uireview
+    t =    18.51s         Setting up automation session
+    t =    19.21s         Wait for tw.sonia.etftogo.uireview to idle
+    t =    20.86s Waiting 10.0s for "Test Broker" StaticText to exist
+    t =    21.87s     Checking `Expect predicate `existsNoRetry == 1` for object "Test Broker" StaticText`
+    t =    21.87s         Checking existence of `"Test Broker" StaticText`
+    t =    21.98s Checking existence of `"0050" StaticText`
+    t =    22.02s Tear Down
+Test Case '-[ETFToGoUITests.ETFToGoUITests testHoldingSurvivesRelaunch]' passed (22.315 seconds).
+Test Suite 'ETFToGoUITests' failed at 2026-10-15 01:05:07.279.
+	 Executed 2 tests, with 1 failure (0 unexpected) in 40.694 (40.695) seconds
+Test Suite 'ETFToGoUITests.xctest' failed at 2026-10-15 01:05:07.279.
+	 Executed 2 tests, with 1 failure (0 unexpected) in 40.694 (40.696) seconds
+Test Suite 'All tests' failed at 2026-10-15 01:05:07.280.
+	 Executed 2 tests, with 1 failure (0 unexpected) in 40.694 (40.697) seconds
+2026-10-15 01:05:50.138 xcodebuild[11180:35455] [MT] IDETestOperationsObserverDebug: 111.965 elapsed -- Testing started completed.
+2026-10-15 01:05:50.138 xcodebuild[11180:35455] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-10-15 01:05:50.138 xcodebuild[11180:35455] [MT] IDETestOperationsObserverDebug: 111.965 sec, +111.965 sec -- end
+
+Test session results, code coverage, and logs:
+	/Users/runner/work/ETFToGo/ETFToGo/build/Tests.xcresult
+
+Failing tests:
+	ETFToGoUITests.testAllTabsAndSearch()
+
+** TEST EXECUTE FAILED **
+
+Testing started
