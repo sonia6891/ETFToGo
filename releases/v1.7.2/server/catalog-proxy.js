@@ -1,7 +1,0 @@
-/** Proxy only public metadata. It never forwards cookies, API keys or personal records. */
-export function createCatalogProxy(endpoint,fetcher=fetch,now=Date.now){
- let snapshot=null,pending=null,checked=0,error=null;
- const current=()=>snapshot?{...snapshot,stale:!!error||snapshot.stale,warning:error?'最新同步暫時失敗，保留上次成功版本。':snapshot.warning}:{ok:false,error:'REFERENCE_UNAVAILABLE',records:[]};
- async function get(){if(pending)return pending;if(checked&&now()-checked<60000)return current();checked=now();pending=(async()=>{try{const r=await fetcher(endpoint,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(22000),redirect:'error'});if(!r.ok)throw Error('REFERENCE_HTTP_'+r.status);const text=await r.text();if(text.length>2000000)throw Error('REFERENCE_TOO_LARGE');const data=JSON.parse(text);if(data.ok!==true||data.version!==1||!['twse-domestic-equity','twse-listed'].includes(data.scope)||!Array.isArray(data.records)||!data.records.length||data.records.length>1000||!/^\d{4}-\d{2}-\d{2}$/.test(data.sourceDate))throw Error('REFERENCE_SCHEMA');if(snapshot&&data.sourceDate<snapshot.sourceDate)throw Error('REFERENCE_REGRESSION');snapshot=data;error=null;}catch(e){error=String(e.message).slice(0,120);console.log('REFERENCE_PROXY_WARNING',error);}finally{pending=null;}return current();})();return pending;}
- return {get,status:()=>({connected:!!snapshot,sourceDate:snapshot?.sourceDate||null,count:snapshot?.records.length||0,scope:snapshot?.scope||'twse-listed',stale:!!error||!!snapshot?.stale})};
-}

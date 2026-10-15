@@ -1,6 +1,6 @@
 # ETF 袋著走 — 原生 UI 審閱版與發佈紀錄
 
-更新日期：2026-10-15。這是本次新實作的 SwiftUI UI 審閱版，不是聲稱已找回的 ETFToGo_Native_UI_V2。
+更新日期：2026-10-15。目前唯一開發來源為 SwiftUI 0.2.0。依使用者決定，現行工程與交付包僅保留最新版，取消舊版原始碼整合工作。
 
 ## 已實際完成
 
@@ -15,7 +15,6 @@
 
 ## 可重查的證據
 
-- [iOS 18.5 模擬器驗證](https://github.com/sonia6891/ETFToGo/actions/runs/38664300600)：6 項單元測試、2 項 UI 測試通過。搜尋、五個分頁操作、持有儲存後重新啟動均有自動化驗證。
 - [Xcode 26.6 模擬器驗證](https://github.com/sonia6891/ETFToGo/actions/runs/38665125561)：**成功**。iPhone 17 Pro / iOS 26.4.1 上完成原生編譯、五頁截圖、6 項單元測試及 2 項 UI 測試，全部零失敗。包含損壞資料原始位元組匯出、搜尋鍵盤收起與持有重新啟動後保留。
 - [正式簽署與匯出](https://github.com/sonia6891/meow-work-app/actions/runs/38665723372)：ARCHIVE SUCCEEDED、EXPORT SUCCEEDED。Upload 步驟為 skipped。
 - 本資料夾 `Evidence/` 保存封存、匯出、Apple 設定與 IPA 檢查結果。
@@ -37,11 +36,11 @@ Apple API 可讀取帳號並使用現有發佈憑證；不需要再購買會員�
 ## 這版的範圍
 
 - 正常啟動為空資料。截圖使用 `--demo`，數字為示範資料，且不寫入使用者正式資料。
-- 本版僅內建 6 檔 UI 起始清單；原始碼檔案庫中的歷史 `releases/v1.7.2/ios/` 包含 272 筆上市代碼快照，尚未移植到本版。快照不等於即時全台 ETF 總數，也不含上櫃。
+- 本版僅內建 6 檔 UI 起始清單，不代表即時全台 ETF 總數；正式名單待使用交易所資料擴充。
 - 原生 JSON 存檔採原子寫入，壞檔不覆寫，匯出會保留損壞檔原始位元組以便救援。本版 schema 1 備份尚不相容舊 PWA 備份。
 - 富果以官方 HTTP API 和 Keychain 實作；尚無可用的個人富果金鑰，因此沒有帳戶連線實測證據。報價缺失時不會用成本假裝市值。
 - 配息由使用者記錄，區分已入帳、已公告、預估，沒有自動公告串接。
-- 原版的完整名單、成分股、舊備份、完整配息欄位和其他進階功能尚待整合，不宣稱這是功能完整的舊版替代品。
+- 成分股穿透、完整費用率與歷史績效尚未實作；後續功能以本工程繼續開發。
 - App Icon 沿用既有 512 × 512 圖案，1024 × 1024 版本為等比放大，已成功納入 App。
 
 Apple 官方說明：[新增 App 必須從網站進行](https://developer.apple.com/documentation/appstoreconnectapi/apps)、[建立 App 記錄](https://developer.apple.com/help/app-store-connect/create-an-app-record/add-a-new-app/)、[現行 SDK 最低要求](https://developer.apple.com/news/upcoming-requirements/?id=04282026a)。
