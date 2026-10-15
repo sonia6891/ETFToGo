@@ -16,9 +16,10 @@
 ## 可重查的證據
 
 - [iOS 18.5 模擬器驗證](https://github.com/sonia6891/ETFToGo/actions/runs/38664300600)：6 項單元測試、2 項 UI 測試通過。搜尋、五個分頁操作、持有儲存後重新啟動均有自動化驗證。
-- [Xcode 26.6 模擬器驗證](https://github.com/sonia6891/ETFToGo/actions/runs/38665125561)：以該工作流程最終結果為準，後續結果會在交付紀錄補充。
+- [Xcode 26.6 模擬器驗證](https://github.com/sonia6891/ETFToGo/actions/runs/38665125561)：**成功**。iPhone 17 Pro / iOS 26.4.1 上完成原生編譯、五頁截圖、6 項單元測試及 2 項 UI 測試，全部零失敗。包含損壞資料原始位元組匯出、搜尋鍵盤收起與持有重新啟動後保留。
 - [正式簽署與匯出](https://github.com/sonia6891/meow-work-app/actions/runs/38665723372)：ARCHIVE SUCCEEDED、EXPORT SUCCEEDED。Upload 步驟為 skipped。
 - 本資料夾 `Evidence/` 保存封存、匯出、Apple 設定與 IPA 檢查結果。
+- `Screens/` 保存五張 1206 × 2622 原尺寸截圖與總覽；全部為實際模擬器輸出，使用示範資料。
 - 編譯／封存來源：ETFToGo commit `b4d340a506324318969c8c550ee8e95ef259e0fd`。
 
 ## TestFlight 尚缺的步驟
