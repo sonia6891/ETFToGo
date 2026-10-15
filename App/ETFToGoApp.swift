@@ -86,7 +86,7 @@ struct HomeView: View {
                 Button { add = true } label: { Label("新增持有", systemImage: "plus").frame(maxWidth: .infinity).padding(.vertical, 15) }.buttonStyle(.borderedProminent).buttonBorderShape(.roundedRectangle(radius: 15)).accessibilityIdentifier("home-add-holding")
                 Button { tab = 3 } label: { Label("查看配息", systemImage: "calendar").frame(maxWidth: .infinity).padding(.vertical, 15) }.buttonStyle(.bordered).buttonBorderShape(.roundedRectangle(radius: 15))
             }
-            SectionHeading(title: "這個月，收進口袋", subtitle: Date().formatted(.dateTime.year().month(.wide)))
+            SectionHeading(title: "這個月，收進口袋", subtitle: Date().formatted(.dateTime.year().month(.wide).locale(Locale(identifier: "zh_Hant_TW"))))
             Card {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 9) { Text("已入帳").font(.subheadline).foregroundStyle(.secondary); Text("$\(money(currentMonth.filter { $0.status == .paid }.reduce(0) { $0 + $1.amount }))").font(.title.bold()).foregroundStyle(Palette.ink) }
@@ -95,7 +95,7 @@ struct HomeView: View {
                 }
                 Divider().padding(.vertical, 12)
                 if currentMonth.isEmpty { Text("新增一筆配息，開始記錄你的現金流。").font(.subheadline).foregroundStyle(.secondary) }
-                else { ForEach(currentMonth.prefix(2)) { item in HStack { Text(item.symbol).font(.subheadline.bold()); Text(item.date.formatted(.dateTime.month().day())).font(.caption).foregroundStyle(.secondary); Spacer(); Text(item.status.rawValue).font(.caption).foregroundStyle(item.status == .paid ? Palette.green : Palette.blue) }.padding(.vertical, 4) } }
+                else { ForEach(currentMonth.prefix(2)) { item in HStack { Text(item.symbol).font(.subheadline.bold()); Text(item.date.formatted(.dateTime.month().day().locale(Locale(identifier: "zh_Hant_TW")))).font(.caption).foregroundStyle(.secondary); Spacer(); Text(item.status.rawValue).font(.caption).foregroundStyle(item.status == .paid ? Palette.green : Palette.blue) }.padding(.vertical, 4) } }
             }
             HStack { SectionHeading(title: "我的配置", subtitle: "依投入成本計算"); Button("查看全部") { tab = 2 }.font(.subheadline) }
             Card {

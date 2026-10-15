@@ -1,6 +1,7 @@
 name: ETFToGo
 options:
   bundleIdPrefix: tw.sonia
+  developmentLanguage: zh-Hant
   deploymentTarget:
     iOS: '17.0'
 settings:

@@ -41,6 +41,7 @@ struct HoldingEditor: View {
     var existing: Holding?
     var fund: Fund?
     @State private var symbol = ""
+    @State private var selectedFund = ""
     @State private var name = ""
     @State private var shares = ""
     @State private var cost = ""
@@ -52,7 +53,7 @@ struct HoldingEditor: View {
         NavigationStack {
             Form {
                 Section { Text("1  選擇 ETF").font(.headline).foregroundStyle(Palette.blue)
-                    if existing == nil { Picker("快速選擇", selection: $symbol) { Text("手動輸入").tag(symbol); ForEach(Fund.starters) { Text("\($0.id) \($0.name)").tag($0.id) } }.onChange(of: symbol) { _, value in if let item = Fund.starters.first(where: { $0.id == value }) { name = item.name; strategy = item.strategy } } }
+                    if existing == nil { Picker("快速選擇", selection: $selectedFund) { Text("手動輸入").tag(""); ForEach(Fund.starters) { Text("\($0.id) \($0.name)").tag($0.id) } }.onChange(of: selectedFund) { _, value in if let item = Fund.starters.first(where: { $0.id == value }) { symbol = item.id; name = item.name; strategy = item.strategy } } }
                     TextField("ETF 代碼", text: $symbol).textInputAutocapitalization(.characters).autocorrectionDisabled().accessibilityIdentifier("holding-symbol")
                     TextField("ETF 名稱", text: $name).accessibilityIdentifier("holding-name")
                 }
@@ -67,7 +68,7 @@ struct HoldingEditor: View {
                 if existing != nil { Section { Button("刪除這筆持有", role: .destructive) { deletePrompt = true } } }
             }.navigationTitle(existing == nil ? "新增持有" : "編輯持有").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("儲存") { save() }.fontWeight(.bold).accessibilityIdentifier("save-holding") } }
-                .onAppear { if let h = existing { symbol = h.symbol; name = h.name; shares = decimal(h.shares).replacingOccurrences(of: ",", with: ""); cost = decimal(h.unitCost).replacingOccurrences(of: ",", with: ""); broker = h.broker; strategy = h.strategy } else if let fund { symbol = fund.id; name = fund.name; strategy = fund.strategy } }
+                .onAppear { if let h = existing { symbol = h.symbol; name = h.name; shares = String(h.shares); cost = String(h.unitCost); broker = h.broker; strategy = h.strategy } else if let fund { symbol = fund.id; selectedFund = fund.id; name = fund.name; strategy = fund.strategy } }
                 .confirmationDialog("刪除這筆持有？配息紀錄會保留。", isPresented: $deletePrompt, titleVisibility: .visible) { Button("確認刪除", role: .destructive) { do { if let existing { try store.remove(existing) }; dismiss() } catch { self.error = error.localizedDescription } } }
         }
     }
@@ -84,7 +85,7 @@ struct DividendsView: View {
     var entries: [Dividend] { store.data.dividends.filter { Calendar.current.isDate($0.date, equalTo: month, toGranularity: .month) }.sorted { $0.date < $1.date } }
     var body: some View {
         Page {
-            HStack { Button { change(-1) } label: { Image(systemName: "chevron.left").padding(12) }.accessibilityLabel("上一個月"); Spacer(); Text(month.formatted(.dateTime.year().month(.wide))).font(.title3.bold()); Spacer(); Button { change(1) } label: { Image(systemName: "chevron.right").padding(12) }.accessibilityLabel("下一個月") }.background(.white, in: RoundedRectangle(cornerRadius: 16))
+            HStack { Button { change(-1) } label: { Image(systemName: "chevron.left").padding(12) }.accessibilityLabel("上一個月"); Spacer(); Text(month.formatted(.dateTime.year().month(.wide).locale(Locale(identifier: "zh_Hant_TW")))).font(.title3.bold()); Spacer(); Button { change(1) } label: { Image(systemName: "chevron.right").padding(12) }.accessibilityLabel("下一個月") }.background(.white, in: RoundedRectangle(cornerRadius: 16))
             Card {
                 Label("本月已入帳", systemImage: "checkmark.circle.fill").font(.subheadline).foregroundStyle(Palette.green)
                 Text("$\(money(entries.filter { $0.status == .paid }.reduce(0) { $0 + $1.amount }))").font(.system(size: 38, weight: .bold, design: .rounded)).padding(.vertical, 8)
@@ -97,7 +98,7 @@ struct DividendsView: View {
             ForEach(entries) { item in
                 Card {
                     HStack(alignment: .top, spacing: 14) {
-                        VStack(spacing: 3) { Text(item.date.formatted(.dateTime.day())).font(.title2.bold()); Text(item.date.formatted(.dateTime.month(.abbreviated))).font(.caption2) }.foregroundStyle(Palette.blue).frame(width: 48).padding(.vertical, 10).background(Palette.blue.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+                        VStack(spacing: 3) { Text(item.date.formatted(.dateTime.day().locale(Locale(identifier: "zh_Hant_TW")))).font(.title2.bold()); Text(item.date.formatted(.dateTime.month(.abbreviated).locale(Locale(identifier: "zh_Hant_TW")))).font(.caption2) }.foregroundStyle(Palette.blue).frame(width: 48).padding(.vertical, 10).background(Palette.blue.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
                         VStack(alignment: .leading, spacing: 8) { Text(Fund.starters.first(where: { $0.id == item.symbol })?.name ?? item.symbol).font(.headline); Text("\(item.symbol) · \(item.status.rawValue)").font(.caption).foregroundStyle(.secondary); Text("$\(money(item.amount))").font(.title3.bold()).foregroundStyle(item.status == .paid ? Palette.green : Palette.ink) }
                         Spacer(); Image(systemName: item.status == .paid ? "checkmark.circle.fill" : "clock").foregroundStyle(item.status == .paid ? Palette.green : Palette.blue)
                     }
