@@ -1476,6 +1476,15 @@ VIEWS.install = () => {
       : IN_APP_BROWSER
         ? `<div class="card"><b>請先用 Safari 或 Chrome 開啟</b><p class="note" style="margin:6px 0 10px">LINE、Facebook 等 App 內建的瀏覽器不能加入主畫面。點右上角選單，選「用瀏覽器開啟」，或複製網址貼到 Safari。</p><button type="button" class="btn soft block" data-act="copy" data-text="${PAGES_URL}">複製網址</button></div>`
         : "";
+  // iOS sometimes cannot fetch the icon when adding from Safari; a Web Clip profile carries the icon itself.
+  const profileCard = IS_STANDALONE || os !== "ios" ? "" : `<div class="card"><b>最穩的方法：用描述檔加入</b><p class="note" style="margin:6px 0 4px">有些 iPhone 從 Safari 加入時抓不到圖示，只顯示字母「E」。這個描述檔直接把藍底口袋圖示放到主畫面，不靠 Safari 抓圖。</p>
+      <ol class="steps">
+        <li><span>用 <b>Safari</b> 點下面的按鈕，問「要允許下載描述檔嗎？」時點「允許」。</span></li>
+        <li><span>打開 iPhone「設定」，點最上面的「已下載描述檔」，再點右上角「安裝」。會顯示「未驗證」，因為描述檔沒有付費簽章；裡面只有這一個主畫面圖示。</span></li>
+        <li><span>回到主畫面，就會看到藍底口袋的「ETF 袋著走」。</span></li>
+      </ol>
+      <a class="btn primary block" style="text-decoration:none;margin-top:6px" href="${CAN_FUGLE ? "" : PAGES_URL}ETFToGo.mobileconfig">${icon("addSquare")}下載主畫面描述檔</a>
+      <p class="note" style="margin-top:8px">不想要時：長按圖示刪除，或到「設定 › 一般 › VPN 與裝置管理」移除描述檔。</p></div>`;
   const quick = !IS_STANDALONE && CAN_FUGLE && installPrompt ? `<button type="button" class="btn primary block" data-act="install">${icon("addSquare")}加入主畫面</button>` : "";
   const steps = os === "ios"
     ? `<ol class="steps">
@@ -1493,8 +1502,8 @@ VIEWS.install = () => {
   return {
     title: "加入主畫面", back: true,
     body: `<div class="card"><b>加入後的主畫面</b><p class="note" style="margin:4px 0 12px">主畫面會出現 ETF 袋著走的口袋圖示，點它就像 App 一樣全螢幕開啟。</p>${preview}</div>
-      ${status}${quick}
-      ${IS_STANDALONE ? "" : `<div class="card"><div class="row"><b class="grow">加入步驟</b><div class="seg-mini">${[["ios", "iPhone"], ["android", "Android"]].map(([k, t]) => `<button type="button" class="${os === k ? "on" : ""}" data-act="installOS" data-v="${k}">${t}</button>`).join("")}</div></div>${steps}</div>`}
+      ${status}${quick}${profileCard}
+      ${IS_STANDALONE ? "" : `<div class="card"><div class="row"><b class="grow">${os === "ios" ? "或從 Safari 加入" : "加入步驟"}</b><div class="seg-mini">${[["ios", "iPhone"], ["android", "Android"]].map(([k, t]) => `<button type="button" class="${os === k ? "on" : ""}" data-act="installOS" data-v="${k}">${t}</button>`).join("")}</div></div>${steps}</div>`}
       <div class="card"><b>主畫面上是舊圖示？</b><p class="note" style="margin:6px 0 4px">iPhone 會記住加入當下的圖示，要重新加入才會換成新圖示。主畫面 App 的資料存在它自己裡面，移除前一定要先備份：</p>
         <ol class="steps">
           <li><span>在舊的主畫面 App 裡，到「資料備份與還原」按「匯出備份」，把檔案存好。</span></li>

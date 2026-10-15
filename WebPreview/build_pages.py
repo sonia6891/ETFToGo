@@ -6,9 +6,12 @@ page in a full document with the app icon and home-screen metadata.
 Usage, from the repository root:  python -I WebPreview/build_pages.py <output-dir>
 """
 import hashlib
+import io
 import json
+import plistlib
 import shutil
 import sys
+import uuid
 from pathlib import Path
 
 from PIL import Image
@@ -86,6 +89,29 @@ manifest = {
     ],
 }
 (out / manifest_name).write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+
+# A Web Clip configuration profile puts the app on the home screen with this exact icon, without relying on
+# Safari to fetch it. It holds only the web clip; the viewer installs it in Settings and can remove it there.
+clip_png = io.BytesIO()
+icon.resize((400, 400), Image.LANCZOS).save(clip_png, format="PNG", optimize=True)
+clip = {
+    "PayloadType": "com.apple.webClip.managed", "PayloadVersion": 1,
+    "PayloadIdentifier": "io.github.sonia6891.etftogo.webclip",
+    "PayloadUUID": str(uuid.uuid5(uuid.NAMESPACE_URL, site + "#webclip")).upper(),
+    "PayloadDisplayName": "ETF 袋著走 主畫面圖示",
+    "Label": "ETF 袋著走", "URL": site, "Icon": clip_png.getvalue(),
+    "FullScreen": True, "IsRemovable": True, "Precomposed": True,
+}
+profile = {
+    "PayloadType": "Configuration", "PayloadVersion": 1,
+    "PayloadIdentifier": "io.github.sonia6891.etftogo",
+    "PayloadUUID": str(uuid.uuid5(uuid.NAMESPACE_URL, site + "#profile")).upper(),
+    "PayloadDisplayName": "ETF 袋著走",
+    "PayloadDescription": "在主畫面加入 ETF 袋著走網頁 App（藍底口袋圖示）。只包含一個主畫面圖示，不會變更其他設定。",
+    "PayloadRemovalDisallowed": False,
+    "PayloadContent": [clip],
+}
+(out / "ETFToGo.mobileconfig").write_bytes(plistlib.dumps(profile))
 shutil.copyfile(here / "etf-data.json", out / "etf-data.json")
 # Illustrations (made with Figma AI, prepared by prepare_art.py) are referenced as assets/<name>.png.
 shutil.copytree(here / "assets", out / "assets", dirs_exist_ok=True)
