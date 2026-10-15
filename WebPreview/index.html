@@ -70,7 +70,7 @@ input, select, textarea { font: inherit; font-size: 16px; color: var(--ink); }
 .btn.soft { background: color-mix(in srgb, var(--blue) 9%, white); color: var(--blue); }
 .btn.danger { background: color-mix(in srgb, var(--red) 10%, white); color: var(--red); }
 .btn.block { width: 100%; }
-.btn:disabled { opacity: .45; }
+.btn:disabled, button:disabled { opacity: .45; cursor: default; }
 .btn:active { transform: scale(.98); }
 
 /* Pills */
@@ -361,11 +361,14 @@ function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify({ mod
 
 /* ---------- persistence: the viewer's private db document, else this browser ---------- */
 let DOC = null, writeChain = Promise.resolve(), lastSaved = "";
-const PERSISTED = ["holdings", "dividends", "favorites", "comparison", "plan", "goal"];
+const PERSISTED = ["holdings", "dividends", "favorites", "comparison", "plan", "goal", "quotes"];
+const HISTORY_KEY = "etftogo-web-histories";
 function body(d) { const o = { schema: 1 }; PERSISTED.forEach((k) => { o[k] = d[k]; }); return o; }
 function applyMine(raw) {
   if (!raw || typeof raw !== "object") return;
   const next = emptyData();
+  next.histories = S.mine.histories || {};
+  if (raw.quotes && typeof raw.quotes === "object") Object.keys(raw.quotes).forEach((k) => { const q = raw.quotes[k]; if (q && typeof q.price === "number" && q.price > 0) next.quotes[k] = q; });
   if (Array.isArray(raw.holdings)) next.holdings = raw.holdings.filter((h) => h && h.id && h.symbol && h.shares > 0);
   if (Array.isArray(raw.dividends)) next.dividends = raw.dividends.filter((x) => x && x.id && x.symbol && /^\d{4}-\d{2}-\d{2}$/.test(x.date) && STATUSES.includes(x.status));
   if (Array.isArray(raw.favorites)) next.favorites = raw.favorites.filter((x) => typeof x === "string");
@@ -385,6 +388,7 @@ function persist() {
     try { localStorage.setItem(LOCAL_KEY, json); } catch (e) { toast("這個瀏覽器無法儲存資料，關閉頁面後會遺失。"); }
   }
 }
+function persistHistories() { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(S.mine.histories)); } catch (e) { toast("歷史資料太大，這個瀏覽器無法保存；重新整理後需再取得。"); } }
 async function initStore(hadMode) {
   let db = null, id = null;
   try {
@@ -410,6 +414,7 @@ async function initStore(hadMode) {
     } catch (e) { DOC = null; }
   }
   if (!DOC) {
+    try { const h = JSON.parse(localStorage.getItem(HISTORY_KEY) || "{}"); if (h && typeof h === "object") S.mine.histories = h; } catch (e) { /* no stored histories */ }
     try { const raw = localStorage.getItem(LOCAL_KEY); if (raw) applyMine(JSON.parse(raw)); S.storage = "local"; } catch (e) { S.storage = "memory"; }
     lastSaved = JSON.stringify(body(S.mine));
   }
@@ -431,8 +436,102 @@ async function loadCatalog() {
 }
 function commit() { if (S.mode === "mine") persist(); renderScreen(); }
 
+/* ---------- Fugle market data (same endpoints and checks as the iPhone app) ---------- */
+const PAGES_URL = "https://sonia6891.github.io/etftogo-web/";
+const FUGLE_KEY = "etftogo-fugle-key";
+// Claude artifact pages run in a sandbox that blocks every outside host, so live data only works on the standalone page.
+const CAN_FUGLE = !(window.claude && typeof window.claude.use === "function");
+function fugleKey() { try { return localStorage.getItem(FUGLE_KEY) || ""; } catch (e) { return ""; } }
+function httpMessage(code) {
+  if (code === 401) return "金鑰無效或已失效，請重新確認行情金鑰。";
+  if (code === 403) return "目前方案沒有這項資料權限；已有資料會保留。";
+  if (code === 429) return "已達資料請求額度，請稍後重試；已有資料會保留。";
+  return `資料服務暫時無法使用（${code}），保留上次成功資料。`;
+}
+async function fugle(path, sym, query) {
+  if (!/^[0-9A-Z]{4,8}$/.test(sym)) throw new Error("代號格式不正確。");
+  const key = fugleKey();
+  if (!key) throw new Error("請先在「工具 › 富果行情連線」存入你的富果 API Key。");
+  const url = new URL(`https://api.fugle.tw/marketdata/v1.0/stock/${path}/${sym}`);
+  Object.entries(query || {}).forEach(([k, v]) => url.searchParams.set(k, v));
+  let res;
+  try { res = await fetch(url, { headers: { "X-API-KEY": key, Accept: "application/json" }, redirect: "error", cache: "no-store" }); }
+  catch (e) { throw new Error("連不上富果，請確認網路後再試。"); }
+  if (!res.ok) { const err = new Error(httpMessage(res.status)); err.status = res.status; throw err; }
+  return res.json();
+}
+const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function fetchQuote(sym) {
+  const q = await fugle("intraday/quote", sym);
+  const t = await fugle("intraday/ticker", sym);
+  const price = num(q.closePrice) != null ? q.closePrice : num(q.lastPrice);
+  if (q.symbol !== sym || t.symbol !== sym || !(price > 0)) throw new Error(`${sym} 沒有有效成交價，請稍後再試。`);
+  return { price, change: num(q.change), changePercent: num(q.changePercent), open: num(q.openPrice), high: num(q.highPrice), low: num(q.lowPrice), volume: q.total ? num(q.total.tradeVolume) : null, date: String(q.date || ""), fetchedAt: Date.now(), currency: t.tradingCurrency || "UNKNOWN" };
+}
+async function fetchHistory(sym, years) {
+  const end = new Date(); const earliest = new Date(2010, 0, 1);
+  let cursor = new Date(Math.max(new Date(end.getFullYear() - years, end.getMonth(), end.getDate()).getTime(), earliest.getTime()));
+  const byDate = new Map();
+  while (cursor <= end) {
+    const chunkEnd = new Date(Math.min(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 359).getTime(), end.getTime()));
+    try {
+      const j = await fugle("historical/candles", sym, { from: dayStr(cursor), to: dayStr(chunkEnd), timeframe: "D", adjusted: "true", fields: "close", sort: "asc" });
+      if (j.symbol !== sym || j.adjusted !== true || j.timeframe !== "D") throw new Error("行情服務未確認還原價格，未計算績效。");
+      (j.data || []).forEach((p) => { if (/^\d{4}-\d{2}-\d{2}$/.test(p.date) && num(p.close) > 0) byDate.set(p.date, p.close); });
+    } catch (e) { if (e.status !== 404) throw e; /* pre-listing or non-trading intervals may contain no data */ }
+    cursor = new Date(chunkEnd.getFullYear(), chunkEnd.getMonth(), chunkEnd.getDate() + 1);
+    if (cursor <= end) await sleep(1100);
+  }
+  const points = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  if (points.length < 2) throw new Error("這段期間沒有足夠的歷史資料。");
+  return points;
+}
+let busy = null;
+const canLive = () => S.mode === "mine" && CAN_FUGLE && !!fugleKey();
+function liveNote() {
+  if (S.mode === "demo") return "切換到「我的資料」並存入富果金鑰後，即可取得真實行情。";
+  if (!CAN_FUGLE) return "Claude 連結版無法連線富果，請改用網頁版 App（設定裡有網址）。";
+  if (!fugleKey()) return "到「工具 › 富果行情連線」存入你的富果 API Key 後即可取得。";
+  return "";
+}
+function quoteNote(q) {
+  const at = q.fetchedAt ? new Date(q.fetchedAt) : null;
+  const when = at ? `・取得於 ${at.getMonth() + 1}/${at.getDate()} ${pad(at.getHours())}:${pad(at.getMinutes())}` : "";
+  const fx = q.currency && q.currency !== "TWD" ? `・交易幣別 ${esc(q.currency)}，不計入台幣市值` : "";
+  return `報價日期 ${esc(q.date)}${when}${fx}`;
+}
+function liveBlocked() {
+  if (S.mode === "demo") { toast("示範資料不連線；切換到我的資料後再更新。"); return true; }
+  if (!CAN_FUGLE) { toast("Claude 連結版無法連線富果，請改用網頁版 App。"); return true; }
+  if (!fugleKey()) { toast("請先在「工具 › 富果行情連線」存入你的富果 API Key。"); return true; }
+  if (busy) { toast("正在取得資料，請稍候。"); return true; }
+  return false;
+}
+async function refreshQuotes(symbols) {
+  if (liveBlocked()) return;
+  const list = [...new Set(symbols || S.mine.holdings.map((h) => h.symbol))].sort();
+  if (!list.length) { toast("請先新增持有，或到 ETF 詳情更新這檔報價。"); return; }
+  busy = "quotes"; renderScreen(); toast(`正在更新 ${list.length} 檔報價…`);
+  const got = {}; let error = null;
+  for (let i = 0; i < list.length; i++) {
+    try { got[list[i]] = await fetchQuote(list[i]); } catch (e) { error = e.message; if (e.status === 401 || e.status === 403 || e.status === 429 || !fugleKey()) break; }
+    if (i < list.length - 1) await sleep(2100);
+  }
+  Object.assign(S.mine.quotes, got); busy = null; persist(); renderScreen();
+  const n = Object.keys(got).length;
+  toast(error ? `已更新 ${n}／${list.length} 檔。${error}` : `已更新 ${n} 檔報價`);
+}
+async function loadHistory(sym, years) {
+  if (liveBlocked()) return;
+  busy = "history:" + sym; renderScreen(); toast("分段取得歷史資料，約需數十秒…");
+  try { S.mine.histories[sym] = await fetchHistory(sym, years); persistHistories(); toast(`已取得 ${sym} 歷史走勢`); }
+  catch (e) { toast(e.message); }
+  busy = null; renderScreen();
+}
+
 /* ---------- calculations (ported from the Swift app) ---------- */
-function isTWDQuote(d, sym) { return !!d.quotes[sym]; }
+function isTWDQuote(d, sym) { const q = d.quotes[sym]; return !!q && (!q.currency || q.currency === "TWD"); }
 function marketValue(d) {
   if (!d.holdings.length || !d.holdings.every((h) => isTWDQuote(d, h.symbol))) return null;
   return sum(d.holdings, (h) => h.shares * d.quotes[h.symbol].price);
@@ -537,6 +636,7 @@ const P = {
   layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 7.6v.01"/>',
+  refresh: '<path d="M20 11.5a8 8 0 1 0-2.4 5.9"/><path d="M20 4.5v7h-7"/>',
 };
 const icon = (name, fill) => `<svg viewBox="0 0 24 24" fill="${fill ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[name]}</svg>`;
 
@@ -603,14 +703,14 @@ VIEWS.home = () => {
     </div>
     ${modeBanner()}
     <section class="hero" aria-label="我的資產總覽">
-      <div class="row"><span class="label">我的資產總覽 <span>(TWD)</span></span><button type="button" class="icon-btn eye" data-act="hide" aria-label="${S.prefs.hidden ? "顯示金額" : "隱藏金額"}">${icon(S.prefs.hidden ? "eyeOff" : "eye")}</button></div>
+      <div class="row"><span class="label">我的資產總覽 <span>(TWD)</span></span><span class="row" style="margin-left:auto;gap:2px">${S.mode === "mine" && d.holdings.length ? `<button type="button" class="icon-btn eye" data-act="refreshAll" aria-label="更新持有報價"${busy ? " disabled" : ""}>${icon("refresh")}</button>` : ""}<button type="button" class="icon-btn eye" data-act="hide" aria-label="${S.prefs.hidden ? "顯示金額" : "隱藏金額"}">${icon(S.prefs.hidden ? "eyeOff" : "eye")}</button></span></div>
       <div class="big">${s.mv == null ? "—" : shown(money(s.mv))}</div>
       ${heroLine}
       <div class="hero-tiles">
         <div class="hero-tile"><div class="t">${icon("trend").replace("<svg", '<svg width="14" height="14"')}未實現損益</div><div class="v ${s.unrealized == null ? "" : trendCls(s.unrealized)}">${s.unrealized == null ? "—" : shown(signed(s.unrealized))}</div>${s.unrealizedPct == null ? "" : `<div class="tiny bold ${trendCls(s.unrealized)}">${shown(`(${pct(s.unrealizedPct)})`)}</div>`}</div>
         <div class="hero-tile"><div class="t">${icon("coin").replace("<svg", '<svg width="14" height="14"')}累計領息</div><div class="v">${shown(money(s.paidTotal))}</div></div>
       </div>
-      ${Object.keys(d.quotes).length ? `<div class="tiny" style="opacity:.78">${S.mode === "demo" ? "示範報價，非即時市場資訊" : "依已取得報價估算・不含交易費用"}</div>` : ""}
+      ${Object.keys(d.quotes).length ? `<div class="tiny" style="opacity:.78">${S.mode === "demo" ? "示範報價，非即時市場資訊" : busy === "quotes" ? "正在更新報價…" : "依已取得報價估算・不含交易費用・按右上角箭頭更新"}</div>` : S.mode === "mine" && d.holdings.length ? `<div class="tiny" style="opacity:.85">${liveNote() || "按右上角箭頭取得持有報價"}</div>` : ""}
     </section>
     <div class="tiles">
       <div class="tile"><div class="grow"><div class="t">本月已領</div><div class="v">${shown(money(s.monthPaid))}</div></div></div>
@@ -620,7 +720,7 @@ VIEWS.home = () => {
     <div class="card">
       ${points.length >= 2
         ? `${lineChart(points, { height: 110, money: true })}<div style="margin-top:10px">${rangeChips(["1週", "1月", "3月", "1年", "全部"], S.ui.homeRange, "homeRange")}</div><p class="note" style="margin-top:8px">以目前股數 × 還原收盤價估算，不是帳戶實際歷史。</p>`
-        : `<b>資產走勢</b><p class="note" style="margin-top:4px">每檔持有都取得報價與歷史走勢後，這裡會顯示目前持股的市值變化。網頁測試版無法連線行情，可切到示範資料查看。</p>`}
+        : `<b>資產走勢</b><p class="note" style="margin-top:4px">每檔持有都取得報價與歷史走勢後，這裡會顯示目前持股的市值變化。${canLive() ? "到各檔 ETF 詳情 › 總覽 按「取得歷史走勢」。" : esc(liveNote())}</p>`}
     </div>
     <div class="quick">
       <button type="button" data-act="tab" data-i="1"><span class="ball" style="background:linear-gradient(180deg,#2cc98b,#0b9a68)">${icon("search")}</span>ETF 探索</button>
@@ -691,8 +791,9 @@ VIEWS.detail = (v) => {
     const pts = slice(historyPoints(d, f.id), S.ui.detailRange); const st = perfStats(d.histories[f.id]); const c = STRAT[f.strategy];
     content = `
       <div><div class="row" style="align-items:baseline;flex-wrap:wrap"><span class="price-big">${q ? priceText(q.price) : "—"}</span>${quoteChange(q, "")}<span class="market-badge">${f.market ? "台灣" + marketName(f) : "示範"}</span></div>
-        <p class="note">${q ? (S.mode === "demo" ? "示範報價，非即時市場資訊" : "報價日期 " + esc(q.date)) : "網頁測試版無法連線富果行情；iPhone App 可用你的金鑰更新報價。"}</p></div>
-      <div class="card">${pts.length >= 2 ? `${rangeChips(["1週", "1月", "3月", "1年", "5年"], S.ui.detailRange, "detailRange")}<div style="margin-top:10px">${lineChart(pts, { height: 170, axes: true })}</div><p class="note" style="margin-top:6px">還原日收盤價 · 資料至 ${esc(d.histories[f.id][d.histories[f.id].length - 1][0])}</p>` : `<b>尚無歷史走勢</b><p class="note" style="margin-top:4px">iPhone App 可用你的富果金鑰取得近 5 年還原日收盤價；不以試算資料代替。</p>`}</div>
+        <p class="note">${q ? (S.mode === "demo" ? "示範報價，非即時市場資訊" : quoteNote(q)) : liveNote() || "尚未取得報價。"}</p>
+        ${canLive() ? `<button type="button" class="link" data-act="refreshOne" data-sym="${esc(f.id)}"${busy ? " disabled" : ""}>${busy === "quotes" ? "更新中…" : q ? "更新這檔報價" : "取得這檔報價"}</button>` : ""}</div>
+      <div class="card">${pts.length >= 2 ? `${rangeChips(["1週", "1月", "3月", "1年", "5年"], S.ui.detailRange, "detailRange")}<div style="margin-top:10px">${lineChart(pts, { height: 170, axes: true })}</div><p class="note" style="margin-top:6px">還原日收盤價 · 資料至 ${esc(d.histories[f.id][d.histories[f.id].length - 1][0])}</p>` : `<b>尚無歷史走勢</b><p class="note" style="margin:4px 0 10px">${canLive() ? "用你的富果金鑰取得近 5 年還原日收盤價，約需 10 秒；不以試算資料代替。" : liveNote() || "iPhone App 可用你的富果金鑰取得還原日收盤價。"}</p>${canLive() ? `<button type="button" class="btn primary" data-act="loadHistory" data-sym="${esc(f.id)}" data-years="5"${busy ? " disabled" : ""}>${busy === "history:" + f.id ? "取得中…" : "取得歷史走勢"}</button>` : ""}`}</div>
       <div class="card">
         <div class="row top"><span class="emo-box" style="background:${tint(c.color, 11)}">${c.emoji}</span>
           <div class="grow"><div class="row"><b>系統分類：<span style="color:${c.color}">${esc(f.strategy)}</span></b><span class="grow"></span><button type="button" class="link" data-act="sheet" data-sheet="basis">為什麼？</button></div>
@@ -707,11 +808,12 @@ VIEWS.detail = (v) => {
       <p class="note">策略分類是整理持有的方式，不是收益保證。配息可能來自收益或本金；槓桿策略需注意每日重設及波動風險。</p>`;
   } else if (sec === 1) {
     const hist = d.histories[f.id]; const st = perfStats(hist); const pts = slice(historyPoints(d, f.id), S.ui.detailRange);
-    content = st ? `
+    const control = canLive() ? `<div class="card"><div class="row"><label class="small bold muted" for="hist-years">查詢期間</label><select id="hist-years" class="inline">${[[1, "1 年"], [3, "3 年"], [5, "5 年"], [10, "10 年"], [16, "最長 16 年"]].map(([y, t]) => `<option value="${y}"${y === 5 ? " selected" : ""}>${t}</option>`).join("")}</select><span class="grow"></span><button type="button" class="btn primary" style="min-height:38px" data-act="loadHistory" data-sym="${esc(f.id)}"${busy ? " disabled" : ""}>${busy === "history:" + f.id ? "分段取得中…" : "更新歷史績效"}</button></div><p class="note" style="margin-top:8px">取實際還原日收盤價，最早自 2010 年或基金上市日開始；長區間會分段查詢。</p></div>` : "";
+    content = control + (st ? `
       <div class="card">${rangeChips(["1月", "3月", "1年", "5年", "全部"], S.ui.detailRange, "detailRange")}<div style="margin-top:10px">${pts.length >= 2 ? lineChart(pts, { height: 200, axes: true }) : `<p class="note">此區間資料不足。</p>`}</div><p class="note" style="margin-top:6px">${st.from} ～ ${st.to} · ${st.count} 筆</p></div>
       <div class="card"><div class="out">${[["區間報酬", st.change], ["年化報酬", st.annualized], ["最大回撤", st.drawdown], ["年化波動率", st.volatility]].map(([t, val]) => `<div><span class="muted">${t}</span><b class="num">${val == null ? "資料期間不足" : dec(val * 100) + "%"}</b></div>`).join("")}</div></div>
       <p class="note">${S.mode === "demo" ? "示範走勢，非真實行情。" : ""}依還原價格計算，並非你的交易損益；未另計稅費、匯率或個人配息再投入。</p>`
-      : `<div class="card">${empty("📈", "尚無歷史資料", "iPhone App 使用你的富果金鑰取得資料後才計算，不使用情境試算代替。")}</div>`;
+      : `<div class="card">${empty("📈", "尚無歷史資料", liveNote() || "取得資料後才計算，不使用情境試算代替。")}</div>`);
   } else if (sec === 2) {
     content = `<div class="card">${empty("🧩", "尚無成分資料", "成分股需由 iPhone App 以富果成分股權限取得，或匯入有來源及日期的成分檔。沒有資料不代表沒有重疊持股。")}</div>`;
   } else if (sec === 3) {
@@ -741,15 +843,15 @@ VIEWS.detail = (v) => {
 };
 
 function holdingRow(h) {
-  const d = data(), q = d.quotes[h.symbol]; const mv = q ? q.price * h.shares : null; const cost = h.shares * h.unitCost; const gain = mv == null ? null : mv - cost;
+  const d = data(), q = d.quotes[h.symbol]; const mv = isTWDQuote(d, h.symbol) ? q.price * h.shares : null; const cost = h.shares * h.unitCost; const gain = mv == null ? null : mv - cost;
   return `<button type="button" class="list-row" style="flex-direction:column;align-items:stretch;gap:5px" data-act="sheet" data-sheet="holding" data-id="${esc(h.id)}">
-    <span class="row"><b>${esc(h.symbol)}</b><span class="grow ellipsis">${esc(h.name)}</span><b class="num">${mv == null ? '<span class="muted small">尚無報價</span>' : shown(money(mv))}</b></span>
+    <span class="row"><b>${esc(h.symbol)}</b><span class="grow ellipsis">${esc(h.name)}</span><b class="num">${mv == null ? `<span class="muted small">${q ? "外幣報價" : "尚無報價"}</span>` : shown(money(mv))}</b></span>
     <span class="row"><span class="small muted">${dec(h.shares)} 股 | 成本 ${priceText(h.unitCost)}</span><span class="tiny muted grow ellipsis">${esc(h.broker)}</span>${gain == null || cost <= 0 ? "" : `<span class="small bold num ${trendCls(gain)}">${shown(`${gain >= 0 ? "▲" : "▼"} ${signed(gain)} (${pct(gain / cost * 100)})`)}</span>`}</span></button>`;
 }
 function sortedHoldings() {
   const d = data(), q = S.ui.hq.trim().toLowerCase();
   const items = d.holdings.filter((h) => !q || [h.symbol, h.name, h.broker].some((x) => x.toLowerCase().includes(q)));
-  const mv = (h) => (d.quotes[h.symbol] ? d.quotes[h.symbol].price * h.shares : -1);
+  const mv = (h) => (isTWDQuote(d, h.symbol) ? d.quotes[h.symbol].price * h.shares : -1);
   const by = { value: (a, b) => mv(b) - mv(a), cost: (a, b) => b.shares * b.unitCost - a.shares * a.unitCost, profit: (a, b) => (mv(b) - b.shares * b.unitCost) - (mv(a) - a.shares * a.unitCost), symbol: (a, b) => a.symbol.localeCompare(b.symbol) };
   return items.sort(by[S.ui.hSort]);
 }
@@ -782,7 +884,7 @@ VIEWS.holdings = () => {
   }
   return {
     title: "我的持有",
-    right: `<button type="button" class="icon-btn" data-act="hsearch" aria-label="${S.ui.hSearch ? "關閉搜尋" : "搜尋持有"}">${icon(S.ui.hSearch ? "x" : "search")}</button>`,
+    right: `${S.mode === "mine" && d.holdings.length ? `<button type="button" class="icon-btn" data-act="refreshAll" aria-label="更新持有報價"${busy ? " disabled" : ""}>${icon("refresh")}</button>` : ""}<button type="button" class="icon-btn" data-act="hsearch" aria-label="${S.ui.hSearch ? "關閉搜尋" : "搜尋持有"}">${icon(S.ui.hSearch ? "x" : "search")}</button>`,
     body: `${segment(["持有部位", "券商帳戶", "資產配置"], sec, "hSec")}${S.ui.hSearch ? `<label class="search">${icon("search")}<input id="hq" type="search" placeholder="搜尋代號、名稱或券商" value="${esc(S.ui.hq)}" aria-label="搜尋持有"></label>` : ""}${modeBanner()}${content}<p class="note">股數以「股」為單位，成本統一填台幣（可包含實際手續費）。</p>`,
     bottom: `<button type="button" class="btn primary" style="flex:1" data-act="sheet" data-sheet="holding">${icon("plus")}新增持有</button>`,
   };
@@ -863,7 +965,7 @@ VIEWS.tools = () => {
       <p class="note" style="margin-top:8px">在 ETF 詳情按「加入比較」即可更換；未取得的欄位不顯示估計值。</p>
     </button>
     ${sectionHead("連線與資料")}
-    <div class="card tight">${toolRow("富果行情連線", "使用你自己的 API Key", "key", "push", 'data-view="connection"')}${toolRow("券商持有資料", "所有券商 CSV 欄位對應與預覽", "bank", "push", 'data-view="broker"')}${toolRow("資料備份", "匯出與匯入，保留你的每筆紀錄", "drive", "push", 'data-view="backup"')}</div>
+    <div class="card tight">${toolRow("富果行情連線", CAN_FUGLE ? (fugleKey() ? "已存入金鑰 · 可更新報價" : "存入你自己的 API Key") : "請改用網頁版 App", "key", "push", 'data-view="connection"')}${toolRow("券商持有資料", "所有券商 CSV 欄位對應與預覽", "bank", "push", 'data-view="broker"')}${toolRow("資料備份", "匯出與匯入，保留你的每筆紀錄", "drive", "push", 'data-view="backup"')}</div>
     <p class="note">網頁測試版 · 介面與 iPhone App 新版相同，行情、券商匯入與通知請以 App 為準。</p>`;
   return { title: "工具", body };
 };
@@ -976,10 +1078,29 @@ VIEWS.settings = () => {
     body: `<div class="card"><b>資料模式</b><div style="margin-top:10px">${segment(["示範資料", "我的資料"], S.mode === "demo" ? 0 : 1, "modeSeg", true)}</div><p class="note" style="margin-top:8px">${S.mode === "demo" ? "示範資料可隨意操作，重新整理後恢復原狀，不會儲存。" : "我的資料：" + where}</p></div>
       ${S.mode === "mine" ? `<div class="card"><b>清除我的測試資料</b><p class="note" style="margin:6px 0 10px">刪除這個網頁版裡的持有、配息與收藏；不影響 iPhone App。</p>${S.ui.confirmClear ? `<div class="row"><button type="button" class="btn danger" style="flex:1" data-act="clearMine">確認清除</button><button type="button" class="btn soft" style="flex:1" data-act="cancelClear">取消</button></div>` : `<button type="button" class="btn danger block" data-act="askClear">清除資料</button>`}</div>` : ""}
       <div class="card tight">${toolRow("資料備份", "匯出或貼上 JSON 匯入", "drive", "push", 'data-view="backup"')}</div>
-      <div class="card"><b>關於網頁測試版</b><p class="note" style="margin-top:6px">介面與 iPhone App 新版相同，資料規則一致：沒有可靠來源的欄位不顯示估計值。網頁版無法連線富果行情、匯入券商 CSV 或發送通知。ETF 名單與年度費用為 App 內建快照${CATALOG_INFO && CATALOG_INFO.listedDate ? "（上市資料日 " + CATALOG_INFO.listedDate + "）" : ""}。</p></div>`,
+      <div class="card tight">${toolRow("富果行情連線", CAN_FUGLE ? (fugleKey() ? "已存入金鑰" : "存入你的 API Key") : "請改用網頁版 App", "key", "push", 'data-view="connection"')}</div>
+      ${CAN_FUGLE ? "" : `<div class="card"><b>網頁版 App（可連線富果）</b><p class="num" style="margin:6px 0 10px;overflow-wrap:anywhere;user-select:all">${PAGES_URL}</p><button type="button" class="btn soft block" data-act="copy" data-text="${PAGES_URL}">複製網址</button></div>`}
+      <div class="card"><b>關於網頁測試版</b><p class="note" style="margin-top:6px">介面與 iPhone App 新版相同，資料規則一致：沒有可靠來源的欄位不顯示估計值。${CAN_FUGLE ? "可用你的富果金鑰取得報價與歷史走勢；" : "這個 Claude 連結版無法連線富果；"}券商 CSV 匯入、成分股與通知請用 iPhone App。ETF 名單與年度費用為 App 內建快照${CATALOG_INFO && CATALOG_INFO.listedDate ? "（上市資料日 " + CATALOG_INFO.listedDate + "）" : ""}。</p></div>`,
   };
 };
-VIEWS.connection = () => ({ title: "富果行情連線", back: true, body: `<div class="card">${empty("🔑", "請在 iPhone App 設定", "行情金鑰只存在 iPhone 的 Keychain，網頁測試版不會要求或保存你的金鑰。")}</div><p class="note">App 路徑：工具 › 富果行情連線。</p>` });
+VIEWS.connection = () => {
+  if (!CAN_FUGLE) return { title: "富果行情連線", back: true, body: `<div class="card">${empty("🔑", "請改用網頁版 App", "Claude 連結版在安全沙盒裡執行，無法連線富果。請用 Safari 打開下面的網址，在那裡存入金鑰並加入主畫面。")}</div><div class="card"><b class="small">網頁版 App 網址</b><p class="num" style="margin:6px 0 10px;overflow-wrap:anywhere;user-select:all">${PAGES_URL}</p><button type="button" class="btn soft block" data-act="copy" data-text="${PAGES_URL}">複製網址</button></div>` };
+  const has = !!fugleKey();
+  return {
+    title: "富果行情連線", back: true,
+    body: `<div class="card form">
+        <div class="row"><span style="color:${has ? "var(--green)" : "var(--muted)"};width:22px">${icon("key")}</span><b class="grow" style="color:${has ? "var(--green)" : "var(--muted)"}">${has ? "已存入金鑰" : "尚未設定金鑰"}</b></div>
+        <div class="field"><label for="fk">${has ? "更換金鑰" : "貼上富果 API Key"}</label><input id="fk" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="只會存在這支手機的這個瀏覽器"></div>
+        <button type="button" class="btn primary" data-act="saveKey">儲存金鑰</button>
+        <button type="button" class="btn soft" data-act="testKey"${has && !busy ? "" : " disabled"}>${busy === "test" ? "連線中…" : "驗證連線並取得 0050 報價"}</button>
+        ${S.ui.keyMsg ? `<p class="small" style="margin:0">${esc(S.ui.keyMsg)}</p>` : ""}
+        ${has ? `<button type="button" class="btn danger" data-act="removeKey">移除金鑰</button>` : ""}
+      </div>
+      <div class="card"><b>金鑰怎麼保存</b><p class="note" style="margin-top:6px">金鑰只存在這個瀏覽器，只會傳給富果官方 API（api.fugle.tw），不寫入備份、不會同步到其他裝置，也不會傳給 GitHub 或 Claude。從主畫面打開的 App 與 Safari 分開保存，請在你實際使用的那一邊存入。是否即時、可用商品與請求額度依你的富果方案而定。</p>
+        <p class="note" style="margin-top:8px"><a href="https://developer.fugle.tw/docs/key/" target="_blank" rel="noopener">申請或管理富果行情金鑰</a> · <a href="https://developer.fugle.tw/docs/data/http-api/getting-started/" target="_blank" rel="noopener">行情 API 說明</a></p></div>
+      ${S.mode === "demo" ? `<div class="banner">${icon("info")}<span class="grow">目前是示範資料。切換到我的資料後，持有的報價才會用你的金鑰更新。</span><button type="button" data-act="mode" data-v="mine">用我的資料</button></div>` : ""}`,
+  };
+};
 VIEWS.broker = () => ({ title: "券商持有資料", back: true, body: `<div class="card">${empty("🏦", "請在 iPhone App 匯入", "券商庫存 CSV 的欄位對應、預覽與帳戶替換都在 App 裡完成。這裡可手動新增持有來測試介面。")}</div><button type="button" class="btn primary block" data-act="sheet" data-sheet="holding">${icon("plus")}手動新增持有</button>` });
 VIEWS.backup = () => ({
   title: "資料備份", back: true,
@@ -1118,7 +1239,28 @@ const ACT = {
   modeSeg: (ds) => ACT.mode({ v: ds.i === "0" ? "demo" : "mine" }),
   askClear: () => { S.ui.confirmClear = true; renderScreen(); },
   cancelClear: () => { S.ui.confirmClear = false; renderScreen(); },
-  clearMine: () => { S.mine = emptyData(); S.ui.confirmClear = false; persist(); renderScreen(); toast("已清除我的測試資料"); },
+  clearMine: () => { S.mine = emptyData(); S.ui.confirmClear = false; persist(); persistHistories(); renderScreen(); toast("已清除我的測試資料"); },
+  refreshAll: () => refreshQuotes(),
+  refreshOne: (ds) => refreshQuotes([ds.sym]),
+  loadHistory: (ds) => { const sel = $("#hist-years"); loadHistory(ds.sym, Number(ds.years || (sel && sel.value) || 5)); },
+  saveKey: () => {
+    const el = $("#fk"); const key = (el.value || "").trim();
+    if (!key) { S.ui.keyMsg = "請先貼上金鑰。"; renderScreen(); return; }
+    if (key.length > 300 || /\s/.test(key)) { S.ui.keyMsg = "金鑰格式不正確，請重新複製。"; renderScreen(); return; }
+    try { localStorage.setItem(FUGLE_KEY, key); } catch (e) { S.ui.keyMsg = "這個瀏覽器不允許儲存（例如私密瀏覽），請改用一般模式。"; renderScreen(); return; }
+    el.value = ""; S.ui.keyMsg = "已存入這個瀏覽器；尚未驗證行情權限。"; renderScreen();
+  },
+  testKey: async () => {
+    if (busy) return;
+    busy = "test"; S.ui.keyMsg = ""; renderScreen();
+    try {
+      const q = await fetchQuote("0050");
+      if (S.mode === "mine") { S.mine.quotes["0050"] = q; persist(); }
+      S.ui.keyMsg = `連線成功：0050 報價日期 ${q.date}，${priceText(q.price)} 元。${S.mode === "mine" ? "" : "（示範模式不保存報價）"}`;
+    } catch (e) { S.ui.keyMsg = e.message; }
+    busy = null; renderScreen();
+  },
+  removeKey: () => { try { localStorage.removeItem(FUGLE_KEY); } catch (e) { /* nothing stored */ } S.ui.keyMsg = "已移除金鑰。"; renderScreen(); },
   copyExport: () => { const box = $("#export-box"); try { navigator.clipboard.writeText(box.value).then(() => toast("已複製備份 JSON"), () => { box.select(); toast("請長按選取後複製"); }); } catch (e) { box.select(); toast("請長按選取後複製"); } },
   importData: () => {
     const err = $("#import-err"); let raw;
