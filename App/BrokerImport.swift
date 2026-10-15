@@ -7,7 +7,9 @@ struct CSVTable {
     static func parse(_ bytes: Data) throws -> Self {
         guard bytes.count <= 5_000_000 else { throw AppDataError("CSV 不可超過 5 MB。") }
         let big5 = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.big5.rawValue)))
-        guard let text = String(data: bytes, encoding: .utf8) ?? String(data: bytes, encoding: .utf16) ?? String(data: bytes, encoding: big5) else { throw AppDataError("請將對帳單另存為 UTF-8 CSV。") }
+        let utf16BOM = bytes.starts(with: [0xff,0xfe]) || bytes.starts(with: [0xfe,0xff])
+        let decoded = utf16BOM ? String(data: bytes, encoding: .utf16) : (String(data: bytes, encoding: .utf8) ?? String(data: bytes, encoding: big5))
+        guard let text = decoded else { throw AppDataError("請將對帳單另存為 UTF-8 CSV。") }
         var rows: [[String]] = []; var row: [String] = []; var cell = ""; var quoted = false; var endedQuote = false
         let chars = Array(text.trimmingCharacters(in: CharacterSet(charactersIn: "\u{feff}")).replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")); var i = 0
         while i < chars.count {

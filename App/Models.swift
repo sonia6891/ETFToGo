@@ -208,7 +208,8 @@ enum StoreError: LocalizedError {
         next.components = (next.components ?? [:]).merging(incoming.components ?? [:]) { _, new in new }
         next.histories = (next.histories ?? [:]).merging(incoming.histories ?? [:]) { _, new in new }
         next.fees = (next.fees ?? [:]).merging(incoming.fees ?? [:]) { _, new in new }
-        // Do not overwrite current quotes with imported cached quotes.
+        // Restore missing cached quotes; retain quotes already on this device.
+        for (symbol, quote) in incoming.quotes where next.quotes[symbol] == nil { next.quotes[symbol] = quote }
         try saveRecovery()
         try commit(next)
     }

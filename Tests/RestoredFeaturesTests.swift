@@ -1,4 +1,5 @@
 import XCTest
+import CoreFoundation
 @testable import ETFToGo
 
 final class RestoredFeaturesTests: XCTestCase {
@@ -149,6 +150,26 @@ final class RestoredFeaturesTests: XCTestCase {
         XCTAssertEqual(fee.management,0.11,accuracy:0.00001)
         XCTAssertNotNil(catalog.records["00679B"])
         XCTAssertNil(catalog.records["00415A"])
+    }
+
+    func testCSVUTF16AndBig5Encoding() throws {
+        let text = "代碼,股數,成本\n0050,1000,50000"
+        let utf16 = try XCTUnwrap(text.data(using:.utf16))
+        XCTAssertEqual(try CSVTable.parse(utf16).headers[0],"代碼")
+        let big5 = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.big5.rawValue)))
+        let bytes = try XCTUnwrap(text.data(using:big5))
+        XCTAssertEqual(try CSVTable.parse(bytes).headers[0],"代碼")
+    }
+    @MainActor func testBackupRestoresQuotesWithoutOverwritingExistingQuotes() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:dir) }
+        let store = PortfolioStore(url:dir.appendingPathComponent("p.json"))
+        var incoming = Portfolio.demo
+        try store.importBackup(JSONEncoder().encode(incoming))
+        XCTAssertEqual(store.data.quotes["0050"]?.price,55)
+        incoming.quotes["0050"]?.price=1
+        try store.importBackup(JSONEncoder().encode(incoming))
+        XCTAssertEqual(store.data.quotes["0050"]?.price,55)
     }
 
 }

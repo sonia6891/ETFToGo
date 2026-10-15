@@ -1,44 +1,33 @@
-# ETF 袋著走 · Native UI Review
+# ETF 袋著走 · 原生 iPhone App
 
-目前唯一使用的原始碼為本工程的 SwiftUI 0.2.0。依 2026-10-15 的決定，後續開發以此版本為準，舊版來源已從現行工程移除。建置版本 2.3 已在 TestFlight 開放內部測試，使用者已確認在 iPhone 安裝並開啟；完整紀錄見 RELEASE_STATUS.md。
+本工程是唯一持續開發來源，保留既有藍白 SwiftUI 五分頁：首頁、找 ETF、我的持有、配息、工具。當前原始碼版本 0.3.0；發佈狀態與實際測試證據以 RELEASE_STATUS.md 為準，不以這份 README 代表已上傳。
 
-五個原生分頁：首頁、找 ETF、我的持有、配息、工具。支援持有編輯、本機 JSON 原子儲存、配息紀錄、收藏、兩檔比較、成本配置、複利情境試算、原生備份分享與合併匯入。個人富果金鑰以 Keychain 保存，僅傳給官方 API。
+## 這次補回的功能
 
-本次已通過 Xcode 26.6 的原生建置及 8 項測試，並完成正式簽署、封存、上傳與 TestFlight 內部測試；使用者已確認安裝並開啟。這些驗證沒有涵蓋舊版功能完整移植。發佈證據見 `RELEASE_STATUS.md`，功能遺漏與待開發項目見 `FEATURE_GAP_AUDIT.md`。
+- 官方現行上市／上櫃 ETF 名單及更新快取，排除未到掛牌日與歷史商品。2026-10-15 快照為上市 241、上櫃 118，共 359 個證券代碼，包含不同幣別級別；不是 359 個不重複基金。
+- 舊 PWA `ETF_CLASSIFIER` v3、舊原生 `ETF_TOGO_NATIVE` v1、planning v2 及目前 schema 1 備份合併匯入。預覽後確認，保留匯入前副本；總成本轉每股成本、實領配息優先、穩定識別碼防止重複。舊手填參考價保存在備份，另行取得行情。
+- 所有券商可使用通用 CSV 欄位對應，提供股／張、總成本／單價、帳戶暱稱、驗證預覽與單一帳戶替換。UTF-8、帶 BOM 的 UTF-16 與 Big5。CSV 須先篩選 ETF，外幣成本需換成台幣；C/K 級別以實際股數匯入。
+- 成分股更新／JSON 匯入、持股穿透及兩檔共同權重下限。揭露比例與資料日期都顯示；缺資料不視為零重疊。
+- 富果還原日收盤歷史、區間與年化報酬、最大回撤及波動率，最早 2010 年，依 API 年度限制分段查詢。這是供應商還原價格績效，不代表已核實配息再投入總報酬或個人交易損益。
+- 292 檔的 2025 年公會申報實際費用比率，包括經理費、保管費、交易手續費、交易稅、申贖扣抵、保證費與其他費用。依官方基金統編或唯一完全相符的正規化子基金名稱配對；沒有模糊名稱推測。資料配對與原始回應雜湊見 Evidence/ReferenceData/snapshot-receipt.json。
+- 舊版配息再投入試算及設定持續儲存；保留原有單純複利試算。
 
-## 建置
+## 已確認與尚待實測
 
-使用 Xcode 26.6，安裝官方 Homebrew 套件 `xcodegen`。先將 App/Assets.xcassets/Pocket.imageset/pocket.png 用 macOS sips 等比輸出為 App/Assets.xcassets/AppIcon.appiconset/AppIcon.png 的 1024 × 1024 PNG，再於本目錄執行 `xcodegen generate`，以 Xcode 開啟 ETFToGo.xcodeproj。GitHub 的手動 native-ui workflow 會執行這些步驟、編譯、跑測試與擷取五張 iPhone 模擬器畫面。最終以 CI 實際結果為準。
+使用者已在 iPhone 安裝 0.2.0 (2.3) 並確認取得 0050 真實報價。金鑰只在使用者手機的 iOS Keychain，未提供給建置環境。新版另增加報價幣別確認；成分股與歷史行情仍需使用者以自身資料方案驗證，成分股需要相應富果權限。
 
-本機預覽用 Bundle ID 為 `tw.sonia.etftogo.uireview`。正式 Bundle ID `com.sonia.etftogo` 已向 Apple 註冊；封存時以建置設定覆蓋為正式 ID。iOS 17 起，SwiftUI，無 WebView。交付資料夾已包含產生的 Xcode 專案與 App Icon，可直接開啟 ETFToGo.xcodeproj。
+使用者已同意本次先測試持有匯入，券商帳戶自動授權同步留待開通各券商正式 API／帳務查詢權限後處理。CSV 匯入不等於自動同步。
 
-## 資料與限制
+年度費用尚未涵蓋全部商品；完整現行契約級距也未全部收錄。缺值明示，另提供有來源、日期的手動記錄。年度快照隨 App 發佈更新；名單可在 App 更新。配息仍由使用者記錄，沒有自動公告同步。
 
-- 正常啟動為空資料；`--demo` 僅供介面測試，金額與價格是固定範例，不是真實行情，且不寫入正式資料檔。
-- 目前內建 6 檔 UI 起始清單；不宣稱涵蓋全部台灣 ETF。可手動新增其他代碼的持有。完整名單待使用交易所正式資料擴充。
-- 富果 HTTP API 依官方文件實作，沒有真實金鑰，因此未完成線上帳戶實測。
-- 配息為使用者記錄，尚未串接公告；成分股穿透、完整費用率與歷史績效未完成。
-- 只支援本工程 schema 1 備份；沒有聲稱與舊 PWA 備份相容。匯入前先驗證，損壞的現有儲存檔不覆寫。
-- 分類是整理策略，不是投資建議、保本或獲利保證。
-- 沿用既有網站口袋圖示：`https://etf-independent-app-production.up.railway.app/icon-512-v171.png`。原圖 512 × 512，SHA-256 `b1ad9792e4c3b90e683b13a1eb68a18239171cdbc4c0bf67a77aaf0a0a558f6a`。App Icon 的 1024 版本是放大，不是新增細節。
+## 建置與儲存
 
-## 發佈狀態
+Xcode 26.6 / iOS 17 以上。執行 `xcodegen generate` 產生 ETFToGo.xcodeproj；原生 App，不含 WebView。測試預覽 Bundle ID `tw.sonia.etftogo.uireview`；正式封存覆蓋為 `com.sonia.etftogo`，延續既有 TestFlight App。
 
-Apple Team、正式 Bundle ID、ETF 專用 provisioning profile 與 App Store Connect App 記錄均已備妥。App ID 為 6822974128；原生 0.2.0 (2.3) 已完成簽署與上傳。內部測試群組為「ETF ToGo 內部測試」。完整處理與測試者狀態見 RELEASE_STATUS.md。
+GitHub native-ui workflow 執行編譯、單元及操作測試，保留結果與截圖。正式簽署沿用既有私人簽署環境的獨立 ETF 分支，秘密不寫入本工程。App Store Connect App ID 6822974128。
 
-`native-ui.yml` 做模擬器驗證。`testflight.yml` 提供此倉庫專用的手動發佈流程，缺設定會在前置檢查停止。
+資料保存在 Application Support/ETFToGo/portfolio.json，以原子寫入及 iOS 檔案保護儲存；損壞檔案保留並阻止空資料覆寫。行情金鑰使用 Keychain，僅傳送富果官方網域，拒絕轉址，不包含在備份。匯入前副本位於相同資料夾的 Recovery。
 
-已使用既有 Apple 簽署環境的獨立分支完成正式簽署、封存及上傳：版本 **0.2.0 (2.3)**、**Xcode 26.6 / iOS 26.5 SDK**、正式 Bundle ID **com.sonia.etftogo**。成功紀錄：[release run 38668432671](https://github.com/sonia6891/meow-work-app/actions/runs/38668432671)。來源固定為 ETFToGo commit `f2b6008573c5f9b0d768dd362394b06ca5347f9d`；既有 App 的主分支未變更，秘密仍留在原本的 GitHub 簽署環境。
+`--demo` 是明示的固定介面示範，不寫入正式資料；`--ui-testing` 使用獨立測試資料檔。外幣或幣別未確認的報價不混入台幣市值。
 
-Apple API 已確認本建置為 `VALID` 及 `IN_BETA_TESTING`；內部群組「ETF ToGo 內部測試」已提供安裝，使用者已回報成功。參見 `RELEASE_STATUS.md`。IPA 是 App Store distribution 檔，安裝入口為 TestFlight 邀請。
-
-若日後要把簽署流程獨立搬到此私人倉庫，在 Settings → Secrets and variables → Actions 設定以下項目；現有獨立簽署分支已可使用，毋須為本次重建憑證或在對話貼出密鑰：
-
-- Variable `ETF_BUNDLE_ID`：在 Apple 註冊、且 App Store Connect App 使用的正式識別碼。
-- Secrets `APPLE_TEAM_ID`、`APPLE_ASC_KEY_ID`、`APPLE_ASC_ISSUER_ID`、`APPLE_ASC_KEY_P8`。
-- Secrets `APPLE_DISTRIBUTION_P12_BASE64`、`APPLE_DISTRIBUTION_P12_PASSWORD`。
-- Secret `APPLE_PROFILE_ETF_BASE64`：對應正式 ETF Bundle ID 的 App Store distribution profile，不能沿用其他 App 的 profile。
-
-此次已查驗 Apple 處理結果與內部測試可用狀態。未開放外部測試，也未提交正式版審查。
-
-富果來源：https://developer.fugle.tw/docs/data/http-api/intraday/quote/
+圖示沿用既有口袋圖，512 圖放大為 1024 App Icon，沒有宣稱新增圖像細節。分類是整理策略，非收益保證。
