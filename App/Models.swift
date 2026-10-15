@@ -153,7 +153,9 @@ enum StoreError: LocalizedError {
     func removeDividend(_ dividend: Dividend) throws { var next = data; next.dividends.removeAll { $0.id == dividend.id }; try commit(next) }
     func export() throws -> URL {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("ETFToGo-backup-\(UUID().uuidString.prefix(8)).json")
-        try JSONEncoder().encode(data).write(to: file, options: .atomic)
+        // Preserve recoverable bytes when decoding failed; never export an empty replacement.
+        let bytes = readFailure ? try Data(contentsOf: url) : try JSONEncoder().encode(data)
+        try bytes.write(to: file, options: .atomic)
         return file
     }
     func importBackup(_ bytes: Data) throws {

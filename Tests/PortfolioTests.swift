@@ -45,6 +45,9 @@ final class PortfolioTests: XCTestCase {
         let store = PortfolioStore(url: url)
         XCTAssertThrowsError(try store.save(Portfolio.demo.holdings[0]))
         XCTAssertEqual(try Data(contentsOf: url), original)
+        let exported = try store.export()
+        defer { try? FileManager.default.removeItem(at: exported) }
+        XCTAssertEqual(try Data(contentsOf: exported), original)
     }
     func testQuoteValidation() throws {
         let bytes = Data(#"{"symbol":"0050","date":"2026-10-15","closePrice":55.0,"changePercent":0.4}"#.utf8)
