@@ -401,6 +401,29 @@ table.cmp thead th:first-child { background: none; }
 .set-row .si { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: #fff; flex: none; }
 .set-row .si svg { width: 17px; height: 17px; }
 .set-row .chev { width: 16px; height: 16px; color: var(--muted); flex: none; }
+.set-row img.si { background: #fff; object-fit: cover; box-shadow: inset 0 0 0 1px var(--line); }
+/* "Add to home screen": a phone home screen with the app icon dropped in among placeholder apps. */
+.hs-preview { position: relative; overflow: hidden; border-radius: 26px; padding: 22px 12px 12px; background: linear-gradient(160deg, #6f9dff 0%, #9f8cff 46%, #ffb0c8 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); }
+.hs-preview::before { content: ""; position: absolute; width: 220px; height: 220px; right: -70px; top: -90px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.45), rgba(255,255,255,0) 70%); }
+.hs-grid { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 6px; justify-items: center; }
+.hs-app { display: grid; justify-items: center; gap: 6px; min-width: 0; }
+.hs-app i { display: block; width: 56px; height: 56px; border-radius: 14px; background: rgba(255,255,255,.26); box-shadow: inset 0 0 0 1px rgba(255,255,255,.32); }
+.hs-app b { display: block; width: 34px; height: 7px; border-radius: 4px; background: rgba(255,255,255,.42); }
+.hs-app img { width: 56px; height: 56px; border-radius: 14px; background: #fff; box-shadow: 0 8px 18px rgba(30,40,120,.32); animation: hs-pop .7s cubic-bezier(.34,1.56,.64,1) .25s both; }
+.hs-app span { font-size: 11px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.35); white-space: nowrap; }
+.hs-dock { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center; margin-top: 22px; padding: 10px 6px; border-radius: 24px; background: rgba(255,255,255,.24); box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.hs-dock i { display: block; width: 50px; height: 50px; border-radius: 13px; background: rgba(255,255,255,.3); }
+@keyframes hs-pop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .hs-app img { animation: none; } }
+.steps { list-style: none; counter-reset: step; margin: 6px 0 0; padding: 0; }
+.steps li { counter-increment: step; display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; line-height: 1.55; }
+.steps li::before { content: counter(step); flex: none; width: 24px; height: 24px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; background: var(--blue); color: #fff; font-size: 13px; font-weight: 800; }
+.steps .key { display: inline-flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: 7px; background: var(--card-2); font-weight: 700; white-space: nowrap; }
+.steps .key svg { width: 14px; height: 14px; }
+.install-banner { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }
+.install-banner img { width: 46px; height: 46px; border-radius: 12px; flex: none; background: #fff; box-shadow: 0 4px 12px rgba(31,107,255,.18), inset 0 0 0 1px var(--line); }
+.install-banner .x { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
+.install-banner .x svg { width: 15px; height: 15px; }
 .seg-mini { display: flex; gap: 4px; background: var(--card-2); border-radius: 10px; padding: 3px; }
 .seg-mini button { padding: 5px 9px; border-radius: 8px; font-size: 12px; font-weight: 800; color: var(--muted); white-space: nowrap; }
 .seg-mini button.on { background: var(--blue); color: #fff; }
@@ -644,7 +667,7 @@ const emptyData = () => ({ holdings: [], dividends: [], trades: [], quotes: {}, 
 const S = {
   mode: "demo", demo: buildDemo(), mine: emptyData(), storage: "pending", market: {}, marketAt: null, snapshotOK: null,
   tab: 0, stacks: [[], [], [], [], []], sheet: null,
-  prefs: { hidden: false, theme: "system", read: [] },
+  prefs: { hidden: false, theme: "system", read: [], installHidden: false },
   ui: { homeRange: "1年", overviewRange: "1年", spread: 0, q: "", filter: emptyFilter(), detail: 0, detailRange: "3月", hSection: 0, hSort: "value", hSearch: false, hq: "", allocTab: 0, tFilter: { sym: "", act: "", broker: "" }, month: null, day: null, cmpPair: 0, wTab: 0, wEdit: false, wSel: null, recentTab: 0, mdTab: 0, year: null, noticeTab: 0, expoTab: 0 },
 };
 const data = () => (S.mode === "demo" ? S.demo : S.mine);
@@ -656,10 +679,11 @@ function loadPrefs() {
     if (p.mode) S.mode = p.mode; S.prefs.hidden = !!p.hidden;
     if (["system", "light", "dark"].includes(p.theme)) S.prefs.theme = p.theme;
     if (Array.isArray(p.read)) S.prefs.read = p.read.filter((x) => typeof x === "string").slice(-300);
+    S.prefs.installHidden = !!p.installHidden;
     return !!p.mode;
   } catch (e) { return false; }
 }
-function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify({ mode: S.mode, hidden: S.prefs.hidden, theme: S.prefs.theme, read: S.prefs.read.slice(-300) })); } catch (e) { /* storage unavailable */ } }
+function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify({ mode: S.mode, hidden: S.prefs.hidden, theme: S.prefs.theme, read: S.prefs.read.slice(-300), installHidden: S.prefs.installHidden })); } catch (e) { /* storage unavailable */ } }
 function applyTheme() { const t = S.prefs.theme; if (t === "system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", t); }
 
 /* ---------- persistence: the viewer's private db document, else this browser ---------- */
@@ -745,6 +769,16 @@ function commit() { if (S.mode === "mine") persist(); renderScreen(); }
 
 /* ---------- Fugle market data (same endpoints and checks as the iPhone app) ---------- */
 const PAGES_URL = "https://sonia6891.github.io/etftogo-web/";
+/* ---------- add to home screen ---------- */
+const UA = navigator.userAgent || "";
+const IS_IOS = /iP(hone|ad|od)/.test(UA) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const IS_ANDROID = /Android/.test(UA);
+// LINE, Facebook and Instagram open links in their own browser, which cannot add to the home screen.
+const IN_APP_BROWSER = /Line\/|FBAN|FBAV|Instagram/.test(UA);
+const IS_STANDALONE = (() => { try { return navigator.standalone === true || matchMedia("(display-mode: standalone)").matches; } catch (e) { return false; } })();
+let installPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; if (current().view === "install") renderScreen(); });
+window.addEventListener("appinstalled", () => { installPrompt = null; toast("已加入主畫面"); });
 const FUGLE_KEY = "etftogo-fugle-key";
 // Claude artifact pages run in a sandbox that blocks every outside host, so live data only works on the standalone page.
 const CAN_FUGLE = !(window.claude && typeof window.claude.use === "function");
@@ -1046,6 +1080,7 @@ const P = {
   star: '<path d="M12 3.2l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17.2l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   share: '<path d="M12 3v12M7.5 7.5L12 3l4.5 4.5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',
+  addSquare: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/>',
   filter: '<path d="M4 6h16M7 12h10M10 18h4"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   right: '<path d="M9 5l7 7-7 7"/>',
@@ -1279,6 +1314,7 @@ VIEWS.home = () => {
       <button type="button" class="icon-btn" data-act="push" data-view="settings" aria-label="設定">${icon("gear")}</button>
     </div>
     ${demoBar()}
+    ${IS_STANDALONE || S.prefs.installHidden ? "" : `<div class="card install-banner"><button type="button" class="install-banner grow" data-act="push" data-view="install"><img src="assets/app-icon.png" alt=""><span class="grow"><b>加入主畫面，像 App 一樣開啟</b><br><span class="small muted">先看看加入後主畫面的樣子</span></span>${chev()}</button><button type="button" class="x" data-act="hideInstall" aria-label="不再顯示加入主畫面提示">${icon("x")}</button></div>`}
     <section class="hero" data-act="push" data-view="overview" role="button" tabindex="0" aria-label="我的資產總覽，點一下看資產總覽">
       ${heroDeco()}
       <div class="row"><span class="label">我的資產總覽 <span>(TWD)</span></span><span class="grow"></span>${S.mode === "mine" && d.holdings.length ? `<button type="button" class="icon-btn eye" data-act="refreshAll" aria-label="更新持有報價"${busy ? " disabled" : ""}>${icon("refresh")}</button>` : ""}<button type="button" class="icon-btn eye" data-act="hide" aria-label="${S.prefs.hidden ? "顯示金額" : "隱藏金額"}">${icon(S.prefs.hidden ? "eyeOff" : "eye")}</button></div>
@@ -1375,6 +1411,7 @@ VIEWS.settings = () => {
       </div>
       <p class="note" style="margin-top:-8px">${S.mode === "demo" ? "目前是示範資料，可隨意操作，不會儲存。切換到「我的資料」才會記錄你的持有。" : "我的資料：" + where}</p>
       <div class="card tight">
+        <button type="button" class="set-row" data-act="push" data-view="install"><img class="si" src="assets/app-icon.png" alt=""><span class="grow bold">加入主畫面<br><span class='small muted' style='font-weight:500'>${IS_STANDALONE ? "已從主畫面開啟" : "用 ETF 袋著走圖示，像 App 一樣開啟"}</span></span>${chev()}</button>
         ${row("database", "var(--blue)", "資料來源<br><span class='small muted' style='font-weight:500'>管理報價、持有、配息資料來源</span>", chev(), 'data-act="push" data-view="sources"')}
         ${row("cloud", "var(--teal)", "資料備份與還原<br><span class='small muted' style='font-weight:500'>本地匯出・匯入</span>", chev(), 'data-act="push" data-view="backup"')}
         ${row("key", "var(--purple)", "富果行情連線<br><span class='small muted' style='font-weight:500'>" + (CAN_FUGLE ? (fugleKey() ? "已存入金鑰" : "存入你的 API Key") : "請改用網頁版 App") + "</span>", chev(), 'data-act="push" data-view="connection"')}
@@ -1412,6 +1449,50 @@ VIEWS.privacy = () => {
       <div class="card"><b>富果金鑰</b><p class="note" style="margin-top:6px">只存在這個瀏覽器，只傳給富果官方 API（api.fugle.tw），不寫入備份，也不會傳給 GitHub 或 Claude。</p></div>
       <div class="card"><b>Face ID・應用程式鎖定</b><p class="note" style="margin-top:6px">網頁版無法使用 Face ID。需要上鎖時，可在 iPhone 設定的「螢幕使用時間」限制，或使用 iPhone App。</p></div>
       ${S.mode === "mine" ? `<div class="card"><b>清除我的資料</b><p class="note" style="margin:6px 0 10px">刪除這個網頁版裡的持有、配息、交易與收藏；不影響 iPhone App。清除前建議先匯出備份。</p>${S.ui.confirmClear ? `<div class="btn-row"><button type="button" class="btn danger" data-act="clearMine">確認清除</button><button type="button" class="btn soft" data-act="cancelClear">取消</button></div>` : `<button type="button" class="btn danger block" data-act="askClear">清除資料</button>`}</div>` : ""}`,
+  };
+};
+
+VIEWS.install = () => {
+  const os = S.ui.installOS || (IS_ANDROID ? "android" : "ios");
+  const key = (ic, text) => `<span class="key">${ic ? icon(ic) : ""}${text}</span>`;
+  const ghost = () => `<div class="hs-app"><i></i><b></b></div>`;
+  const preview = `<div class="hs-preview" aria-label="加入後，主畫面會出現 ETF 袋著走的口袋圖示" role="img">
+      <div class="hs-grid">${ghost()}${ghost()}${ghost()}${ghost()}${ghost()}<div class="hs-app"><img src="assets/app-icon.png" alt=""><span>ETF袋著走</span></div>${ghost()}${ghost()}</div>
+      <div class="hs-dock"><i></i><i></i><i></i><i></i></div></div>`;
+  const status = IS_STANDALONE
+    ? `<div class="card row" style="gap:10px"><span class="si" style="width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--green)">${icon("check")}</span><span class="grow"><b>已經從主畫面開啟</b><br><span class="small muted">你現在用的就是主畫面上的 ETF 袋著走。</span></span></div>`
+    : !CAN_FUGLE
+      ? `<div class="card"><b>請改用網頁版網址加入</b><p class="note" style="margin:6px 0 10px">這個 Claude 頁面加入主畫面時，會顯示 Claude 的圖示，也無法連線富果。請用 Safari 開啟下面的網頁版，再照步驟加入，主畫面就會是口袋圖示。</p><p class="num" style="margin:0 0 10px;overflow-wrap:anywhere;user-select:all">${PAGES_URL}</p><div class="btn-row"><button type="button" class="btn soft" data-act="copy" data-text="${PAGES_URL}">複製網址</button><a class="btn primary" style="text-decoration:none" href="${PAGES_URL}" target="_blank" rel="noopener">開啟網頁版</a></div></div>`
+      : IN_APP_BROWSER
+        ? `<div class="card"><b>請先用 Safari 或 Chrome 開啟</b><p class="note" style="margin:6px 0 10px">LINE、Facebook 等 App 內建的瀏覽器不能加入主畫面。點右上角選單，選「用瀏覽器開啟」，或複製網址貼到 Safari。</p><button type="button" class="btn soft block" data-act="copy" data-text="${PAGES_URL}">複製網址</button></div>`
+        : "";
+  const quick = !IS_STANDALONE && CAN_FUGLE && installPrompt ? `<button type="button" class="btn primary block" data-act="install">${icon("addSquare")}加入主畫面</button>` : "";
+  const steps = os === "ios"
+    ? `<ol class="steps">
+        <li><span>用 <b>Safari</b> 開啟 ETF 袋著走網頁版。</span></li>
+        <li><span>點 Safari 下方的 ${key("", "⋯")}，再點 ${key("share", "分享")}（較舊的 iOS 直接點下方的分享按鈕）。</span></li>
+        <li><span>往下滑，點 ${key("addSquare", "加入主畫面")}。</span></li>
+        <li><span>名稱保持「ETF袋著走」，「以網頁 App 開啟」保持開啟，再點右上角「加入」。</span></li>
+      </ol>`
+    : `<ol class="steps">
+        <li><span>用 <b>Chrome</b> 開啟 ETF 袋著走網頁版。</span></li>
+        <li><span>點右上角 ${key("", "⋮")} 選單。</span></li>
+        <li><span>點 ${key("addSquare", "加入主畫面")}，再選「安裝」。</span></li>
+        <li><span>回到主畫面，就會看到口袋圖示。</span></li>
+      </ol>`;
+  return {
+    title: "加入主畫面", back: true,
+    body: `<div class="card"><b>加入後的主畫面</b><p class="note" style="margin:4px 0 12px">主畫面會出現 ETF 袋著走的口袋圖示，點它就像 App 一樣全螢幕開啟。</p>${preview}</div>
+      ${status}${quick}
+      ${IS_STANDALONE ? "" : `<div class="card"><div class="row"><b class="grow">加入步驟</b><div class="seg-mini">${[["ios", "iPhone"], ["android", "Android"]].map(([k, t]) => `<button type="button" class="${os === k ? "on" : ""}" data-act="installOS" data-v="${k}">${t}</button>`).join("")}</div></div>${steps}</div>`}
+      <div class="card"><b>主畫面上是舊圖示？</b><p class="note" style="margin:6px 0 4px">iPhone 會記住加入當下的圖示，要重新加入才會換成新圖示。主畫面 App 的資料存在它自己裡面，移除前一定要先備份：</p>
+        <ol class="steps">
+          <li><span>在舊的主畫面 App 裡，到「資料備份與還原」按「匯出備份」，把檔案存好。</span></li>
+          <li><span>長按舊圖示 →「移除 App」→「刪除書籤」。</span></li>
+          <li><span>照上面的步驟重新加入主畫面。</span></li>
+          <li><span>開啟新圖示，到「資料備份與還原」匯入剛剛的備份，再到「富果行情連線」重新存入金鑰。</span></li>
+        </ol>
+        <button type="button" class="btn soft block" style="margin-top:6px" data-act="push" data-view="backup">${icon("cloud")}前往資料備份與還原</button></div>`,
   };
 };
 
@@ -2482,6 +2563,14 @@ const ACT = {
   loadComp: (ds) => loadComponents(ds.sym),
   loadComps: (ds) => loadCompsFor(ds.syms.split(",").filter(Boolean)),
   theme: (ds) => { S.prefs.theme = ds.v; savePrefs(); applyTheme(); renderScreen(); },
+  hideInstall: () => { S.prefs.installHidden = true; savePrefs(); renderScreen(); toast("之後可在「設定 › 加入主畫面」找到"); },
+  installOS: (ds) => { S.ui.installOS = ds.v; renderScreen(); },
+  install: async () => {
+    const prompt = installPrompt; if (!prompt) return;
+    installPrompt = null; prompt.prompt();
+    try { const choice = await prompt.userChoice; if (choice && choice.outcome === "accepted") toast("已加入主畫面"); } catch (e) { /* the browser closed the prompt */ }
+    renderScreen();
+  },
   mode: (ds) => { S.mode = ds.v; savePrefs(); renderScreen(); toast(S.mode === "demo" ? "已切換到示範資料" : "已切換到我的資料"); },
   askClear: () => { S.ui.confirmClear = true; renderScreen(); },
   cancelClear: () => { S.ui.confirmClear = false; renderScreen(); },
