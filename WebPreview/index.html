@@ -16,7 +16,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root[data-theme="system"] {
     --bg: #0b1222; --bg-soft: #0e1628; --app-top: #13213f; --card: #17213a; --card-2: #1d2945; --field: #1b2742;
     --ink: #e9eefb; --muted: #97a3bd; --line: rgba(233,238,251,.1);
     --shadow: 0 6px 18px rgba(0,0,0,.28); --glass: rgba(23,33,58,.55); --glass-top: rgba(40,54,88,.7); --glass-line: rgba(255,255,255,.12); --glass-hi: rgba(255,255,255,.18); --glass-pill: rgba(255,255,255,.12); --head-bg: rgba(14,22,40,.8);
@@ -667,7 +667,7 @@ const emptyData = () => ({ holdings: [], dividends: [], trades: [], quotes: {}, 
 const S = {
   mode: "demo", demo: buildDemo(), mine: emptyData(), storage: "pending", market: {}, marketAt: null, snapshotOK: null,
   tab: 0, stacks: [[], [], [], [], []], sheet: null,
-  prefs: { hidden: false, theme: "system", read: [], installHidden: false },
+  prefs: { hidden: false, theme: "light", themeSet: false, read: [], installHidden: false },
   ui: { homeRange: "1年", overviewRange: "1年", spread: 0, q: "", filter: emptyFilter(), detail: 0, detailRange: "3月", hSection: 0, hSort: "value", hSearch: false, hq: "", allocTab: 0, tFilter: { sym: "", act: "", broker: "" }, month: null, day: null, cmpPair: 0, wTab: 0, wEdit: false, wSel: null, recentTab: 0, mdTab: 0, year: null, noticeTab: 0, expoTab: 0 },
 };
 const data = () => (S.mode === "demo" ? S.demo : S.mine);
@@ -677,14 +677,24 @@ function loadPrefs() {
   try {
     const p = JSON.parse(localStorage.getItem(PREF_KEY) || "{}");
     if (p.mode) S.mode = p.mode; S.prefs.hidden = !!p.hidden;
-    if (["system", "light", "dark"].includes(p.theme)) S.prefs.theme = p.theme;
+    // Light is the default; a saved theme counts only after the viewer picked one in Settings.
+    if (p.themeSet && ["system", "light", "dark"].includes(p.theme)) { S.prefs.theme = p.theme; S.prefs.themeSet = true; }
     if (Array.isArray(p.read)) S.prefs.read = p.read.filter((x) => typeof x === "string").slice(-300);
     S.prefs.installHidden = !!p.installHidden;
     return !!p.mode;
   } catch (e) { return false; }
 }
-function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify({ mode: S.mode, hidden: S.prefs.hidden, theme: S.prefs.theme, read: S.prefs.read.slice(-300), installHidden: S.prefs.installHidden })); } catch (e) { /* storage unavailable */ } }
-function applyTheme() { const t = S.prefs.theme; if (t === "system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", t); }
+function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify({ mode: S.mode, hidden: S.prefs.hidden, theme: S.prefs.theme, themeSet: S.prefs.themeSet, read: S.prefs.read.slice(-300), installHidden: S.prefs.installHidden })); } catch (e) { /* storage unavailable */ } }
+function applyTheme() {
+  const t = S.prefs.theme;
+  document.documentElement.setAttribute("data-theme", t);
+  // The browser bar follows the chosen theme, not only the system one.
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
+    if (!m.dataset.media) m.dataset.media = m.getAttribute("media") || "";
+    if (t === "system") { if (m.dataset.media) m.setAttribute("media", m.dataset.media); else m.removeAttribute("media"); }
+    else { m.removeAttribute("media"); m.setAttribute("content", t === "dark" ? "#0e1628" : "#edf2ff"); }
+  });
+}
 
 /* ---------- persistence: the viewer's private db document, else this browser ---------- */
 let DOC = null, writeChain = Promise.resolve(), lastSaved = "";
@@ -1400,7 +1410,7 @@ VIEWS.notices = () => {
 VIEWS.settings = () => {
   const row = (ic, color, title, right, act) => `<${act ? `button type="button" ${act}` : "div"} class="set-row"><span class="si" style="background:${color}">${icon(ic)}</span><span class="grow bold">${title}</span>${right}</${act ? "button" : "div"}>`;
   const where = { cloud: "已同步到你的 Claude 帳號（只有你看得到）。", local: "只存在這個瀏覽器；從主畫面移除 App 或清除網站資料會一併刪除，請定期匯出備份。", memory: "這個瀏覽器不允許儲存，關閉頁面後會遺失。", pending: "正在連線儲存空間…" }[S.storage];
-  const themeSeg = `<div class="seg-mini">${[["system", "跟隨系統"], ["light", "淺色"], ["dark", "深色"]].map(([k, t]) => `<button type="button" class="${S.prefs.theme === k ? "on" : ""}" data-act="theme" data-v="${k}">${t}</button>`).join("")}</div>`;
+  const themeSeg = `<div class="seg-mini">${[["light", "淺色"], ["dark", "深色"], ["system", "跟隨系統"]].map(([k, t]) => `<button type="button" class="${S.prefs.theme === k ? "on" : ""}" data-act="theme" data-v="${k}">${t}</button>`).join("")}</div>`;
   const modeSeg = `<div class="seg-mini">${[["demo", "示範"], ["mine", "我的資料"]].map(([k, t]) => `<button type="button" class="${S.mode === k ? "on" : ""}" data-act="mode" data-v="${k}">${t}</button>`).join("")}</div>`;
   return {
     title: "設定", back: true,
@@ -2562,7 +2572,7 @@ const ACT = {
   loadYear: (ds) => loadHistories(ds.syms.split(",").filter(Boolean), 1),
   loadComp: (ds) => loadComponents(ds.sym),
   loadComps: (ds) => loadCompsFor(ds.syms.split(",").filter(Boolean)),
-  theme: (ds) => { S.prefs.theme = ds.v; savePrefs(); applyTheme(); renderScreen(); },
+  theme: (ds) => { S.prefs.theme = ds.v; S.prefs.themeSet = true; savePrefs(); applyTheme(); renderScreen(); },
   hideInstall: () => { S.prefs.installHidden = true; savePrefs(); renderScreen(); toast("之後可在「設定 › 加入主畫面」找到"); },
   installOS: (ds) => { S.ui.installOS = ds.v; renderScreen(); },
   install: async () => {

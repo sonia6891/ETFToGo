@@ -2,7 +2,7 @@ import SwiftUI
 
 @main struct ETFToGoApp: App {
     @StateObject private var store: PortfolioStore
-    @AppStorage("appearance") private var appearance = "system"
+    @AppStorage("appearance") private var appearance = "light"
     init() {
         let args = ProcessInfo.processInfo.arguments
         let testURL = args.contains("--ui-testing") ? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("ETFToGo/ui-test.json") : nil

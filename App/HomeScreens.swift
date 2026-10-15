@@ -257,13 +257,13 @@ struct DividendDateRow: View {
 /* ---------- settings ---------- */
 struct SettingsView: View {
     @EnvironmentObject var store: PortfolioStore
-    @AppStorage("appearance") private var appearance = "system"
+    @AppStorage("appearance") private var appearance = "light"
     @AppStorage("hideAmounts") private var hidden = false
     var body: some View {
         Page {
             Card(padding: 12) {
                 row("sun.max.fill", Palette.orange, "外觀設定") {
-                    Picker("外觀設定", selection: $appearance) { Text("跟隨系統").tag("system"); Text("淺色").tag("light"); Text("深色").tag("dark") }.pickerStyle(.segmented).frame(width: 190)
+                    Picker("外觀設定", selection: $appearance) { Text("淺色").tag("light"); Text("深色").tag("dark"); Text("跟隨系統").tag("system") }.pickerStyle(.segmented).frame(width: 190)
                 }
                 Divider()
                 row("eye.fill", Palette.blue, "隱藏金額") { Toggle("隱藏金額", isOn: $hidden).labelsHidden().tint(Palette.blue) }

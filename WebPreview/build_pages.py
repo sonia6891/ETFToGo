@@ -18,10 +18,11 @@ root = here.parent
 out = Path(sys.argv[1]).resolve()
 out.mkdir(parents=True, exist_ok=True)
 
-pocket = root / "App/Assets.xcassets/Pocket.imageset/pocket.png"
+# The home-screen icon is the iPhone app icon (blue, full bleed; iOS rounds the corners).
+app_icon = root / "App/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
 # iOS keeps a home-screen icon per URL, so icon and manifest names carry the icon's content hash:
 # a new icon gets new URLs and is fetched again when the page is re-added to the home screen.
-version = hashlib.sha256(pocket.read_bytes()).hexdigest()[:8]
+version = hashlib.sha256(app_icon.read_bytes()).hexdigest()[:8]
 icons = {size: f"icon-{version}-{size}.png" for size in (180, 192, 512)}
 manifest_name = f"manifest-{version}.webmanifest"
 for stale in [*out.glob("icon-*.png"), *out.glob("manifest*.webmanifest")]:
@@ -46,6 +47,7 @@ head = "\n".join([
     '<meta name="theme-color" content="#edf2ff" media="(prefers-color-scheme: light)">',
     '<meta name="theme-color" content="#0e1628" media="(prefers-color-scheme: dark)">',
     '<meta name="description" content="ETF 袋著走：台灣上市 ETF 持有、配息與試算的網頁版。">',
+    f'<link rel="apple-touch-icon" href="{icons[180]}">',
     f'<link rel="apple-touch-icon" sizes="180x180" href="{icons[180]}">',
     f'<link rel="icon" type="image/png" sizes="192x192" href="{icons[192]}">',
     f'<link rel="manifest" href="{manifest_name}">',
@@ -55,7 +57,7 @@ head = "\n".join([
 ])
 (out / "index.html").write_text(head + "\n" + "\n".join(lines) + "\n</body>\n</html>\n", encoding="utf-8")
 
-icon = Image.open(pocket).convert("RGB")
+icon = Image.open(app_icon).convert("RGB")
 for size, name in icons.items():
     icon.resize((size, size), Image.LANCZOS).save(out / name, optimize=True)
 # Fallback for clients that probe the conventional name.
@@ -71,8 +73,9 @@ manifest = {
     "background_color": "#edf2ff",
     "theme_color": "#edf2ff",
     "icons": [
-        {"src": icons[192], "sizes": "192x192", "type": "image/png"},
-        {"src": icons[512], "sizes": "512x512", "type": "image/png"},
+        {"src": icons[180], "sizes": "180x180", "type": "image/png", "purpose": "any"},
+        {"src": icons[192], "sizes": "192x192", "type": "image/png", "purpose": "any"},
+        {"src": icons[512], "sizes": "512x512", "type": "image/png", "purpose": "any"},
     ],
 }
 (out / manifest_name).write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
