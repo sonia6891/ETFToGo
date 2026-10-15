@@ -1,15 +1,18 @@
 # ETF 袋著走 — TestFlight 發佈紀錄
 
-更新日期：2026-10-15（台灣時間）。唯一持續開發來源為本 SwiftUI 工程。**開發中原始碼為 0.3.0；已發佈到 TestFlight 的版本仍為 0.2.0（2.3）。**
+更新日期：2026-10-16（台灣時間）。唯一持續開發來源為本 SwiftUI 工程。**開發中原始碼為 0.3.0；已發佈到 TestFlight 的版本仍為 0.2.0（2.3）。**
 
-## 0.3.0 介面改版（ui/pocket-redesign 分支），尚未編譯
+## 0.3.0 介面改版（ui/pocket-redesign 分支），已編譯並通過測試，尚未上傳
+
+- 2026-10-16 使用者同意把本程式庫改為公開，改用 GitHub 的 `macos-26` 建置機（公開程式庫免費）。[native-ui run 38792912016](https://github.com/sonia6891/ETFToGo/actions/runs/38792912016) 使用來源 `e5fc6a1333e98193ec25c18900d141585eebbd4e`：Xcode 26.6 **編譯成功**、**29 項單元測試與 4 項 UI 測試全部通過**，五個分頁的模擬器截圖已查看，與範本一致。
+- App 圖示改用 `AppIcon.appiconset/AppIcon.png`（藍底口袋圖，即 0.2.0 在 TestFlight 上的圖示）；兩個 workflow 不再用 `pocket.png` 覆蓋 AppIcon.png。網頁版主畫面圖示也改用同一張。外觀預設淺色。
+- **尚未簽署上傳。** 本程式庫沒有 Apple 簽署 Secrets（testflight.yml 的 prerequisites 列出 7 項缺少）；0.2.0 是由私人程式庫 meow-work-app 的 `etftogo-archive.yml`（分支 `codex/etftogo-signing-check-20261015`）簽署上傳，該流程仍受帳戶 Actions 月預算限制。使用者選擇等 2026-11-01 額度重置後再上傳；屆時須更新該流程的來源壓縮檔與釘選 commit，並移除其中用 `pocket.png` 覆蓋 AppIcon.png 的 `sips` 那一行。
 
 - 依「ETF 袋著走」設計稿重做五個分頁、ETF 詳情、配息月曆與工具頁，並新增領息目標、提醒中心（本機通知）、三檔比較、篩選、隱藏金額及報價開高低量。功能與資料串接說明見 README。
 - 此改版在沒有 Xcode 的 Windows 環境撰寫，**只做過 Swift 語法剖析（tree-sitter，0 錯誤），尚未經 Xcode 編譯、單元測試或 UI 測試。** UI 測試已依新分頁名稱（探索、持有）、詳情分頁（持股、走勢、資訊）與按鈕文字（新增配息紀錄）更新。
 - 新增 Theme.swift、DiscoverViews.swift，已同時加入 project.yml 來源資料夾與 ETFToGo.xcodeproj。
 - 2026-10-15 依 Figma 設計稿（https://www.figma.com/design/ivdDhUgFxIzInvJzFZ7KgM）再對齊：Figma AI 插圖放入 Assets.xcassets/Art、上漲綠下跌紅、持有頁「交易紀錄」分頁（新增 `Portfolio.trades`，舊檔沒有此欄位仍可讀取）、詳情風險標示、App 圖示換成白底口袋圖。同樣只做過 tree-sitter 語法剖析（0 錯誤），**尚未編譯或測試**；新增單元測試 `testTradeLogRecordsHoldingChanges`，UI 測試改點「交易紀錄」與「資產配置」。網頁版已同步發佈。
 - 2026-10-16 依五張範本（30 個畫面）再改版：新增 HomeScreens.swift、DividendScreens.swift、OfficialData.swift 與 official-dividends.json（已加入 ETFToGo.xcodeproj），重寫首頁、探索、持有、配息、工具與多個內頁，加入懸浮導覽列、深色模式、買進／賣出交易、配息明細與官方配息資料。**仍未編譯**：tree-sitter 語法剖析 0 錯誤，另由獨立審查逐檔比對名稱、參數與型別，未發現確定的編譯錯誤。UI 測試改用 `tab-首頁` 等導覽按鈕識別碼；新增 `testBuyAndSellAdjustHolding`、`testOfficialDistributionHelpers` 單元測試。
-- 合併前需在 Mac 執行 `xcodegen generate` 及 native-ui workflow，確認編譯、測試與五頁截圖。
 - 2026-10-15 Tuist Runners 檢查：GitHub 連結（etftogo ↔ sonia6891/ETFToGo）與 `tuist-macos` 規格均已設定，工作會送進 Tuist；但 macOS 工作在 Tuist 佇列中未被任何機器認領（[run 38680144589](https://github.com/sonia6891/ETFToGo/actions/runs/38680144589) 排隊 5 小時後取消、[run 38715224691](https://github.com/sonia6891/ETFToGo/actions/runs/38715224691) 仍在排隊）。Linux 測試工作在 Tuist 顯示已認領，但 GitHub 端 12 分鐘仍未取得 runner。sonia6891 是個人帳號，而 Tuist 文件要求連結 GitHub organization，推測與此有關，需向 Tuist 確認。
 
 ## 0.3.0 開發中，尚未發佈
