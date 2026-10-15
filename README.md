@@ -4,7 +4,7 @@
 
 五個原生分頁：首頁、找 ETF、我的持有、配息、工具。支援持有編輯、本機 JSON 原子儲存、配息紀錄、收藏、兩檔比較、成本配置、複利情境試算、原生備份分享與合併匯入。個人富果金鑰以 Keychain 保存，僅傳給官方 API。
 
-本次已通過 Xcode 26.6 的原生建置及 8 項測試，並完成正式簽署、archive 與 IPA 匯出。**尚未上傳 TestFlight**，目前卡在 Apple 網站的新 App 記錄。完整證據與限制見 `RELEASE_STATUS.md`。
+本次已通過 Xcode 26.6 的原生建置及 8 項測試，並完成正式簽署、封存、上傳與 TestFlight 內部測試；使用者已確認安裝並開啟。這些驗證沒有涵蓋舊版功能完整移植。發佈證據見 `RELEASE_STATUS.md`，功能遺漏與待開發項目見 `FEATURE_GAP_AUDIT.md`。
 
 ## 建置
 
@@ -28,9 +28,9 @@ Apple Team、正式 Bundle ID、ETF 專用 provisioning profile 與 App Store Co
 
 `native-ui.yml` 做模擬器驗證。`testflight.yml` 提供此倉庫專用的手動發佈流程，缺設定會在前置檢查停止。
 
-已使用既有 Apple 簽署環境的獨立分支完成正式簽署、archive 和 IPA 匯出：版本 **0.2.0 (2.2)**、**Xcode 26.6 / iOS 26.5 SDK**、正式 Bundle ID **com.sonia.etftogo**。成功紀錄：[signed archive run 38665723372](https://github.com/sonia6891/meow-work-app/actions/runs/38665723372)。來源固定為 ETFToGo commit `b4d340a506324318969c8c550ee8e95ef259e0fd`；既有 App 的主分支未變更，秘密仍留在原本的 GitHub 簽署環境。
+已使用既有 Apple 簽署環境的獨立分支完成正式簽署、封存及上傳：版本 **0.2.0 (2.3)**、**Xcode 26.6 / iOS 26.5 SDK**、正式 Bundle ID **com.sonia.etftogo**。成功紀錄：[release run 38668432671](https://github.com/sonia6891/meow-work-app/actions/runs/38668432671)。來源固定為 ETFToGo commit `f2b6008573c5f9b0d768dd362394b06ca5347f9d`；既有 App 的主分支未變更，秘密仍留在原本的 GitHub 簽署環境。
 
-**尚未上傳，也沒有可安裝的 TestFlight build。** Apple API 已確認 ETF App 記錄不存在，上傳步驟因此跳過；必須先在 App Store Connect 網站登入並建立記錄。參見 `RELEASE_STATUS.md`。IPA 是 App Store distribution 檔，不能當成一般 iPhone 點開即可安裝的檔案。
+Apple API 已確認本建置為 `VALID` 及 `IN_BETA_TESTING`；內部群組「ETF ToGo 內部測試」已提供安裝，使用者已回報成功。參見 `RELEASE_STATUS.md`。IPA 是 App Store distribution 檔，安裝入口為 TestFlight 邀請。
 
 若日後要把簽署流程獨立搬到此私人倉庫，在 Settings → Secrets and variables → Actions 設定以下項目；現有獨立簽署分支已可使用，毋須為本次重建憑證或在對話貼出密鑰：
 
@@ -39,6 +39,6 @@ Apple Team、正式 Bundle ID、ETF 專用 provisioning profile 與 App Store Co
 - Secrets `APPLE_DISTRIBUTION_P12_BASE64`、`APPLE_DISTRIBUTION_P12_PASSWORD`。
 - Secret `APPLE_PROFILE_ETF_BASE64`：對應正式 ETF Bundle ID 的 App Store distribution profile，不能沿用其他 App 的 profile。
 
-上傳成功後仍需查驗 Apple 處理結果、出口合規問題、測試群組與邀請；外部測試可能需要 Beta App Review。
+此次已查驗 Apple 處理結果與內部測試可用狀態。未開放外部測試，也未提交正式版審查。
 
 富果來源：https://developer.fugle.tw/docs/data/http-api/intraday/quote/
