@@ -22,8 +22,12 @@ out.mkdir(parents=True, exist_ok=True)
 app_icon = root / "App/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
 # iOS keeps a home-screen icon per URL, so icon and manifest names carry the icon's content hash:
 # a new icon gets new URLs and is fetched again when the page is re-added to the home screen.
-version = hashlib.sha256(app_icon.read_bytes()).hexdigest()[:8]
+# Bump ICON_REVISION to force new icon URLs when the image is unchanged but iOS kept a bad copy.
+ICON_REVISION = b"2"
+version = hashlib.sha256(app_icon.read_bytes() + ICON_REVISION).hexdigest()[:8]
 icons = {size: f"icon-{version}-{size}.png" for size in (180, 192, 512)}
+# Absolute URLs: the home-screen sheet resolves icons outside the page, so nothing depends on the base URL.
+site = "https://sonia6891.github.io/etftogo-web/"
 manifest_name = f"manifest-{version}.webmanifest"
 for stale in [*out.glob("icon-*.png"), *out.glob("manifest*.webmanifest")]:
     stale.unlink()
@@ -42,15 +46,15 @@ head = "\n".join([
     title,
     '<meta name="apple-mobile-web-app-capable" content="yes">',
     '<meta name="mobile-web-app-capable" content="yes">',
-    '<meta name="apple-mobile-web-app-title" content="ETF袋著走">',
+    '<meta name="apple-mobile-web-app-title" content="ETF 袋著走">',
     '<meta name="apple-mobile-web-app-status-bar-style" content="default">',
     '<meta name="theme-color" content="#edf2ff" media="(prefers-color-scheme: light)">',
     '<meta name="theme-color" content="#0e1628" media="(prefers-color-scheme: dark)">',
     '<meta name="description" content="ETF 袋著走：台灣上市 ETF 持有、配息與試算的網頁版。">',
-    f'<link rel="apple-touch-icon" href="{icons[180]}">',
-    f'<link rel="apple-touch-icon" sizes="180x180" href="{icons[180]}">',
-    f'<link rel="icon" type="image/png" sizes="192x192" href="{icons[192]}">',
-    f'<link rel="manifest" href="{manifest_name}">',
+    f'<link rel="apple-touch-icon" sizes="180x180" href="{site}{icons[180]}">',
+    f'<link rel="apple-touch-icon-precomposed" sizes="180x180" href="{site}{icons[180]}">',
+    f'<link rel="icon" type="image/png" sizes="192x192" href="{site}{icons[192]}">',
+    f'<link rel="manifest" href="{site}{manifest_name}">',
     "<style>html,body{margin:0;height:100%}</style>",
     "</head>",
     "<body>",
@@ -60,12 +64,15 @@ head = "\n".join([
 icon = Image.open(app_icon).convert("RGB")
 for size, name in icons.items():
     icon.resize((size, size), Image.LANCZOS).save(out / name, optimize=True)
-# Fallback for clients that probe the conventional name.
-icon.resize((180, 180), Image.LANCZOS).save(out / "apple-touch-icon.png", optimize=True)
+# Fallbacks for clients that probe the conventional names instead of reading the links.
+for name in ("apple-touch-icon.png", "apple-touch-icon-precomposed.png", "apple-touch-icon-180x180.png"):
+    icon.resize((180, 180), Image.LANCZOS).save(out / name, optimize=True)
+icon.save(out / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48)])
 
 manifest = {
+    "id": "./",
     "name": "ETF 袋著走",
-    "short_name": "ETF袋著走",
+    "short_name": "ETF 袋著走",
     "lang": "zh-Hant",
     "start_url": "./",
     "scope": "./",
@@ -73,9 +80,9 @@ manifest = {
     "background_color": "#edf2ff",
     "theme_color": "#edf2ff",
     "icons": [
-        {"src": icons[180], "sizes": "180x180", "type": "image/png", "purpose": "any"},
-        {"src": icons[192], "sizes": "192x192", "type": "image/png", "purpose": "any"},
-        {"src": icons[512], "sizes": "512x512", "type": "image/png", "purpose": "any"},
+        {"src": site + icons[180], "sizes": "180x180", "type": "image/png", "purpose": "any"},
+        {"src": site + icons[192], "sizes": "192x192", "type": "image/png", "purpose": "any"},
+        {"src": site + icons[512], "sizes": "512x512", "type": "image/png", "purpose": "any"},
     ],
 }
 (out / manifest_name).write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -1467,7 +1467,7 @@ VIEWS.install = () => {
   const key = (ic, text) => `<span class="key">${ic ? icon(ic) : ""}${text}</span>`;
   const ghost = () => `<div class="hs-app"><i></i><b></b></div>`;
   const preview = `<div class="hs-preview" aria-label="加入後，主畫面會出現 ETF 袋著走的口袋圖示" role="img">
-      <div class="hs-grid">${ghost()}${ghost()}${ghost()}${ghost()}${ghost()}<div class="hs-app"><img src="assets/app-icon.png" alt=""><span>ETF袋著走</span></div>${ghost()}${ghost()}</div>
+      <div class="hs-grid">${ghost()}${ghost()}${ghost()}${ghost()}${ghost()}<div class="hs-app"><img src="assets/app-icon.png" alt=""><span>ETF 袋著走</span></div>${ghost()}${ghost()}</div>
       <div class="hs-dock"><i></i><i></i><i></i><i></i></div></div>`;
   const status = IS_STANDALONE
     ? `<div class="card row" style="gap:10px"><span class="si" style="width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--green)">${icon("check")}</span><span class="grow"><b>已經從主畫面開啟</b><br><span class="small muted">你現在用的就是主畫面上的 ETF 袋著走。</span></span></div>`
@@ -1482,7 +1482,7 @@ VIEWS.install = () => {
         <li><span>用 <b>Safari</b> 開啟 ETF 袋著走網頁版。</span></li>
         <li><span>點 Safari 下方的 ${key("", "⋯")}，再點 ${key("share", "分享")}（較舊的 iOS 直接點下方的分享按鈕）。</span></li>
         <li><span>往下滑，點 ${key("addSquare", "加入主畫面")}。</span></li>
-        <li><span>名稱保持「ETF袋著走」，「以網頁 App 開啟」保持開啟，再點右上角「加入」。</span></li>
+        <li><span>名稱保持「ETF 袋著走」，「以網頁 App 開啟」保持開啟，再點右上角「加入」。</span></li>
       </ol>`
     : `<ol class="steps">
         <li><span>用 <b>Chrome</b> 開啟 ETF 袋著走網頁版。</span></li>
