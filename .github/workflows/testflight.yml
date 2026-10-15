@@ -45,7 +45,6 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
           xcodebuild -version
           brew install xcodegen
-          sips -z 1024 1024 App/Assets.xcassets/Pocket.imageset/pocket.png --out App/Assets.xcassets/AppIcon.appiconset/AppIcon.png
           xcodegen generate
       - name: Install and validate temporary signing material
         env:

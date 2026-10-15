@@ -8,17 +8,17 @@ concurrency:
   cancel-in-progress: false
 jobs:
   simulator:
-    runs-on: tuist-macos
+    runs-on: macos-26
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Generate complete Xcode project and app icon
+      - name: Generate complete Xcode project
         run: |
           set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
           xcodebuild -version
           test "$(xcodebuild -version | head -n 1)" = 'Xcode 26.6'
           brew install xcodegen
-          sips -z 1024 1024 App/Assets.xcassets/Pocket.imageset/pocket.png --out App/Assets.xcassets/AppIcon.appiconset/AppIcon.png
           xcodegen generate
           xcodebuild -list -project ETFToGo.xcodeproj
       - name: Boot an available iPhone simulator
