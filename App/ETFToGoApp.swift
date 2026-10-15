@@ -21,7 +21,7 @@ func money(_ value: Double) -> String { value.formatted(.number.precision(.fract
 func decimal(_ value: Double) -> String { value.formatted(.number.precision(.fractionLength(0...2))) }
 struct Card<Content: View>: View {
     @ViewBuilder var content: Content
-    var body: some View { content.padding(20).frame(maxWidth: .infinity, alignment: .leading).background(.white, in: RoundedRectangle(cornerRadius: 24)).overlay(RoundedRectangle(cornerRadius: 24).stroke(Palette.ink.opacity(0.04))) }
+    var body: some View { VStack(alignment: .leading, spacing: 0) { content }.padding(20).frame(maxWidth: .infinity, alignment: .leading).background(.white, in: RoundedRectangle(cornerRadius: 24)).overlay(RoundedRectangle(cornerRadius: 24).stroke(Palette.ink.opacity(0.04))) }
 }
 struct StrategyPill: View {
     let strategy: Strategy
