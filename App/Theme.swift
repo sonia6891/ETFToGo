@@ -257,6 +257,7 @@ struct Page<Content: View>: View {
                 .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 28)
         }
         .scrollDismissesKeyboard(.interactively)
+        .modifier(MinimizeOnScroll())
         .background { Palette.page.ignoresSafeArea() }
     }
 }
@@ -487,38 +488,126 @@ enum AppTabs {
         TabSpec(title: "工具", icon: "square.grid.2x2.fill", colors: [Color(red: 0.67, green: 0.55, blue: 1.0), Palette.purple]),
     ]
 }
-/// The design's floating, translucent tab bar: content scrolls underneath and shows through.
+/// The design's floating tab bar with iOS 26-style motion: a glass bubble slides to the selected tab, icons bounce,
+/// presses squeeze, and scrolling down shrinks the bar to the current tab (scrolling up or tapping restores it).
+/// On iOS 26 the bar uses Liquid Glass; earlier versions use a frosted material.
 struct FloatingTabBar: View {
     @Binding var selection: Int
+    var minimized = false
     var reselect: (Int) -> Void
+    var expand: () -> Void = {}
+    @Namespace private var bubble
+    @State private var bounce = [0, 0, 0, 0, 0]
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(AppTabs.items.indices, id: \.self) { index in
-                let item = AppTabs.items[index], on = selection == index
-                Button { if on { reselect(index) } else { selection = index } } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: item.icon).font(.system(size: 17, weight: .bold)).foregroundStyle(.white)
-                            .frame(width: 40, height: 40)
-                            .background(LinearGradient(colors: item.colors, startPoint: .top, endPoint: .bottom), in: Circle())
-                            .shadow(color: (item.colors.last ?? Palette.blue).opacity(0.35), radius: 6, y: 3)
-                            .scaleEffect(on ? 1.12 : 1).offset(y: on ? -3 : 0)
-                        Text(item.title).font(.caption2.weight(on ? .heavy : .bold)).foregroundStyle(Palette.ink)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(item.title)
-                .accessibilityIdentifier("tab-\(item.title)")
-                .accessibilityAddTraits(on ? .isSelected : [])
+            if minimized {
+                Button(action: expand) { ball(selection, on: false).padding(6) }
+                    .buttonStyle(PressScale())
+                    .accessibilityLabel("展開分頁列，目前在\(AppTabs.items[selection].title)")
+            } else {
+                ForEach(AppTabs.items.indices, id: \.self) { index in item(index) }
             }
         }
-        .padding(.vertical, 8).padding(.horizontal, 4)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(Color.white.opacity(0.45), lineWidth: 1))
-        .shadow(color: Color.black.opacity(0.12), radius: 16, y: 8)
-        .padding(.horizontal, 12).padding(.bottom, 4)
-        .animation(.snappy, value: selection)
+        .padding(.vertical, minimized ? 0 : 7).padding(.horizontal, minimized ? 0 : 4)
+        .modifier(LiquidGlass(shape: RoundedRectangle(cornerRadius: 30, style: .continuous)))
+        .frame(maxWidth: .infinity, alignment: minimized ? .leading : .center)
+        .padding(.horizontal, minimized ? 16 : 12).padding(.bottom, 4)
+        .animation(.spring(response: 0.42, dampingFraction: 0.72), value: selection)
+        .animation(.spring(response: 0.45, dampingFraction: 0.82), value: minimized)
+        .sensoryFeedback(.selection, trigger: selection)
+    }
+    private func item(_ index: Int) -> some View {
+        let item = AppTabs.items[index], on = selection == index
+        return Button {
+            if on { reselect(index) } else { bounce[index] += 1; selection = index }
+        } label: {
+            VStack(spacing: 3) {
+                ball(index, on: on)
+                Text(item.title).font(.caption2.weight(on ? .heavy : .bold)).foregroundStyle(Palette.ink)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 3)
+            .background { if on { SelectionBubble().matchedGeometryEffect(id: "bubble", in: bubble) } }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScale())
+        .accessibilityLabel(item.title)
+        .accessibilityIdentifier("tab-\(item.title)")
+        .accessibilityAddTraits(on ? .isSelected : [])
+    }
+    private func ball(_ index: Int, on: Bool) -> some View {
+        let item = AppTabs.items[index]
+        return Image(systemName: item.icon).font(.system(size: 17, weight: .bold)).foregroundStyle(.white)
+            .symbolEffect(.bounce, value: bounce[index])
+            .frame(width: 40, height: 40)
+            .background(LinearGradient(colors: item.colors, startPoint: .top, endPoint: .bottom), in: Circle())
+            .shadow(color: (item.colors.last ?? Palette.blue).opacity(0.35), radius: 6, y: 3)
+            .scaleEffect(on ? 1.12 : 1).offset(y: on ? -3 : 0)
+    }
+}
+/// The lens-like bubble behind the selected tab.
+struct SelectionBubble: View {
+    var body: some View {
+        Capsule(style: .continuous)
+            .fill(LinearGradient(colors: [Color.white.opacity(0.55), Color.white.opacity(0.22)], startPoint: .top, endPoint: .bottom))
+            .overlay(Capsule(style: .continuous).stroke(Color.white.opacity(0.7), lineWidth: 1))
+            .shadow(color: Palette.blue.opacity(0.16), radius: 8, y: 4)
+            .padding(.horizontal, 2)
+    }
+}
+/// Buttons squeeze while pressed and spring back.
+struct PressScale: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.9 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.55), value: configuration.isPressed)
+    }
+}
+/// Liquid Glass on iOS 26 (interactive, so it reacts to touch); a frosted material with a light rim before that.
+struct LiquidGlass<S: Shape>: ViewModifier {
+    let shape: S
+    var interactive = true
+    @ViewBuilder func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content.glassEffect(interactive ? .regular.interactive() : .regular, in: shape)
+        } else {
+            frosted(content)
+        }
+        #else
+        frosted(content)
+        #endif
+    }
+    private func frosted(_ content: Content) -> some View {
+        content
+            .background(.ultraThinMaterial, in: shape)
+            .overlay(shape.stroke(Color.white.opacity(0.45), lineWidth: 1))
+            .shadow(color: Color.black.opacity(0.12), radius: 16, y: 8)
+    }
+}
+/// Pages report scrolling so the tab bar can shrink while reading and come back when scrolling up.
+private struct TabBarMinimizeKey: EnvironmentKey {
+    static let defaultValue: (Bool) -> Void = { _ in }
+}
+extension EnvironmentValues {
+    var tabBarMinimize: (Bool) -> Void {
+        get { self[TabBarMinimizeKey.self] }
+        set { self[TabBarMinimizeKey.self] = newValue }
+    }
+}
+struct MinimizeOnScroll: ViewModifier {
+    @Environment(\.tabBarMinimize) private var report
+    @ViewBuilder func body(content: Content) -> some View {
+        #if compiler(>=6.0)
+        if #available(iOS 18.0, *) {
+            content.onScrollGeometryChange(for: CGFloat.self, of: { $0.contentOffset.y + $0.contentInsets.top }) { old, new in
+                if new < 60 { report(false) } else if new - old > 8 { report(true) } else if old - new > 8 { report(false) }
+            }
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
     }
 }
 struct DateBox: View {

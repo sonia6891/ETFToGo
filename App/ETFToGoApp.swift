@@ -20,6 +20,7 @@ struct RootView: View {
     @State private var tab = 0
     /// Re-selecting a tab returns it to its first screen.
     @State private var resets = [0, 0, 0, 0, 0]
+    @State private var minimized = false
     var body: some View {
         TabView(selection: $tab) {
             stack(0) { HomeView(tab: $tab) }
@@ -29,7 +30,11 @@ struct RootView: View {
             stack(4) { ToolsView() }
         }
         .tint(Palette.blue)
-        .overlay(alignment: .bottom) { FloatingTabBar(selection: $tab) { resets[$0] += 1 }.ignoresSafeArea(.keyboard) }
+        .overlay(alignment: .bottom) {
+            FloatingTabBar(selection: $tab, minimized: minimized, reselect: { resets[$0] += 1 }, expand: { minimized = false }).ignoresSafeArea(.keyboard)
+        }
+        .environment(\.tabBarMinimize) { value in if minimized != value { minimized = value } }
+        .onChange(of: tab) { _, _ in minimized = false }
         .task { if !ProcessInfo.processInfo.arguments.contains("--ui-testing") { await store.refreshCatalog() } }
         .task(id: store.data.dividends.map(\.id)) { await DividendReminders.syncIfEnabled(store.data.dividends) }
         .onAppear {
