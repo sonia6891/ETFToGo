@@ -1,0 +1,69 @@
+name: Build and inspect native ETF UI
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: native-ui
+  cancel-in-progress: false
+jobs:
+  simulator:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate complete Xcode project and app icon
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          brew install xcodegen
+          sips -z 1024 1024 App/Assets.xcassets/Pocket.imageset/pocket.png --out App/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+          xcodegen generate
+          xcodebuild -list -project ETFToGo.xcodeproj
+      - name: Boot an available iPhone simulator
+        id: device
+        run: |
+          set -euo pipefail
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for runtime,items in d["devices"].items() if "iOS" in runtime for x in items if "iPhone" in x["name"]))')
+          echo "udid=$DEVICE" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl status_bar "$DEVICE" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
+          xcrun simctl ui "$DEVICE" appearance light
+      - name: Compile native app
+        env:
+          DEVICE: ${{ steps.device.outputs.udid }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/screens
+          xcodebuild build-for-testing -project ETFToGo.xcodeproj -scheme ETFToGo -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO 2>&1 | tee build/compile.log
+      - name: Capture all five real SwiftUI screens
+        env:
+          DEVICE: ${{ steps.device.outputs.udid }}
+        run: |
+          set -euo pipefail
+          xcrun simctl install "$DEVICE" build/DerivedData/Build/Products/Debug-iphonesimulator/ETFToGo.app
+          for TAB in 0 1 2 3 4; do
+            xcrun simctl terminate "$DEVICE" tw.sonia.etftogo.uireview || true
+            xcrun simctl launch "$DEVICE" tw.sonia.etftogo.uireview --demo --tab "$TAB"
+            sleep 4
+            xcrun simctl io "$DEVICE" screenshot "build/screens/screen-$TAB.png"
+          done
+      - name: Verify calculations, persistence, search and editing
+        env:
+          DEVICE: ${{ steps.device.outputs.udid }}
+        run: |
+          set -euo pipefail
+          xcodebuild test-without-building -project ETFToGo.xcodeproj -scheme ETFToGo -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath build/DerivedData -resultBundlePath build/Tests.xcresult -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO 2>&1 | tee build/tests.log
+      - name: Save verifiable build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ETFToGo-native-ui-evidence
+          retention-days: 14
+          path: |
+            build/screens/
+            build/*.log
+            build/Tests.xcresult/
+            ETFToGo.xcodeproj/
+            App/Assets.xcassets/AppIcon.appiconset/AppIcon.png
