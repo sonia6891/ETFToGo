@@ -39,14 +39,15 @@ struct Holding: Identifiable, Codable {
     var broker: String
     var strategy: Strategy
     var sourceAccount: String? = nil
+    var purchaseDate: Date? = nil
     var cost: Double { shares * unitCost }
     func validate() throws {
         guard !symbol.isEmpty, !name.isEmpty, shares.isFinite, shares > 0,
               shares <= 1e10, unitCost.isFinite, unitCost >= 0, unitCost <= 1e9,
-              cost.isFinite, !broker.isEmpty, broker.count <= 120, symbol.count <= 20, name.count <= 120 else { throw StoreError.invalidHolding }
+              cost.isFinite, broker.count <= 120, symbol.count <= 20, name.count <= 120 else { throw StoreError.invalidHolding }
     }
 }
-enum TradeAction: String, Codable, CaseIterable { case buy = "買進", adjust = "調整", remove = "移除", brokerImport = "匯入" }
+enum TradeAction: String, Codable, CaseIterable { case buy = "買進", sell = "賣出", adjust = "調整", remove = "移除", brokerImport = "匯入" }
 /// A change the user made to a holding in this app; not a broker fill report.
 struct Trade: Identifiable, Codable {
     var id = UUID()
@@ -57,22 +58,58 @@ struct Trade: Identifiable, Codable {
     var shares: Double
     var unitCost: Double
     var broker: String
+    /// Money paid (buy, cost included) or received (sell, fees deducted); older entries derive it from shares × unit cost.
+    var amount: Double? = nil
+    /// Proceeds minus the average cost of the shares sold.
+    var realized: Double? = nil
+    var total: Double { amount ?? shares * unitCost }
     var isValid: Bool {
-        !symbol.isEmpty && symbol.count <= 20 && name.count <= 120 && broker.count <= 120
-            && shares.isFinite && shares >= 0 && shares <= 1e10 && unitCost.isFinite && unitCost >= 0 && unitCost <= 1e9
+        guard !symbol.isEmpty, symbol.count <= 20, name.count <= 120, broker.count <= 120 else { return false }
+        guard shares.isFinite, shares >= 0, shares <= 1e10, unitCost.isFinite, unitCost >= 0, unitCost <= 1e9 else { return false }
+        if let amount, !(amount.isFinite && amount >= 0 && amount <= 1e12) { return false }
+        if let realized, !realized.isFinite { return false }
+        return true
     }
-    init(id: UUID = UUID(), date: Date = Date(), action: TradeAction, holding: Holding) {
+    init(id: UUID = UUID(), date: Date = Date(), action: TradeAction, holding: Holding, amount: Double? = nil) {
         self.id = id; self.date = date; self.action = action
         symbol = holding.symbol; name = holding.name; shares = holding.shares; unitCost = holding.unitCost; broker = holding.broker
+        self.amount = amount
+    }
+    init(date: Date, action: TradeAction, symbol: String, name: String, shares: Double, amount: Double, broker: String, realized: Double? = nil) {
+        self.date = date; self.action = action; self.symbol = symbol; self.name = name; self.shares = shares
+        unitCost = shares > 0 ? amount / shares : 0; self.amount = amount; self.broker = broker; self.realized = realized
     }
 }
 enum DividendStatus: String, Codable, CaseIterable { case paid = "已入帳", announced = "已公告", estimated = "預估" }
 struct Dividend: Identifiable, Codable {
     var id = UUID()
     var symbol: String
+    /// Payment date (or expected payment date).
     var date: Date
+    /// Amount received after deductions.
     var amount: Double
     var status: DividendStatus
+    var exDate: Date? = nil
+    var shares: Double? = nil
+    var perShare: Double? = nil
+    var deduction: Double? = nil
+    var source: String? = nil
+    var note: String? = nil
+    /// Shares × amount per unit, before deductions, when both are recorded.
+    var gross: Double? {
+        guard let shares, let perShare, shares > 0, perShare > 0 else { return nil }
+        return (shares * perShare).rounded()
+    }
+    var detailsValid: Bool {
+        [shares, perShare, deduction].allSatisfy { value in value.map { $0.isFinite && $0 >= 0 && $0 <= 1e10 } ?? true }
+            && (source?.count ?? 0) <= 20 && (note?.count ?? 0) <= 80
+    }
+}
+/// Where a dividend record came from; the source also sets its status.
+enum DividendSource: String, CaseIterable, Identifiable {
+    case broker = "證券帳務", announcement = "投信公告", estimate = "自行預估"
+    var id: String { rawValue }
+    var status: DividendStatus { switch self { case .broker: return .paid; case .announcement: return .announced; case .estimate: return .estimated } }
 }
 struct Quote: Codable {
     var symbol: String
@@ -110,9 +147,15 @@ struct Portfolio: Codable {
     var trades: [Trade]? = nil
     var cost: Double { holdings.reduce(0) { $0 + $1.cost } }
     /// Appends to the trade log, keeping the most recent 5,000 entries.
-    mutating func log(_ action: TradeAction, _ holding: Holding) {
+    mutating func log(_ action: TradeAction, _ holding: Holding, date: Date = Date(), amount: Double? = nil) {
         var list = trades ?? []
-        list.append(Trade(action: action, holding: holding))
+        list.append(Trade(date: date, action: action, holding: holding, amount: amount))
+        if list.count > 5000 { list.removeFirst(list.count - 5000) }
+        trades = list
+    }
+    mutating func log(_ trade: Trade) {
+        var list = trades ?? []
+        list.append(trade)
         if list.count > 5000 { list.removeFirst(list.count - 5000) }
         trades = list
     }
@@ -127,7 +170,7 @@ struct Portfolio: Codable {
         for holding in value.holdings { try holding.validate() }
         guard Set(value.holdings.map(\.id)).count == value.holdings.count,
               Set(value.dividends.map(\.id)).count == value.dividends.count,
-              value.dividends.allSatisfy({ !$0.symbol.isEmpty && $0.amount.isFinite && $0.amount >= 0 }),
+              value.dividends.allSatisfy({ !$0.symbol.isEmpty && $0.amount.isFinite && $0.amount >= 0 && $0.detailsValid }),
               value.quotes.allSatisfy({ $0.key == $0.value.symbol && $0.value.isValid }),
               (value.trades?.count ?? 0) <= 50000,
               Set((value.trades ?? []).map(\.id)).count == (value.trades?.count ?? 0),
@@ -211,7 +254,7 @@ enum StoreError: LocalizedError {
     case invalidHolding, unsupportedBackup, missingKey, invalidQuote, keychain(OSStatus), http(Int)
     var errorDescription: String? {
         switch self {
-        case .invalidHolding: return "請填寫代碼、名稱與券商，股數須大於 0，每股成本不可為負數。"
+        case .invalidHolding: return "請填寫代碼與名稱，股數須大於 0，成本不可為負數。"
         case .unsupportedBackup: return "備份格式不支援或資料不完整；現有資料未變更。"
         case .missingKey: return "請先在行情連線儲存你的富果 API Key。"
         case .invalidQuote: return "行情沒有有效成交價，請稍後再試。"
@@ -231,6 +274,9 @@ enum StoreError: LocalizedError {
     @Published private(set) var catalog = CatalogSnapshot.bundled()
     @Published var catalogMessage: String?
     @Published var catalogRefreshing = false
+    @Published private(set) var official = OfficialDividends.bundled()
+    @Published var officialRefreshing = false
+    @Published var officialMessage: String?
     var funds: [Fund] { isDemo ? Fund.starters : (catalog?.funds ?? []) }
     let isDemo: Bool
     private let url: URL
@@ -239,6 +285,7 @@ enum StoreError: LocalizedError {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         self.url = url ?? base.appendingPathComponent("ETFToGo/portfolio.json")
         if let bytes = try? Data(contentsOf: self.url.appendingPathExtension("catalog")), let cached = try? JSONDecoder().decode(CatalogSnapshot.self, from: bytes), (try? cached.validate()) != nil { catalog = cached }
+        if let bytes = try? Data(contentsOf: self.url.appendingPathExtension("official")), let cached = try? JSONDecoder().decode(OfficialDividends.self, from: bytes), cached.isNewer(than: official) { official = cached }
         if demo { data = .demoPreview; return }
         if reset { try? FileManager.default.removeItem(at: self.url) }
         if FileManager.default.fileExists(atPath: self.url.path) {
@@ -266,7 +313,7 @@ enum StoreError: LocalizedError {
             if old.symbol != holding.symbol || old.shares != holding.shares || old.unitCost != holding.unitCost || old.broker != holding.broker { next.log(.adjust, holding) }
         } else {
             next.holdings.append(holding)
-            next.log(.buy, holding)
+            next.log(.buy, holding, date: holding.purchaseDate ?? Date(), amount: holding.cost)
         }
         try commit(next)
     }
@@ -298,6 +345,67 @@ enum StoreError: LocalizedError {
         do { try commit(next); message = "已加入比較：\(list.joined(separator: "、"))。可到「工具 › 三檔比較」查看。" } catch { message = error.localizedDescription }
     }
     func removeDividend(_ dividend: Dividend) throws { var next = data; next.dividends.removeAll { $0.id == dividend.id }; try commit(next) }
+    func saveDividend(_ dividend: Dividend) throws {
+        guard !dividend.symbol.isEmpty, dividend.amount.isFinite, dividend.amount > 0, dividend.detailsValid else { throw AppDataError("請填寫代碼、股數與每股配息；扣繳後的入帳金額必須大於 0。") }
+        var next = data
+        if let i = next.dividends.firstIndex(where: { $0.id == dividend.id }) { next.dividends[i] = dividend } else { next.dividends.append(dividend) }
+        try commit(next)
+    }
+    /// Marks a record as received; a payment date still in the future becomes today.
+    @discardableResult func confirmPaid(_ dividend: Dividend) throws -> Dividend {
+        var next = data
+        guard let i = next.dividends.firstIndex(where: { $0.id == dividend.id }) else { return dividend }
+        next.dividends[i].status = .paid
+        next.dividends[i].source = DividendSource.broker.rawValue
+        if next.dividends[i].date > Date() { next.dividends[i].date = Calendar.current.startOfDay(for: Date()) }
+        try commit(next)
+        return next.dividends[i]
+    }
+    /// A buy adds to the holding of the same ETF and broker (re-averaging its cost) or creates one;
+    /// a sell reduces it at its average cost, records the realised result and removes it at zero.
+    func applyTrade(_ action: TradeAction, symbol: String, date: Date, shares: Double, amount: Double, broker: String) throws {
+        guard action == .buy || action == .sell else { return }
+        guard DataChecks.code(symbol) else { throw AppDataError("請輸入正確的 ETF 代號。") }
+        guard shares.isFinite, shares > 0, shares <= 1e10, amount.isFinite, amount >= 0, amount <= 1e12 else { throw AppDataError("請填寫股數與成交金額。") }
+        var next = data
+        let same = next.holdings.indices.filter { next.holdings[$0].symbol == symbol }
+        let target = broker.isEmpty ? (same.count == 1 ? same.first : same.first(where: { next.holdings[$0].broker.isEmpty })) : same.first(where: { next.holdings[$0].broker == broker })
+        let fundName = funds.first { $0.id == symbol }?.name
+        var realized: Double? = nil
+        if action == .buy {
+            if let i = target {
+                let total = next.holdings[i].cost + amount
+                next.holdings[i].shares += shares
+                next.holdings[i].unitCost = total / next.holdings[i].shares
+            } else {
+                guard let fundName, let fund = funds.first(where: { $0.id == symbol }) else { throw AppDataError("清單沒有這檔 ETF，請先用「新增持有」填寫名稱。") }
+                next.holdings.append(Holding(symbol: symbol, name: fundName, shares: shares, unitCost: amount / shares, broker: broker, strategy: fund.strategy, purchaseDate: date))
+            }
+        } else {
+            guard let i = target else { throw AppDataError(same.count > 1 ? "這檔在多個券商都有持有，請填寫券商。" : "找不到這檔的持有，無法賣出。") }
+            guard shares <= next.holdings[i].shares + 1e-9 else { throw AppDataError("賣出股數超過持有（\(decimal(next.holdings[i].shares)) 股）。") }
+            realized = ((amount - shares * next.holdings[i].unitCost) * 100).rounded() / 100
+            next.holdings[i].shares -= shares
+            if next.holdings[i].shares <= 1e-9 { next.holdings.remove(at: i) }
+        }
+        let holdingName = target.map { data.holdings[$0].name }
+        next.log(Trade(date: date, action: action, symbol: symbol, name: fundName ?? holdingName ?? symbol, shares: shares, amount: amount, broker: broker.isEmpty ? (target.map { data.holdings[$0].broker } ?? "") : broker, realized: realized))
+        try commit(next)
+    }
+    func removeTrade(_ trade: Trade) throws { var next = data; next.trades?.removeAll { $0.id == trade.id }; try commit(next) }
+    func refreshOfficial() async {
+        guard !officialRefreshing else { return }
+        officialRefreshing = true; defer { officialRefreshing = false }
+        do {
+            let markets = Dictionary(uniqueKeysWithValues: (catalog?.funds ?? Fund.starters).map { ($0.id, $0.market ?? "") })
+            let fresh = try await OfficialDividends.fetch(merging: official, markets: markets)
+            if !isDemo {
+                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try JSONEncoder().encode(fresh).write(to: url.appendingPathExtension("official"), options: .atomic)
+            }
+            official = fresh; officialMessage = "已更新官方配息資料。"
+        } catch { officialMessage = error.localizedDescription }
+    }
     func export() throws -> URL {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("ETFToGo-backup-\(UUID().uuidString.prefix(8)).json")
         // Preserve recoverable bytes when decoding failed; never export an empty replacement.

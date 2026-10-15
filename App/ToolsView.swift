@@ -3,198 +3,277 @@ import UniformTypeIdentifiers
 import UserNotifications
 
 struct ToolsView: View {
-    @EnvironmentObject var store: PortfolioStore
     var body: some View {
         Page {
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                tile("股息複利", "試算長期複利效果", art: "tool-compound") { PlanView() }
-                tile("領息目標", "設定並追蹤目標", art: "tool-goal") { GoalView() }
-                tile("定期定額", "試算投入成果", art: "tool-dca") { CalculatorView() }
-                tile("三檔比較", "快速比較多檔 ETF", art: "tool-compare") { ComparisonView() }
-                tile("持股透視", "合併成分股曝險", art: "tool-exposure") { ExposureView() }
-                tile("提醒中心", "配息入帳提醒", art: "tool-alerts") { ReminderCenterView() }
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("工具中心").font(.title.bold()).foregroundStyle(Palette.ink)
+                    Text("各種實用工具，幫助你更聰明投資 ETF").font(.subheadline).foregroundStyle(Palette.muted)
+                }
+                Spacer()
+                Artwork(name: "misc-bulb", size: 56)
+            }.padding(.top, 6)
+            section("試算", icon: "function", color: Palette.blue) {
+                HStack(spacing: 10) {
+                    tile("股息複利", "複利試算", art: "cat-saving", route: .plan, tint: Palette.pink)
+                    tile("領息目標", "達成規劃", art: "tool-goal", route: .goal)
+                    tile("定期定額", "投資試算", art: "tool-dca", route: .calculator)
+                }
             }
-            ComparisonPreview()
-            SectionHeading(title: "連線與資料")
-            DataLinks()
-            PrivacyNote()
+            section("分析", icon: "chart.line.uptrend.xyaxis", color: Palette.green) {
+                HStack(spacing: 10) {
+                    wide("三檔比較", "績效分析", art: "tool-compare", route: .comparison)
+                    wide("持股透視", "成分與集中度", art: "tool-exposure", route: .exposure)
+                }
+            }
+            section("管理", icon: "wrench.and.screwdriver.fill", color: Palette.orange) {
+                HStack(spacing: 10) {
+                    tile("提醒中心", "重要通知", art: "tool-alerts", route: .notices, tint: Palette.orange)
+                    tile("券商資料", "對帳匯入", art: "tool-broker", route: .broker).accessibilityIdentifier("tool-broker")
+                    tile("備份資料", "匯出／匯入", art: "tool-backup", route: .backup).accessibilityIdentifier("tool-backup")
+                }
+            }
+            Text("試算都是情境假設，不是預測或保證；比較與透視使用你取得的實際資料。").font(.caption).foregroundStyle(Palette.muted)
         }
-        .navigationTitle("工具").navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
     }
-    private func tile<Destination: View>(_ title: String, _ subtitle: String, art: String, @ViewBuilder destination: @escaping () -> Destination) -> some View {
-        NavigationLink { destination() } label: {
-            VStack(spacing: 8) {
-                Artwork(name: art, size: 52)
+    private func section<Content: View>(_ title: String, icon: String, color: Color, @ViewBuilder content: () -> Content) -> some View {
+        Card(padding: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: icon).font(.caption.bold()).foregroundStyle(.white).frame(width: 26, height: 26).background(color, in: RoundedRectangle(cornerRadius: 8))
                 Text(title).font(.headline).foregroundStyle(Palette.ink)
-                Text(subtitle).font(.caption).foregroundStyle(Palette.muted).lineLimit(1).minimumScaleFactor(0.8)
+            }.padding(.bottom, 10)
+            content()
+        }
+    }
+    private func tile(_ title: String, _ subtitle: String, art: String, route: AppRoute, tint: Color? = nil) -> some View {
+        NavigationLink(value: route) {
+            VStack(spacing: 3) {
+                Artwork(name: art, size: 50)
+                Text(title).font(.subheadline.bold()).foregroundStyle(Palette.ink).padding(.top, 4)
+                Text(subtitle).font(.caption2).foregroundStyle(Palette.muted)
             }
-            .frame(maxWidth: .infinity).padding(.vertical, 18).padding(.horizontal, 8)
-            .background(.white, in: RoundedRectangle(cornerRadius: 20))
-            .shadow(color: Palette.blue.opacity(0.07), radius: 10, y: 4)
+            .frame(maxWidth: .infinity).padding(.vertical, 12)
+            .background((tint ?? Palette.blue).opacity(tint == nil ? 0.06 : 0.14), in: RoundedRectangle(cornerRadius: 18))
         }.buttonStyle(.plain)
     }
-}
-struct DataLinks: View {
-    var body: some View {
-        Card(padding: 12) {
-            NavigationLink { ConnectionView() } label: { ToolRow(title: "富果行情連線", subtitle: "使用你自己的 API Key", icon: "waveform.path") }
-            Divider()
-            NavigationLink { BrokerView() } label: { ToolRow(title: "券商持有資料", subtitle: "所有券商 CSV 欄位對應與預覽", icon: "building.columns") }
-            Divider()
-            NavigationLink { BackupView() } label: { ToolRow(title: "資料備份", subtitle: "匯出與匯入，保留你的每筆紀錄", icon: "externaldrive") }
-        }.buttonStyle(.plain)
-    }
-}
-struct PrivacyNote: View {
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) { Image(systemName: "lock.shield").foregroundStyle(Palette.blue); VStack(alignment: .leading, spacing: 6) { Text("你的紀錄，留在你的手機").font(.subheadline.bold()).foregroundStyle(Palette.ink); Text("持有與配息儲存在本機，行情金鑰使用 iOS Keychain 保存，不包含在備份內。").font(.caption).foregroundStyle(Palette.muted) } }.padding(.horizontal, 4)
-        Text("ETF 袋著走 \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") · 原生 iPhone App").font(.caption2).foregroundStyle(Palette.muted).frame(maxWidth: .infinity).padding(.top, 10)
-    }
-}
-struct SettingsView: View {
-    @EnvironmentObject var store: PortfolioStore
-    var body: some View {
-        Page {
-            DataLinks()
-            Card {
-                Text("ETF 名單").font(.headline).foregroundStyle(Palette.ink)
-                if let catalog = store.catalog, !store.isDemo { Text("上市資料日 \(catalog.listedDate) · 上櫃取得日 \(catalog.fetchedDay) · 共 \(catalog.funds.count) 個代碼").font(.caption).foregroundStyle(Palette.muted).padding(.top, 6) }
-                if let message = store.catalogMessage { Text(message).font(.caption).foregroundStyle(Palette.muted).padding(.top, 6) }
-                Button(store.catalogRefreshing ? "更新中…" : "更新上市櫃名單") { Task { await store.refreshCatalog() } }.buttonStyle(.bordered).disabled(store.catalogRefreshing || store.isDemo).padding(.top, 10)
+    private func wide(_ title: String, _ subtitle: String, art: String, route: AppRoute) -> some View {
+        NavigationLink(value: route) {
+            HStack(spacing: 10) {
+                Artwork(name: art, size: 44)
+                VStack(alignment: .leading, spacing: 2) { Text(title).font(.subheadline.bold()).foregroundStyle(Palette.ink); Text(subtitle).font(.caption2).foregroundStyle(Palette.muted) }
+                Spacer(minLength: 0)
             }
-            PrivacyNote()
-        }.navigationTitle("設定").navigationBarTitleDisplayMode(.inline)
+            .padding(12).frame(maxWidth: .infinity)
+            .background(Palette.blue.opacity(0.06), in: RoundedRectangle(cornerRadius: 18))
+        }.buttonStyle(.plain)
     }
 }
 enum ComparisonDefaults {
     static func symbols(_ saved: [String]?) -> [String] {
         var result: [String] = []
         for code in (saved ?? []) where result.count < 3 && !result.contains(code) { result.append(code) }
+        if result.count >= 2 { return result }
         for code in ["0050", "00878", "00919", "0056", "006208"] where result.count < 3 && !result.contains(code) { result.append(code) }
         return result
     }
 }
-struct ComparisonTable: View {
-    @EnvironmentObject var store: PortfolioStore
-    let symbols: [String]
-    var detailed = false
-    var body: some View {
-        Grid(alignment: .trailing, horizontalSpacing: 8, verticalSpacing: 10) {
-            GridRow {
-                Text("項目").gridColumnAlignment(.leading)
-                ForEach(symbols, id: \.self) { Text($0).font(.caption.bold()).foregroundStyle(Palette.blue) }
-            }
-            Divider()
-            if detailed {
-                line("名稱") { Text(store.name(for: $0)).lineLimit(2).multilineTextAlignment(.trailing) }
-                line("策略") { symbol in StrategyPill(strategy: store.funds.first { $0.id == symbol }?.strategy ?? .unclassified) }
-            }
-            line("最新價") { symbol in Text(store.data.quotes[symbol].map { priceText($0.price) } ?? "—") }
-            line("漲跌幅") { symbol in
-                let percent = store.data.quotes[symbol]?.changePercent
-                Text(percent.map(percentText) ?? "—").foregroundStyle(percent.map(Palette.trend) ?? Palette.muted)
-            }
-            line("年度總費用率") { symbol in Text(AnnualFeeCatalog.bundled?.records[symbol].map { "\(decimal($0.total))%" } ?? "未收錄") }
-            if detailed {
-                line("報價日期") { symbol in Text(store.data.quotes[symbol]?.date ?? "—") }
-                line("已揭露成分") { symbol in Text(store.data.components?[symbol].map { "\($0.components.count) 檔" } ?? "—") }
-                line("年化波動") { symbol in Text(volatility(symbol).map { "\(decimal($0 * 100))%" } ?? "—") }
-            }
-        }
-        .font(.caption)
-        .foregroundStyle(Palette.ink)
+extension PortfolioStore {
+    /// Total change and annualised volatility over the past year of the adjusted history the user fetched.
+    func yearStats(_ symbol: String) -> (change: Double, volatility: Double?)? {
+        guard let history = data.histories?[symbol] else { return nil }
+        let from = DataChecks.day(Calendar.current.date(byAdding: .year, value: -1, to: Date()) ?? Date())
+        guard let first = history.points.first, first.date <= from else { return nil }
+        var sliced = history; sliced.points = history.points.filter { $0.date >= from }
+        guard sliced.points.count >= 20, let stats = try? PerformanceStats(sliced) else { return nil }
+        return (stats.change, stats.volatility)
     }
-    private func line<Cell: View>(_ title: String, @ViewBuilder cell: @escaping (String) -> Cell) -> some View {
-        GridRow {
-            Text(title).foregroundStyle(Palette.muted).gridColumnAlignment(.leading)
-            ForEach(symbols, id: \.self) { symbol in cell(symbol).monospacedDigit() }
-        }
-    }
-    private func volatility(_ symbol: String) -> Double? {
-        guard let history = store.data.histories?[symbol] else { return nil }
-        return (try? PerformanceStats(history))?.volatility
-    }
-}
-struct ComparisonPreview: View {
-    @EnvironmentObject var store: PortfolioStore
-    var body: some View {
-        NavigationLink { ComparisonView() } label: {
-            Card {
-                HStack {
-                    Artwork(name: "tool-compare", size: 24)
-                    Text("三檔 ETF 比較").font(.headline).foregroundStyle(Palette.ink)
-                    Spacer()
-                    HStack(spacing: 2) { Text("完整比較"); Image(systemName: "chevron.right") }.font(.caption).foregroundStyle(Palette.blue)
-                }.padding(.bottom, 12)
-                ComparisonTable(symbols: ComparisonDefaults.symbols(store.data.comparison))
-                Text("在 ETF 詳情按「加入比較」即可更換；未取得報價或未收錄的欄位不顯示估計值。").font(.caption2).foregroundStyle(Palette.muted).padding(.top, 10)
-            }
-        }.buttonStyle(.plain)
+    /// Past-year official distributions per unit divided by the latest price.
+    func trailingYield(_ symbol: String) -> Double? {
+        guard let price = data.quotes[symbol]?.price, price > 0, let amount = official.trailingAmount(symbol) else { return nil }
+        return amount / price * 100
     }
 }
 struct ComparisonView: View {
     @EnvironmentObject var store: PortfolioStore
-    @State private var symbols = ComparisonDefaults.symbols(nil)
     @State private var pair = 0
-    private var pairs: [(String, String)] { [(symbols[0], symbols[1]), (symbols[0], symbols[2]), (symbols[1], symbols[2])] }
-    var body: some View { Page {
-        HStack(spacing: 8) { ForEach(0..<3, id: \.self) { fundPicker($0) } }
-        Card { ComparisonTable(symbols: symbols, detailed: true) }
-        Picker("重疊比較", selection: $pair) { ForEach(0..<3, id: \.self) { i in Text("\(pairs[i].0) × \(pairs[i].1)").tag(i) } }.pickerStyle(.segmented)
-        OverlapPanel(left: pairs[pair].0, right: pairs[pair].1)
-        Text("策略分類為初步標籤，資料日期與範圍須一起比較。殖利率需要完整配息資料，未收錄前不顯示。").font(.caption).foregroundStyle(Palette.muted)
-    }.navigationTitle("三檔比較").navigationBarTitleDisplayMode(.inline)
-        .onAppear { symbols = ComparisonDefaults.symbols(store.data.comparison) }
+    @State private var busy = false
+    @State private var error: String?
+    private let colors: [[Color]] = [[Color(red: 0.37, green: 0.64, blue: 1), Palette.blue], [Color(red: 1, green: 0.55, blue: 0.71), Palette.pink], [Color(red: 0.71, green: 0.59, blue: 1), Palette.purple]]
+    var body: some View {
+        let symbols = ComparisonDefaults.symbols(store.data.comparison)
+        let pairs = [(0, 1), (0, 2), (1, 2)].filter { $0.1 < symbols.count }
+        let missing = symbols.filter { store.yearStats($0) == nil }
+        Page {
+            HStack(spacing: 8) { ForEach(0..<3, id: \.self) { chip($0, symbols: symbols) } }
+            Card(padding: 12) {
+                VStack(spacing: 0) {
+                    HStack(spacing: 4) {
+                        Text("").frame(width: 84)
+                        ForEach(symbols.indices, id: \.self) { i in
+                            Text(symbols[i]).font(.subheadline.bold()).foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 8)
+                                .background(LinearGradient(colors: colors[i], startPoint: .top, endPoint: .bottom), in: UnevenRoundedRectangle(topLeadingRadius: 10, topTrailingRadius: 10))
+                        }
+                    }
+                    metric("最新價", symbols) { s in store.data.quotes[s].map { priceText($0.price) } ?? "—" }
+                    metric("總報酬率\n(1年)", symbols, color: { s in store.yearStats(s).map { Palette.trend($0.change) } ?? Palette.muted }) { s in store.yearStats(s).map { percentText($0.change * 100) } ?? "—" }
+                    metric("內扣費用率", symbols) { s in AnnualFeeCatalog.bundled?.records[s].map { "\(decimal($0.total))%" } ?? "未收錄" }
+                    metric("風險指標\n(年化波動度)", symbols) { s in store.yearStats(s)?.volatility.map { "\(decimal($0 * 100))%" } ?? "—" }
+                    metric("殖利率\n(近1年)", symbols) { s in store.trailingYield(s).map { "\(decimal($0))%" } ?? "—" }
+                    metric("配息頻率", symbols) { s in store.official.frequency(s) ?? "—" }
+                }
+            }
+            if !missing.isEmpty {
+                Button(busy ? "取得中…" : "取得 \(missing.joined(separator: "、")) 的一年績效資料") { Task { await loadYear(missing) } }
+                    .buttonStyle(.bordered).disabled(busy || store.isDemo)
+                if let error { Text(error).font(.caption).foregroundStyle(Palette.red) }
+            }
+            if !pairs.isEmpty {
+                SegmentBar(items: pairs.map { "\(symbols[$0.0]) × \(symbols[$0.1])" }, selection: $pair, pill: true)
+                let current = pairs[min(pair, pairs.count - 1)]
+                OverlapPanel(left: symbols[current.0], right: symbols[current.1])
+            }
+            Text("總報酬率與波動度依還原日收盤價；內扣費用率為投信投顧公會公布的年度實際總費用率；殖利率＝近一年官方每單位配息合計 ÷ 最新價。").font(.caption).foregroundStyle(Palette.muted)
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .principal) { VStack(spacing: 0) { Text("三檔比較").font(.headline).foregroundStyle(Palette.ink); Text("選擇最多三檔 ETF 進行績效與指標比較").font(.caption2).foregroundStyle(Palette.muted) } } }
     }
-    private func save() { var next = store.data; next.comparison = symbols; do { try store.commit(next) } catch { store.message = error.localizedDescription } }
-    private func fundPicker(_ index: Int) -> some View {
-        Picker("第 \(index + 1) 檔", selection: Binding(get: { symbols[index] }, set: { symbols[index] = $0; save() })) { ForEach(store.funds) { Text($0.id).tag($0.id) } }
-            .pickerStyle(.menu).frame(maxWidth: .infinity).padding(8).background(.white, in: RoundedRectangle(cornerRadius: 14))
+    private func chip(_ index: Int, symbols: [String]) -> some View {
+        let code = symbols.indices.contains(index) ? symbols[index] : nil
+        return ZStack(alignment: .topTrailing) {
+            Menu {
+                ForEach(store.funds) { fund in Button("\(fund.id) \(fund.name)") { set(index, fund.id, symbols: symbols) } }
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    if let code {
+                        Text(code).font(.subheadline.bold()).foregroundStyle(Palette.ink)
+                        Text(store.name(for: code)).font(.caption2).foregroundStyle(Palette.muted).lineLimit(1)
+                    } else {
+                        Text("＋ 加入").font(.subheadline.bold()).foregroundStyle(Palette.blue).frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(10).padding(.trailing, 14).frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+                .background(Palette.card, in: RoundedRectangle(cornerRadius: 14))
+                .shadow(color: Palette.blue.opacity(0.06), radius: 6, y: 2)
+            }
+            if let code, symbols.count > 2 {
+                Button { remove(index, symbols: symbols) } label: { Image(systemName: "xmark").font(.caption2.bold()).foregroundStyle(Palette.muted).padding(8) }
+                    .buttonStyle(.plain).accessibilityLabel("移除 \(code)")
+            }
+        }
+    }
+    private func metric(_ title: String, _ symbols: [String], color: ((String) -> Color)? = nil, value: @escaping (String) -> String) -> some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 4) {
+                Text(title).font(.caption).foregroundStyle(Palette.muted).frame(width: 84, alignment: .leading)
+                ForEach(symbols, id: \.self) { s in Text(value(s)).font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(color?(s) ?? Palette.ink).frame(maxWidth: .infinity).lineLimit(1).minimumScaleFactor(0.7) }
+            }.padding(.vertical, 10)
+        }
+    }
+    private func set(_ index: Int, _ code: String, symbols: [String]) {
+        var list = symbols
+        if index < list.count { list[index] = code } else { list.append(code) }
+        save(Array(NSOrderedSet(array: list)) as? [String] ?? list)
+    }
+    private func remove(_ index: Int, symbols: [String]) { var list = symbols; list.remove(at: index); pair = 0; save(list) }
+    private func save(_ list: [String]) { var next = store.data; next.comparison = Array(list.prefix(3)); do { try store.commit(next) } catch { store.message = error.localizedDescription } }
+    private func loadYear(_ list: [String]) async {
+        busy = true; error = nil
+        defer { busy = false }
+        for code in list {
+            do { try store.saveHistory(await Fugle.history(symbol: code, years: 1)) } catch { self.error = "\(code)：\(error.localizedDescription)"; return }
+        }
     }
 }
 struct CalculatorView: View {
     @State private var initial = "100000"
     @State private var monthly = "5000"
-    @State private var years = 10
-    @State private var rate = 4.0
-    var valid: Bool { guard let a = Double(initial), let b = Double(monthly) else { return false }; return a.isFinite && b.isFinite && a >= 0 && b >= 0 && a <= 1e12 && b <= 1e9 }
-    var total: Double { Projection.value(initial: Double(initial) ?? 0, monthly: Double(monthly) ?? 0, years: years, annualPercent: rate) }
-    var principal: Double { (Double(initial) ?? 0) + (Double(monthly) ?? 0) * Double(years * 12) }
-    var body: some View { Form {
-        Section("投入計畫") { TextField("起始本金（元）", text: $initial).keyboardType(.decimalPad); TextField("每月底投入（元）", text: $monthly).keyboardType(.decimalPad); Stepper("累積 \(years) 年", value: $years, in: 1...40); VStack(alignment: .leading) { Text("假設年報酬率 \(decimal(rate))%"); Slider(value: $rate, in: -10...15, step: 0.5) } }
-        Section("試算結果") { if valid { LabeledContent("累計投入", value: "$\(money(principal))"); LabeledContent("期末試算金額", value: "$\(money(total))").foregroundStyle(Palette.blue); LabeledContent("試算損益", value: "$\(money(total - principal))") } else { Text("請輸入有效且非負的本金及每月投入金額。").foregroundStyle(.red) } }
-        Section { Text("假設報酬按月平均複利、每月底投入，不含稅費與通膨。這是情境試算，不是預測或保證。負報酬情境下可能虧損本金。").font(.footnote).foregroundStyle(.secondary) }
-    }.navigationTitle("定期定額試算").navigationBarTitleDisplayMode(.inline) }
+    @State private var years = "10"
+    @State private var rate = "4"
+    var body: some View {
+        let a = Double(initial) ?? -1, b = Double(monthly) ?? -1, y = Int(years) ?? 0, r = Double(rate) ?? 0
+        let valid = a >= 0 && b >= 0 && a <= 1e12 && b <= 1e9 && (1...40).contains(y) && r > -50 && r < 50
+        let total = valid ? Projection.value(initial: a, monthly: b, years: y, annualPercent: r) : 0
+        let principal = valid ? a + b * Double(y * 12) : 0
+        Page {
+            Card {
+                FieldRow(title: "起始本金", bar: true) { UnitField(placeholder: "本金", text: $initial, unit: "元") }
+                FieldRow(title: "每月投入", bar: true) { UnitField(placeholder: "每月", text: $monthly, unit: "元") }
+                FieldRow(title: "投資年期", bar: true) { UnitField(placeholder: "年", text: $years, unit: "年") }
+                FieldRow(title: "預估年報酬率", bar: true) { UnitField(placeholder: "%", text: $rate, unit: "%") }
+            }
+            Card {
+                HStack { Text("試算結果").font(.headline).foregroundStyle(Palette.ink); Spacer(); TintPill(title: "假設試算") }
+                if valid {
+                    VStack(spacing: 2) { Text("期末試算金額").font(.caption).foregroundStyle(Palette.muted); Text("\(money(total)) 元").font(.system(size: 30, weight: .heavy, design: .rounded)).monospacedDigit().foregroundStyle(Palette.blue) }.frame(maxWidth: .infinity).padding(.vertical, 10)
+                    LabeledContent("累計投入", value: money(principal))
+                    LabeledContent("試算損益") { Text(signed(total - principal)).foregroundStyle(Palette.trend(total - principal)) }.padding(.top, 6)
+                } else { Text("請輸入有效且非負的本金與每月投入，年數 1–40 年。").font(.subheadline).foregroundStyle(Palette.red).padding(.top, 8) }
+            }
+            Text("假設報酬按月平均複利、每月底投入，不含稅費與通膨。這是情境試算，不是預測或保證；負報酬情境下可能虧損本金。").font(.caption).foregroundStyle(Palette.muted)
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .principal) { VStack(spacing: 0) { Text("定期定額試算").font(.headline).foregroundStyle(Palette.ink); Text("固定每月投入，試算累積成果").font(.caption2).foregroundStyle(Palette.muted) } } }
+    }
 }
 struct GoalView: View {
     @EnvironmentObject var store: PortfolioStore
     @AppStorage("goalMonthlyIncome") private var target = 10000.0
     @AppStorage("goalAssumedYield") private var assumedYield = 5.0
+    @AppStorage("goalCapital") private var capital = -1.0
+    @State private var targetText = ""
+    @State private var capitalText = ""
+    @State private var yieldText = ""
     private var lastYearPaid: Double {
         let start = Calendar.current.date(byAdding: .month, value: -12, to: Date()) ?? Date()
         return store.data.dividends.filter { $0.status == .paid && $0.date >= start && $0.date <= Date() }.reduce(0.0) { $0 + $1.amount }
     }
     var body: some View {
-        let monthly = lastYearPaid / 12
-        let goal = max(target, 0)
-        let progress = goal > 0 ? min(monthly / goal, 1) : 0
-        let needed = goal * 12 / (assumedYield / 100)
-        Form {
-            Section("我的目標") {
-                HStack { Text("每月領息目標"); TextField("元", value: $target, format: .number).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+        let money0 = max(capital, 0), yearly = money0 * assumedYield / 100, monthly = yearly / 12
+        let rate = target > 0 ? monthly / target : 0, need = assumedYield > 0 ? target * 12 / (assumedYield / 100) : 0, gap = need - money0
+        Page {
+            Card {
+                FieldRow(title: "每月期望領息金額", bar: true) { UnitField(placeholder: "目標", text: $targetText, unit: "元") }
+                FieldRow(title: "預計投入資金", bar: true) { UnitField(placeholder: "資金", text: $capitalText, unit: "元") }
+                FieldRow(title: "預估殖利率", bar: true) { UnitField(placeholder: "%", text: $yieldText, unit: "%") }
             }
-            Section("目前進度（近 12 個月已入帳）") {
-                LabeledContent("平均每月已領", value: "$\(money(monthly))")
-                ProgressView(value: progress) { Text("已達成 \(decimal(progress * 100))%") }.tint(Palette.purple)
-                LabeledContent("近 12 個月合計", value: "$\(money(lastYearPaid))")
+            Button { apply() } label: { PrimaryButtonLabel(title: "開始試算", icon: "function") }.buttonStyle(.plain)
+            Card {
+                HStack { Label("假設試算結果", systemImage: "target").font(.headline).foregroundStyle(Palette.ink); Spacer(); Text("不代表未來報酬").font(.caption2).foregroundStyle(Palette.muted) }
+                HStack(spacing: 8) {
+                    result("預期每月領息", "\(money(monthly)) 元", Palette.blue)
+                    result("預期每年領息", "\(money(yearly)) 元", Palette.blue)
+                    result("達成率", "\(decimal(min(rate, 9.99) * 100))%", Palette.green)
+                }.padding(.top, 10)
+                ProgressView(value: min(rate, 1)).tint(Palette.green).scaleEffect(x: 1, y: 2.2).padding(.vertical, 12)
+                HStack(spacing: 8) {
+                    Artwork(name: "misc-bulb", size: 22)
+                    Text(gap > 0 ? "再投入 \(money(gap)) 元，預期每月領息可達 \(money(target)) 元" : "目前資金已可達成每月 \(money(target)) 元的目標").font(.subheadline)
+                }.padding(10).frame(maxWidth: .infinity, alignment: .leading).background(Color.yellow.opacity(0.16), in: RoundedRectangle(cornerRadius: 12))
             }
-            Section("需要多少本金？（情境試算）") {
-                VStack(alignment: .leading) { Text("假設年殖利率 \(decimal(assumedYield))%"); Slider(value: $assumedYield, in: 1...12, step: 0.5) }
-                LabeledContent("約需投入本金", value: "$\(money(needed))")
-                LabeledContent("與目前投入成本差距", value: "$\(money(max(0, needed - store.data.cost)))")
+            Card {
+                Text("目前進度（近 12 個月已入帳）").font(.headline).foregroundStyle(Palette.ink)
+                LabeledContent("平均每月已領", value: money(lastYearPaid / 12)).padding(.top, 10)
+                LabeledContent("與目標的比例", value: target > 0 ? "\(decimal(min(lastYearPaid / 12 / target, 9.99) * 100))%" : "—").padding(.top, 6)
             }
-            Section { Text("進度只計算你記錄為「已入帳」的配息，不含已公告與預估。所需本金以固定殖利率估算；配息率不等於報酬率，配息也可能來自本金。這是情境試算，不是保證收益。").font(.footnote).foregroundStyle(.secondary) }
-        }.navigationTitle("領息目標").navigationBarTitleDisplayMode(.inline)
+            Text("所需本金以固定殖利率估算；配息率不等於報酬率，配息也可能來自本金。這是假設試算，不代表未來報酬。").font(.caption).foregroundStyle(Palette.muted)
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .principal) { VStack(spacing: 0) { Text("領息目標試算").font(.headline).foregroundStyle(Palette.ink); Text("設定每月領息目標，試算所需資金").font(.caption2).foregroundStyle(Palette.muted) } } }
+        .onAppear {
+            if capital < 0 { capital = store.data.cost.rounded() }
+            targetText = String(Int(target)); capitalText = String(Int(max(capital, 0))); yieldText = decimal(assumedYield)
+        }
+    }
+    private func apply() {
+        if let value = Double(targetText.replacingOccurrences(of: ",", with: "")), value >= 0 { target = value }
+        if let value = Double(capitalText.replacingOccurrences(of: ",", with: "")), value >= 0 { capital = value }
+        if let value = Double(yieldText), value > 0, value <= 30 { assumedYield = value } else { store.message = "請輸入 0–30% 之間的殖利率。" }
+    }
+    private func result(_ title: String, _ value: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) { Text(title).font(.caption2).foregroundStyle(Palette.muted); Text(value).font(.subheadline.bold()).monospacedDigit().foregroundStyle(color).minimumScaleFactor(0.6).lineLimit(1) }
+            .frame(maxWidth: .infinity, alignment: .leading).padding(10).background(Palette.cardSoft, in: RoundedRectangle(cornerRadius: 12))
     }
 }
 enum DividendReminders {
@@ -219,7 +298,7 @@ enum DividendReminders {
             guard let fire = Calendar.current.date(from: parts), fire > now else { continue }
             let content = UNMutableNotificationContent()
             content.title = "配息提醒：\(item.symbol)"
-            content.body = "\(item.status.rawValue)配息 $\(money(item.amount)) 預計今天入帳。確認入帳後，可在配息月曆長按紀錄標記為已入帳。"
+            content.body = "\(item.status.rawValue)配息 $\(money(item.amount)) 預計今天入帳。確認入帳後，可在配息明細按「我已確認入帳」。"
             content.sound = .default
             let request = UNNotificationRequest(identifier: prefix + item.id.uuidString, content: content, trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false))
             do { try await center.add(request); scheduled += 1 } catch { continue }
@@ -256,19 +335,7 @@ struct ReminderCenterView: View {
             if upcoming.isEmpty {
                 Card { ContentUnavailableView("目前沒有待入帳配息", systemImage: "bell.slash", description: Text("在配息月曆新增「已公告」或「預估」的紀錄。")) }
             } else {
-                Card(padding: 14) {
-                    ForEach(upcoming) { item in
-                        HStack(spacing: 10) {
-                            Text(monthDay(item.date)).font(.subheadline.bold()).monospacedDigit().foregroundStyle(Palette.blue).frame(width: 48, alignment: .leading)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(item.symbol) \(store.name(for: item.symbol))").font(.subheadline).foregroundStyle(Palette.ink).lineLimit(1)
-                                Text("$\(money(item.amount))").font(.caption).foregroundStyle(Palette.muted)
-                            }
-                            Spacer()
-                            StatusPill(status: item.status)
-                        }.padding(.vertical, 6)
-                    }
-                }
+                Card(padding: 12) { ForEach(upcoming) { item in NavigationLink(value: AppRoute.dividendDetail(item.id)) { DividendDateRow(item: item) }.buttonStyle(.plain) } }
             }
             Card {
                 Label("價格與折溢價提醒", systemImage: "chart.line.uptrend.xyaxis").font(.headline).foregroundStyle(Palette.ink)
@@ -303,6 +370,7 @@ struct ConnectionView: View {
         Section { Link("申請或管理富果行情金鑰", destination: URL(string: "https://developer.fugle.tw/docs/key/")!); Text("金鑰只傳送給富果官方 API，且不寫入備份。是否即時、可用商品與請求額度依你的富果方案而定。").font(.footnote).foregroundStyle(.secondary); Link("查看富果行情 API 說明", destination: URL(string: "https://developer.fugle.tw/docs/data/http-api/getting-started/")!) }
     }.navigationTitle("行情連線").navigationBarTitleDisplayMode(.inline).onAppear { do { hasKey = !(try SecureKey.read()).isEmpty } catch { message = error.localizedDescription } } }
 }
+/// 備份與券商資料: backup export/import, broker statement import and (not yet available) broker linking.
 struct BackupView: View {
     @EnvironmentObject var store: PortfolioStore
     @State private var importing = false
@@ -311,15 +379,64 @@ struct BackupView: View {
     @State private var preview: Portfolio?
     @State private var confirmation = false
     @State private var message = ""
-    var body: some View { Form {
-        Section("匯出") { Text("包含持有、配息、收藏與已取得報價，不包含行情金鑰。").font(.subheadline).foregroundStyle(.secondary); Button("建立備份檔") { do { exportURL = try store.export() } catch { message = error.localizedDescription } }; if let exportURL { ShareLink("儲存或分享備份", item: exportURL) } }
-        Section("匯入") { Button("選擇備份檔") { importing = true }; Text("匯入會合併紀錄；相同識別碼更新，其他現有紀錄保留。支援目前原生版、舊原生版與 PWA 備份。匯入前顯示筆數並保留復原副本；舊版手填參考價保留在備份中，不當成即時報價。").font(.footnote).foregroundStyle(.secondary) }
-        if let preview { Section("預覽") { LabeledContent("持有", value: "\(preview.holdings.count) 筆"); LabeledContent("配息", value: "\(preview.dividends.count) 筆"); LabeledContent("收藏", value: "\(preview.favorites.count) 檔"); LabeledContent("投入成本", value: "$\(money(preview.cost))"); if preview.legacyPlan != nil { Text("包含舊版試算設定，會可在「股息複利」繼續使用。") }; Button("確認合併匯入") { confirmation = true } } }
-        if !message.isEmpty { Section { Text(message) } }
-    }.navigationTitle("資料備份").navigationBarTitleDisplayMode(.inline)
+    var body: some View {
+        Page {
+            Card {
+                SectionHeading(title: "資料備份與還原", subtitle: "匯出或匯入持有、配息、交易、收藏與已取得報價；不含行情金鑰")
+                HStack(spacing: 10) {
+                    actionTile("匯出備份 (JSON)", "包含自選、持股、設定", icon: "arrow.down.to.line", color: Palette.green) { do { exportURL = try store.export(); message = "已建立備份檔，可用下方按鈕儲存或分享。" } catch { message = error.localizedDescription } }
+                    actionTile("匯入資料 (JSON)", "選擇備份檔案恢復資料", icon: "arrow.up.to.line", color: Palette.blue) { importing = true }
+                }.padding(.top, 10)
+                if let exportURL { ShareLink("儲存或分享備份", item: exportURL).font(.subheadline.bold()).padding(.top, 10) }
+                if let preview {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("預覽").font(.subheadline.bold())
+                        Text("持有 \(preview.holdings.count) 筆・配息 \(preview.dividends.count) 筆・收藏 \(preview.favorites.count) 檔・投入成本 $\(money(preview.cost))").font(.caption)
+                        Button("確認合併匯入") { confirmation = true }.buttonStyle(.borderedProminent)
+                    }.padding(.top, 10)
+                }
+                if !message.isEmpty { Text(message).font(.caption).foregroundStyle(Palette.muted).padding(.top, 8) }
+                Text("匯入會合併紀錄；相同識別碼更新，其他現有紀錄保留。支援目前原生版、舊原生版與 PWA 備份，匯入前保留復原副本。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 8)
+            }
+            Card {
+                SectionHeading(title: "券商對帳匯入", subtitle: "匯入券商提供的庫存 CSV，自動解析持股")
+                NavigationLink(value: AppRoute.broker) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "doc.text.fill").foregroundStyle(.white).frame(width: 38, height: 38).background(Palette.blue, in: Circle())
+                        VStack(alignment: .leading, spacing: 2) { Text("上傳對帳單").font(.subheadline.bold()).foregroundStyle(Palette.ink); Text("支援 CSV（UTF-8、UTF-16 或 Big5）；PDF 請先另存 CSV").font(.caption2).foregroundStyle(Palette.muted) }
+                        Spacer(); Image(systemName: "chevron.right").font(.caption).foregroundStyle(Palette.muted)
+                    }.padding(12).background(Palette.cardSoft, in: RoundedRectangle(cornerRadius: 14))
+                }.buttonStyle(.plain).padding(.top, 10)
+            }
+            Card {
+                SectionHeading(title: "券商連結設定", subtitle: "連結券商帳戶，自動同步持股餘額（開發中）")
+                HStack(spacing: 10) {
+                    status("未連線", "尚未連結券商帳戶", icon: "powerplug", color: Palette.red)
+                    status("自動同步", "待串接・開發中", icon: "arrow.triangle.2.circlepath", color: Palette.muted)
+                }.padding(.top, 10)
+            }
+        }
+        .navigationTitle("備份與券商資料").navigationBarTitleDisplayMode(.inline)
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
             pending = nil; preview = nil; message = ""
             do { let url = try result.get(); let access = url.startAccessingSecurityScopedResource(); defer { if access { url.stopAccessingSecurityScopedResource() } }; let bytes = try DataChecks.readFile(url); preview = try BackupImport.decode(bytes); pending = bytes } catch { message = error.localizedDescription }
-        }.confirmationDialog("合併這份備份？", isPresented: $confirmation, titleVisibility: .visible) { Button("合併匯入") { do { if let pending { try store.importBackup(pending); message = "匯入完成，匯入前資料已保存於復原副本。"; preview = nil; self.pending = nil } } catch { message = error.localizedDescription } }; Button("取消", role: .cancel) { } }
+        }
+        .confirmationDialog("合併這份備份？", isPresented: $confirmation, titleVisibility: .visible) { Button("合併匯入") { do { if let pending { try store.importBackup(pending); message = "匯入完成，匯入前資料已保存於復原副本。"; preview = nil; self.pending = nil } } catch { message = error.localizedDescription } }; Button("取消", role: .cancel) { } }
+    }
+    private func actionTile(_ title: String, _ subtitle: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon).font(.headline).foregroundStyle(.white).frame(width: 34, height: 34).background(color, in: Circle())
+                VStack(alignment: .leading, spacing: 2) { Text(title).font(.caption.bold()).foregroundStyle(Palette.ink); Text(subtitle).font(.caption2).foregroundStyle(Palette.muted) }
+                Spacer(minLength: 0)
+            }.padding(10).frame(maxWidth: .infinity).background(Palette.cardSoft, in: RoundedRectangle(cornerRadius: 14))
+        }.buttonStyle(.plain)
+    }
+    private func status(_ title: String, _ subtitle: String, icon: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon).foregroundStyle(.white).frame(width: 32, height: 32).background(color, in: Circle())
+            VStack(alignment: .leading, spacing: 2) { Text(title).font(.caption.bold()).foregroundStyle(color == Palette.muted ? Palette.ink : color); Text(subtitle).font(.caption2).foregroundStyle(Palette.muted) }
+            Spacer(minLength: 0)
+        }.padding(10).frame(maxWidth: .infinity).background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
     }
 }

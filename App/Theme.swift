@@ -1,12 +1,17 @@
 import SwiftUI
 import Charts
+import UIKit
 
 enum Palette {
     static let blue = Color(red: 0.12, green: 0.42, blue: 1.0)
     static let deepBlue = Color(red: 0.07, green: 0.31, blue: 0.88)
-    static let ink = Color(red: 0.06, green: 0.12, blue: 0.24)
-    static let muted = Color(red: 0.42, green: 0.48, blue: 0.60)
-    static let background = Color(red: 0.95, green: 0.97, blue: 1.0)
+    // Text and surfaces follow the light or dark appearance chosen in Settings.
+    static let ink = Color(light: UIColor(red: 0.06, green: 0.12, blue: 0.24, alpha: 1), dark: UIColor(red: 0.91, green: 0.93, blue: 0.98, alpha: 1))
+    static let muted = Color(light: UIColor(red: 0.42, green: 0.48, blue: 0.60, alpha: 1), dark: UIColor(red: 0.59, green: 0.64, blue: 0.74, alpha: 1))
+    static let background = Color(light: UIColor(red: 0.95, green: 0.97, blue: 1.0, alpha: 1), dark: UIColor(red: 0.055, green: 0.086, blue: 0.157, alpha: 1))
+    static let card = Color(light: .white, dark: UIColor(red: 0.09, green: 0.13, blue: 0.23, alpha: 1))
+    static let cardSoft = Color(light: UIColor(red: 0.953, green: 0.965, blue: 1.0, alpha: 1), dark: UIColor(red: 0.114, green: 0.161, blue: 0.27, alpha: 1))
+    static let teal = Color(red: 0.07, green: 0.70, blue: 0.77)
     static let red = Color(red: 0.90, green: 0.22, blue: 0.27)
     static let green = Color(red: 0.05, green: 0.62, blue: 0.42)
     static let orange = Color(red: 1.0, green: 0.58, blue: 0.10)
@@ -20,9 +25,15 @@ enum Palette {
     static let heroDown = Color(red: 1.0, green: 0.82, blue: 0.83)
     static func trend(_ value: Double) -> Color { value > 0 ? up : (value < 0 ? down : muted) }
     static func strategy(_ value: Strategy) -> Color { switch value { case .saving: return pink; case .income: return green; case .risk: return purple; case .unclassified: return muted } }
-    static func status(_ value: DividendStatus) -> Color { switch value { case .paid: return green; case .announced: return blue; case .estimated: return orange } }
+    static func status(_ value: DividendStatus) -> Color { switch value { case .paid: return green; case .announced: return blue; case .estimated: return pink } }
     static let hero = LinearGradient(colors: [Color(red: 0.27, green: 0.58, blue: 1.0), Color(red: 0.08, green: 0.33, blue: 0.93)], startPoint: .topLeading, endPoint: .bottomTrailing)
-    static let page = LinearGradient(colors: [Color(red: 0.90, green: 0.94, blue: 1.0), Color(red: 0.97, green: 0.98, blue: 1.0)], startPoint: .top, endPoint: .bottom)
+    static let page = LinearGradient(colors: [Color(light: UIColor(red: 0.88, green: 0.92, blue: 1.0, alpha: 1), dark: UIColor(red: 0.075, green: 0.13, blue: 0.25, alpha: 1)), background], startPoint: .top, endPoint: .bottom)
+    /// Allocation groups shown in the design's legends.
+    static func theme(_ value: String) -> Color { switch value { case "市值型": return blue; case "高股息": return purple; case "產業主題": return teal; default: return orange } }
+    static let series: [Color] = [blue, pink, teal, orange, purple, green, Color(red: 0.54, green: 0.63, blue: 0.77)]
+}
+extension Color {
+    init(light: UIColor, dark: UIColor) { self.init(uiColor: UIColor { $0.userInterfaceStyle == .dark ? dark : light }) }
 }
 
 func money(_ value: Double) -> String { value.formatted(.number.precision(.fractionLength(0))) }
@@ -31,6 +42,10 @@ func priceText(_ value: Double) -> String { value.formatted(.number.precision(.f
 func signed(_ value: Double, _ format: (Double) -> String = money) -> String { (value > 0 ? "+" : (value < 0 ? "-" : "")) + format(abs(value)) }
 func percentText(_ value: Double) -> String { signed(value, decimal) + "%" }
 func shown(_ text: String, hidden: Bool) -> String { hidden ? "＊＊＊＊" : text }
+func weekdayText(_ date: Date) -> String { ["週日", "週一", "週二", "週三", "週四", "週五", "週六"][Calendar.current.component(.weekday, from: date) - 1] }
+func ymdText(_ date: Date) -> String { let c = Calendar.current.dateComponents([.year, .month, .day], from: date); return String(format: "%04d/%02d/%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0) }
+/// Large totals in 萬 so they fit inside a donut.
+func wanText(_ value: Double) -> String { abs(value) >= 1_000_000 ? "\(decimal((value / 1000).rounded() / 10))萬" : money(value) }
 func monthDay(_ date: Date) -> String { "\(Calendar.current.component(.month, from: date))/\(Calendar.current.component(.day, from: date))" }
 
 extension Strategy {
@@ -61,6 +76,55 @@ extension Fund {
         return "其他"
     }
     static let assetClasses = ["台股", "海外股票", "債券", "槓桿／反向", "期貨", "其他"]
+    private func matches(_ pattern: String, in text: String? = nil) -> Bool { (text ?? name).range(of: pattern, options: .regularExpression) != nil }
+    /// The design's filter vocabulary, from the official fund type and the fund name.
+    var assetKind: String {
+        let type = fundType ?? ""
+        if type.contains("債") || name.contains("債") { return "債券" }
+        if type.contains("期貨") || matches("黃金|原油|白銀|黃豆|小麥|商品|石油") { return "商品" }
+        return "股票"
+    }
+    var structure: String {
+        if matches("正2|槓桿|2X") || id.hasSuffix("L") { return "槓桿型" }
+        if matches("反1|反向|-1") || id.hasSuffix("R") { return "反向型" }
+        return "一般型"
+    }
+    var industry: String? {
+        guard assetKind == "股票" else { return nil }
+        if matches("半導體|科技|電子|5G|AI|晶片|IC|通訊|網通|資安|雲端|電動車|機器人|元宇宙|智能|創新|未來|數位|網路") { return "科技" }
+        if matches("金融|銀行|保險|證券") { return "金融" }
+        if matches("航運|鋼鐵|塑化|水泥|營建|綠能|電池|原物料|能源|基建|公用|不動產|REIT|生技|醫療|消費|汽車|工業") { return "傳產" }
+        return "跨產業"
+    }
+    var region: String {
+        let type = fundType ?? "", text = name + " " + (fullName ?? "")
+        if type.contains("國內") { return "台灣" }
+        if matches("美國|美股|美債|標普|S&P|那斯達克|NASDAQ|道瓊|費城|美元|美", in: text) { return "美國" }
+        if matches("日本|日經|東證", in: text) { return "日本" }
+        if matches("中國|滬深|上證|A50|恒生|香港|中概|深證", in: text) { return "中國／香港" }
+        if matches("印度", in: text) { return "印度" }
+        if matches("歐洲|德國|歐盟|英國", in: text) { return "歐洲" }
+        if matches("越南|東協|新興", in: text) { return "新興市場" }
+        if matches("全球|世界|已開發", in: text) { return "全球" }
+        return type.contains("國外") ? "其他海外" : "台灣"
+    }
+    var theme: String {
+        if strategy == .income || matches("高股息|高息|優息|股利") { return "高股息" }
+        if strategy == .saving || matches("台灣50|台50|中型100|市值|MSCI台灣|摩台|富櫃50|臺灣50|台灣領袖") { return "市值型" }
+        if matches("半導體|科技|電動車|5G|AI|晶片|IC|通訊|網通|資安|雲端|生技|醫療|金融|綠能|電池|元宇宙|機器人|航運|創新|智能|電子|未來|ESG|永續") { return "產業主題" }
+        return "其他"
+    }
+    var managementType: String { isActive ? "主動型" : "被動型" }
+    /// Fund house, read from the start of the fund's name.
+    var issuer: String? {
+        let houses = [("華南永昌", "華南永昌投信"), ("第一金", "第一金投信"), ("大華銀", "大華銀投信"), ("富蘭克林", "富蘭克林華美投信"), ("FT", "富蘭克林華美投信"), ("中國信託", "中國信託投信"), ("中信", "中國信託投信"), ("貝萊德", "貝萊德投信"), ("聯博", "聯博投信"), ("野村", "野村投信"), ("摩根", "摩根投信"), ("安聯", "安聯投信"), ("匯豐", "匯豐中華投信"), ("街口", "街口投信"), ("元大", "元大投信"), ("富邦", "富邦投信"), ("國泰", "國泰投信"), ("群益", "群益投信"), ("復華", "復華投信"), ("永豐", "永豐投信"), ("凱基", "凱基投信"), ("統一", "統一投信"), ("兆豐", "兆豐投信"), ("新光", "新光投信"), ("台新", "台新投信"), ("玉山", "玉山投信"), ("中租", "中租投信"), ("保德信", "保德信投信"), ("瀚亞", "瀚亞投信"), ("路博邁", "路博邁投信")]
+        for text in [fullName ?? "", name] {
+            var trimmed = text
+            for prefix in ["主動", "期"] where trimmed.hasPrefix(prefix) { trimmed.removeFirst(prefix.count) }
+            if let hit = houses.first(where: { trimmed.hasPrefix($0.0) }) { return hit.1 }
+        }
+        return nil
+    }
     /// Rough risk label by asset type, following the RR convention described in `Strategy.basis`.
     var riskLevel: String {
         switch assetClass {
@@ -124,7 +188,7 @@ struct ValuePoint: Identifiable {
     var id: Date { date }
 }
 enum ChartRange: String, CaseIterable, Identifiable {
-    case week = "1週", month = "1月", quarter = "3月", year = "1年", fiveYears = "5年", all = "全部"
+    case week = "1週", month = "1月", quarter = "3月", year = "1年", threeYears = "3年", fiveYears = "5年", all = "全部"
     var id: String { rawValue }
     func start(from end: Date) -> Date? {
         let calendar = Calendar.current
@@ -133,6 +197,7 @@ enum ChartRange: String, CaseIterable, Identifiable {
         case .month: return calendar.date(byAdding: .month, value: -1, to: end)
         case .quarter: return calendar.date(byAdding: .month, value: -3, to: end)
         case .year: return calendar.date(byAdding: .year, value: -1, to: end)
+        case .threeYears: return calendar.date(byAdding: .year, value: -3, to: end)
         case .fiveYears: return calendar.date(byAdding: .year, value: -5, to: end)
         case .all: return nil
         }
@@ -180,7 +245,7 @@ struct Card<Content: View>: View {
         VStack(alignment: .leading, spacing: 0) { content }
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white, in: RoundedRectangle(cornerRadius: 20))
+            .background(Palette.card, in: RoundedRectangle(cornerRadius: 20))
             .shadow(color: Palette.blue.opacity(0.07), radius: 12, y: 4)
     }
 }
@@ -272,11 +337,15 @@ struct SegmentBar: View {
     let items: [String]
     @Binding var selection: Int
     var pill = false
+    /// Blue filled selection, as the design's main page tabs.
+    var filled = false
+    var icons: [String]? = nil
     var body: some View {
         HStack(spacing: pill ? 4 : 0) {
             ForEach(items.indices, id: \.self) { index in
                 Button { withAnimation(.snappy) { selection = index } } label: { label(index) }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(items[index])
                     .accessibilityAddTraits(selection == index ? .isSelected : [])
             }
         }
@@ -286,10 +355,14 @@ struct SegmentBar: View {
     @ViewBuilder private func label(_ index: Int) -> some View {
         let active = selection == index
         if pill {
-            Text(items[index]).font(.subheadline.weight(active ? .bold : .medium))
-                .foregroundStyle(active ? Palette.blue : Palette.muted)
+            HStack(spacing: 5) {
+                if let icons, icons.indices.contains(index) { Image(systemName: icons[index]).font(.caption.bold()) }
+                Text(items[index]).font(.subheadline.weight(active ? .bold : .medium)).lineLimit(1).minimumScaleFactor(0.8)
+            }
+                .foregroundStyle(active ? (filled ? Color.white : Palette.blue) : Palette.muted)
                 .frame(maxWidth: .infinity).padding(.vertical, 9)
-                .background(active ? Color.white : Color.clear, in: RoundedRectangle(cornerRadius: 11))
+                .background(active ? (filled ? Palette.blue : Palette.card) : Color.clear, in: RoundedRectangle(cornerRadius: 11))
+                .shadow(color: active && filled ? Palette.blue.opacity(0.28) : .clear, radius: 6, y: 3)
                 .contentShape(Rectangle())
         } else {
             VStack(spacing: 7) {
@@ -311,8 +384,8 @@ struct RangeChips: View {
                 Button { selection = option } label: {
                     Text(option.rawValue).font(.caption.weight(.semibold))
                         .frame(maxWidth: .infinity).padding(.vertical, 6)
-                        .foregroundStyle(selection == option ? .white : Palette.muted)
-                        .background(selection == option ? Palette.blue : Color.clear, in: Capsule())
+                        .foregroundStyle(selection == option ? .white : Palette.ink)
+                        .background(selection == option ? Palette.blue : Palette.card, in: Capsule())
                 }.buttonStyle(.plain)
             }
         }
@@ -366,7 +439,7 @@ struct StatTile: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white, in: RoundedRectangle(cornerRadius: 18))
+        .background(Palette.card, in: RoundedRectangle(cornerRadius: 18))
         .shadow(color: Palette.blue.opacity(0.06), radius: 10, y: 3)
     }
 }
@@ -396,5 +469,243 @@ struct PrimaryButtonLabel: View {
             .foregroundStyle(.white)
             .background(Palette.hero, in: RoundedRectangle(cornerRadius: 16))
             .shadow(color: Palette.blue.opacity(0.3), radius: 10, y: 4)
+    }
+}
+
+/* Components for the template set: floating tab bar, date boxes, accent rows, donut and bar lists. */
+struct TabSpec {
+    let title: String
+    let icon: String
+    let colors: [Color]
+}
+enum AppTabs {
+    static let items: [TabSpec] = [
+        TabSpec(title: "首頁", icon: "house.fill", colors: [Color(red: 0.37, green: 0.64, blue: 1.0), Palette.blue]),
+        TabSpec(title: "探索", icon: "magnifyingglass", colors: [Color(red: 0.25, green: 0.84, blue: 0.84), Color(red: 0.05, green: 0.62, blue: 0.71)]),
+        TabSpec(title: "持有", icon: "bag.fill", colors: [Color(red: 1.0, green: 0.75, blue: 0.31), Palette.orange]),
+        TabSpec(title: "配息", icon: "calendar", colors: [Color(red: 1.0, green: 0.49, blue: 0.67), Palette.pink]),
+        TabSpec(title: "工具", icon: "square.grid.2x2.fill", colors: [Color(red: 0.67, green: 0.55, blue: 1.0), Palette.purple]),
+    ]
+}
+/// The design's floating, translucent tab bar: content scrolls underneath and shows through.
+struct FloatingTabBar: View {
+    @Binding var selection: Int
+    var reselect: (Int) -> Void
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(AppTabs.items.indices, id: \.self) { index in
+                let item = AppTabs.items[index], on = selection == index
+                Button { if on { reselect(index) } else { selection = index } } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: item.icon).font(.system(size: 17, weight: .bold)).foregroundStyle(.white)
+                            .frame(width: 40, height: 40)
+                            .background(LinearGradient(colors: item.colors, startPoint: .top, endPoint: .bottom), in: Circle())
+                            .shadow(color: (item.colors.last ?? Palette.blue).opacity(0.35), radius: 6, y: 3)
+                            .scaleEffect(on ? 1.12 : 1).offset(y: on ? -3 : 0)
+                        Text(item.title).font(.caption2.weight(on ? .heavy : .bold)).foregroundStyle(Palette.ink)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(item.title)
+                .accessibilityIdentifier("tab-\(item.title)")
+                .accessibilityAddTraits(on ? .isSelected : [])
+            }
+        }
+        .padding(.vertical, 8).padding(.horizontal, 4)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(Color.white.opacity(0.45), lineWidth: 1))
+        .shadow(color: Color.black.opacity(0.12), radius: 16, y: 8)
+        .padding(.horizontal, 12).padding(.bottom, 4)
+        .animation(.snappy, value: selection)
+    }
+}
+struct DateBox: View {
+    let date: Date
+    var body: some View {
+        VStack(spacing: 1) {
+            Text(monthDay(date)).font(.subheadline.bold()).monospacedDigit().foregroundStyle(Palette.blue)
+            Text(weekdayText(date)).font(.caption2).foregroundStyle(Palette.muted)
+        }
+        .frame(width: 50).padding(.vertical, 5)
+        .background(Palette.blue.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+struct AccentRow: ViewModifier {
+    let color: Color
+    func body(content: Content) -> some View {
+        content
+            .padding(.vertical, 12).padding(.leading, 18).padding(.trailing, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(alignment: .leading) { Capsule().fill(color).frame(width: 4).padding(.vertical, 10) }
+            .background(Palette.card)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: Palette.blue.opacity(0.06), radius: 8, y: 3)
+    }
+}
+extension View {
+    func accentRow(_ color: Color) -> some View { modifier(AccentRow(color: color)) }
+}
+/// Rising bars drawn on the blue hero cards.
+struct HeroDeco: View {
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 5) {
+            ForEach(Array([0.32, 0.46, 0.4, 0.62, 0.78, 0.95].enumerated()), id: \.offset) { index, height in
+                RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.22 + Double(index) * 0.08)).frame(width: 11, height: 58 * height)
+            }
+        }
+        .frame(height: 58)
+        .accessibilityHidden(true)
+    }
+}
+struct Slice: Identifiable {
+    let label: String
+    let amount: Double
+    let color: Color
+    var id: String { label }
+}
+func makeSlices<T>(_ items: [T], key: (T) -> String, value: (T) -> Double) -> [Slice] {
+    var totals: [String: Double] = [:]
+    for item in items { totals[key(item), default: 0] += value(item) }
+    return totals.filter { $0.value > 0 }.sorted { $0.value > $1.value }.enumerated().map { Slice(label: $0.element.key, amount: $0.element.value, color: Palette.series[$0.offset % Palette.series.count]) }
+}
+struct DonutChart: View {
+    let slices: [Slice]
+    var center: (title: String, value: String)? = nil
+    var showAmounts = false
+    var hidden = false
+    var body: some View {
+        let total = max(slices.reduce(0.0) { $0 + $1.amount }, 0.000001)
+        HStack(spacing: 14) {
+            Chart(slices) { slice in
+                SectorMark(angle: .value("金額", slice.amount), innerRadius: .ratio(0.68), angularInset: 1.5)
+                    .foregroundStyle(slice.color)
+                    .cornerRadius(3)
+            }
+            .chartLegend(.hidden)
+            .frame(width: 118, height: 118)
+            .overlay {
+                if let center {
+                    VStack(spacing: 1) {
+                        Text(center.title).font(.caption2).foregroundStyle(Palette.muted)
+                        Text(center.value).font(.subheadline.bold()).monospacedDigit().foregroundStyle(Palette.ink).minimumScaleFactor(0.6).lineLimit(1)
+                    }.frame(width: 74)
+                }
+            }
+            VStack(alignment: .leading, spacing: 9) {
+                ForEach(slices) { slice in
+                    HStack(spacing: 6) {
+                        Circle().fill(slice.color).frame(width: 9, height: 9)
+                        Text(slice.label).font(.subheadline).foregroundStyle(Palette.ink).lineLimit(1).minimumScaleFactor(0.8)
+                        Spacer(minLength: 4)
+                        Text("\(decimal(slice.amount / total * 100))%").font(showAmounts ? .caption : .subheadline.bold()).monospacedDigit().foregroundStyle(showAmounts ? Palette.muted : Palette.ink)
+                        if showAmounts { Text(shown(money(slice.amount), hidden: hidden)).font(.subheadline.bold()).monospacedDigit().foregroundStyle(Palette.ink) }
+                    }
+                }
+            }
+        }
+    }
+}
+struct BarList: View {
+    let slices: [Slice]
+    var body: some View {
+        let total = max(slices.reduce(0.0) { $0 + $1.amount }, 0.000001)
+        VStack(spacing: 10) {
+            ForEach(slices) { slice in
+                HStack(spacing: 10) {
+                    Text(slice.label).font(.caption.bold()).foregroundStyle(Palette.ink).frame(width: 76, alignment: .leading).lineLimit(1)
+                    GeometryReader { proxy in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Palette.blue.opacity(0.1))
+                            Capsule().fill(slice.color).frame(width: proxy.size.width * slice.amount / total)
+                        }
+                    }.frame(height: 7)
+                    Text("\(decimal(slice.amount / total * 100))%").font(.caption.bold()).monospacedDigit().foregroundStyle(Palette.ink).frame(width: 52, alignment: .trailing)
+                }
+            }
+        }
+    }
+}
+struct NumberedHeading: View {
+    let number: Int
+    let title: String
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("\(number)").font(.caption.bold()).foregroundStyle(.white).frame(width: 22, height: 22).background(Palette.blue, in: Circle())
+            Text(title).font(.headline).foregroundStyle(Palette.ink)
+        }
+    }
+}
+struct TagChip: View {
+    let title: String
+    var icon: String? = nil
+    var art: String? = nil
+    var tint: Color = Palette.ink
+    var body: some View {
+        HStack(spacing: 5) {
+            if let art { Artwork(name: art, size: 18) } else if let icon { Image(systemName: icon).font(.caption.bold()) }
+            Text(title).font(.caption.bold())
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(Palette.card, in: Capsule())
+        .shadow(color: Palette.blue.opacity(0.08), radius: 5, y: 2)
+    }
+}
+/// Small pill in a chosen colour, e.g. a status or a market label.
+struct TintPill: View {
+    let title: String
+    var color: Color = Palette.blue
+    var body: some View {
+        Text(title).font(.caption2.bold()).lineLimit(1)
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .foregroundStyle(color)
+            .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+    }
+}
+struct DemoBar: View {
+    @EnvironmentObject var store: PortfolioStore
+    var body: some View {
+        if store.isDemo {
+            HStack(spacing: 8) {
+                Text("示範資料").font(.caption.bold()).foregroundStyle(Palette.orange)
+                Text("不是你的資產・金額及報價均為示範").font(.caption).foregroundStyle(Palette.muted)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(Palette.orange.opacity(0.14), in: RoundedRectangle(cornerRadius: 14))
+        }
+    }
+}
+/// A labelled number field with a unit, as in the design's forms.
+struct FieldRow<Field: View>: View {
+    let title: String
+    var bar = false
+    @ViewBuilder var field: Field
+    var body: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 7) {
+                if bar { Capsule().fill(Palette.blue).frame(width: 3, height: 14) }
+                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink).lineLimit(2)
+            }.frame(width: 118, alignment: .leading)
+            field
+                .padding(.horizontal, 10).padding(.vertical, 10)
+                .background(Palette.cardSoft, in: RoundedRectangle(cornerRadius: 12))
+        }
+        .padding(.vertical, 4)
+    }
+}
+struct UnitField: View {
+    let placeholder: String
+    @Binding var text: String
+    let unit: String
+    var identifier: String? = nil
+    var body: some View {
+        HStack(spacing: 6) {
+            TextField(placeholder, text: $text).keyboardType(.decimalPad).monospacedDigit()
+                .accessibilityIdentifier(identifier ?? placeholder)
+            if !unit.isEmpty { Text(unit).font(.caption).foregroundStyle(Palette.muted) }
+        }
     }
 }

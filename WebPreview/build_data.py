@@ -127,5 +127,12 @@ out = {
     "dividends": {"sources": sources, "events": events, "freq": freq},
 }
 target.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+# The iPhone app bundles the same snapshot in a shape Codable can read directly.
+native = {
+    "sources": sources,
+    "events": {sym: [{"ex": ex, "pay": pay, "amount": value} for ex, pay, value in items] for sym, items in sorted(events.items())},
+    "freq": dict(sorted(freq.items())),
+}
+(root / "App/Resources/official-dividends.json").write_text(json.dumps(native, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 print(f"{len(funds)} funds, {len(records)} fee records, {sum(len(v) for v in events.values())} distributions for {len(events)} ETFs, "
       f"{len(freq)} frequencies -> {target.name} ({target.stat().st_size // 1024} KB)")

@@ -42,18 +42,80 @@ struct ComponentsContent: View {
 }
 struct ExposureView: View {
     @EnvironmentObject var store: PortfolioStore
+    @State private var tab = 0
+    @State private var busy = false
+    @State private var error: String?
     private var rows: [ExposureRow] { ResearchMath.exposures(store.data) }
     private var covered: [Holding] { store.data.holdings.filter { store.data.quotes[$0.symbol]?.isTWD == true && store.data.components?[$0.symbol] != nil } }
-    var body: some View { Page {
-        Card { Text("ETF 背後的持股").font(.title3.bold()).foregroundStyle(Palette.ink); Text("納入 \(covered.count)／\(store.data.holdings.count) 筆持有").padding(.top, 10); Text("依台幣報價 × 股數 × 揭露權重加總。不同 ETF 可能使用不同公告日期；不含缺少資料、未確認幣別或外幣報價的部位。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 10) }
-        if rows.isEmpty { ContentUnavailableView("資料還不完整", systemImage: "chart.pie", description: Text("先在 ETF 詳情更新成分股與報價。")) }
-        if let top = rows.first, rows.count > 1 {
-            let total: Double = rows.reduce(0.0) { $0 + $1.value }
-            let topThree: Double = rows.prefix(3).reduce(0.0) { $0 + $1.value }
-            Card { Text("前三大持股集中度").font(.subheadline.bold()).foregroundStyle(Palette.ink); Text("\(decimal(topThree / max(total, 1) * 100))%").font(.system(size: 30, weight: .bold, design: .rounded)).foregroundStyle(Palette.blue).padding(.vertical, 6); Text("最大曝險：\(top.name)，占已揭露曝險 \(decimal(top.value / max(total, 1) * 100))%").font(.caption).foregroundStyle(Palette.muted) }
+    var body: some View {
+        let missing = Array(Set(store.data.holdings.map(\.symbol))).sorted().filter { store.data.components?[$0] == nil }
+        Page {
+            SegmentBar(items: ["持股集中度", "重疊成分"], selection: $tab, pill: true, filled: true)
+            if tab == 0 { concentration } else { overlaps }
+            if !missing.isEmpty {
+                Button(busy ? "取得中…" : "取得 \(missing.count) 檔持有 ETF 的成分股") { Task { await load(missing) } }.buttonStyle(.bordered).disabled(busy || store.isDemo)
+                if let error { Text(error).font(.caption).foregroundStyle(Palette.red) }
+            }
         }
-        ForEach(rows) { row in Card { HStack { Text(row.name).font(.headline).foregroundStyle(Palette.ink); Spacer(); Text("$\(money(row.value))").font(.headline).foregroundStyle(Palette.blue) }; Text("\(row.symbol) · 來自 \(row.funds.sorted().joined(separator: "、"))").font(.caption).foregroundStyle(Palette.muted).padding(.top, 10) } }
-    }.navigationTitle("持股透視").navigationBarTitleDisplayMode(.inline) }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .principal) { VStack(spacing: 0) { Text("持股透視").font(.headline).foregroundStyle(Palette.ink); Text("分析持股集中度與重疊成分，掌握投資組合風險").font(.caption2).foregroundStyle(Palette.muted) } } }
+    }
+    @ViewBuilder private var concentration: some View {
+        let total = store.data.holdings.reduce(0.0) { $0 + (store.marketValue(of: $1) ?? 0) }
+        if rows.isEmpty {
+            Card {
+                SectionHeading(title: "ETF 集中度")
+                let byFund = makeSlices(store.data.holdings, key: { $0.symbol }, value: { store.marketValue(of: $0) ?? $0.cost })
+                if byFund.isEmpty { Text("還沒有持有紀錄。").foregroundStyle(Palette.muted).padding(.top, 8) } else { DonutChart(slices: byFund).padding(.top, 12) }
+                Text("取得持有 ETF 的成分股後，會改為顯示背後的個股與前十大持股。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 10)
+            }
+        } else {
+            let top = Array(rows.prefix(10)), base = max(total, 1)
+            let topShare = top.reduce(0.0) { $0 + $1.value } / base * 100
+            let five = Array(top.prefix(5))
+            let rest = max(base - five.reduce(0.0) { $0 + $1.value }, 0)
+            let named: [Slice] = five.enumerated().map { pair in Slice(label: pair.element.name, amount: pair.element.value, color: Palette.series[pair.offset]) }
+            let slices: [Slice] = named + [Slice(label: "其他", amount: rest, color: Palette.series[6])]
+            Card {
+                SectionHeading(title: "持股分布")
+                DonutChart(slices: slices, center: ("前十大", "\(decimal(topShare))%")).padding(.top, 12)
+            }
+            Card {
+                SectionHeading(title: "前十大持股明細")
+                ForEach(Array(top.enumerated()), id: \.offset) { index, row in
+                    HStack(spacing: 10) {
+                        Text("\(index + 1)").font(.caption.bold()).monospacedDigit().frame(width: 18)
+                        Text(row.name).font(.subheadline).lineLimit(1).frame(width: 96, alignment: .leading)
+                        GeometryReader { proxy in ZStack(alignment: .leading) { Capsule().fill(Palette.blue.opacity(0.1)); Capsule().fill(Palette.blue).frame(width: proxy.size.width * row.value / max(top[0].value, 0.000001)) } }.frame(height: 7)
+                        Text("\(decimal(row.value / base * 100))%").font(.caption.bold()).monospacedDigit().frame(width: 52, alignment: .trailing)
+                    }.foregroundStyle(Palette.ink).padding(.vertical, 6)
+                }
+                Text("比重＝透過 ETF 間接持有的金額 ÷ 你的台幣持有市值；納入 \(covered.count)／\(store.data.holdings.count) 筆持有。不同 ETF 可能使用不同公告日期。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 8)
+            }
+        }
+    }
+    @ViewBuilder private var overlaps: some View {
+        let symbols = Array(Set(store.data.holdings.map(\.symbol))).sorted().filter { store.data.components?[$0] != nil }
+        let pairs: [(String, String, Int, Double)] = symbols.indices.flatMap { i in symbols.indices.filter { $0 > i }.compactMap { j -> (String, String, Int, Double)? in
+            guard let a = store.data.components?[symbols[i]], let b = store.data.components?[symbols[j]] else { return nil }
+            let shared = ResearchMath.overlap(a, b)
+            return (symbols[i], symbols[j], shared.count, shared.reduce(0) { $0 + min($1.left, $1.right) })
+        } }.sorted { $0.3 > $1.3 }
+        Card(padding: 12) {
+            if pairs.isEmpty { Text("至少需要兩檔持有 ETF 的成分資料才能比較重疊。").font(.subheadline).foregroundStyle(Palette.muted).padding(4) }
+            ForEach(Array(pairs.enumerated()), id: \.offset) { _, pair in
+                HStack { Text("\(pair.0) × \(pair.1)").font(.subheadline.bold()).foregroundStyle(Palette.ink); Spacer(); Text("共同 \(pair.2) 檔").font(.caption).foregroundStyle(Palette.muted); Text("\(decimal(pair.3))%").font(.subheadline.bold()).monospacedDigit().foregroundStyle(Palette.blue).frame(width: 64, alignment: .trailing) }.padding(.vertical, 8)
+            }
+        }
+        Text("重疊權重下限＝共同成分在兩檔 ETF 權重的較小值加總。沒有共同股票也不表示整體風險沒有重疊。").font(.caption).foregroundStyle(Palette.muted)
+    }
+    private func load(_ symbols: [String]) async {
+        busy = true; error = nil
+        defer { busy = false }
+        for symbol in symbols {
+            do { try store.saveComponents(await Fugle.components(symbol: symbol)) } catch { self.error = "\(symbol)：\(error.localizedDescription)" }
+        }
+    }
 }
 struct OverlapPanel: View {
     @EnvironmentObject var store: PortfolioStore

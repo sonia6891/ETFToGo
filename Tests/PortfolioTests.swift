@@ -50,6 +50,30 @@ final class PortfolioTests: XCTestCase {
         XCTAssertEqual(store.data.trades?.last?.shares, 3000)
         XCTAssertEqual(PortfolioStore(url: url).data.trades?.count, 3)
     }
+    @MainActor func testBuyAndSellAdjustHolding() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("data.json")
+        let store = PortfolioStore(url: url, demo: true)
+        let before = store.data.holdings.count
+        try store.applyTrade(.buy, symbol: "0056", date: Date(), shares: 1000, amount: 30000, broker: "測試")
+        XCTAssertEqual(store.data.holdings.count, before + 1)
+        try store.applyTrade(.buy, symbol: "0056", date: Date(), shares: 1000, amount: 40000, broker: "測試")
+        let holding = try XCTUnwrap(store.data.holdings.first { $0.symbol == "0056" && $0.broker == "測試" })
+        XCTAssertEqual(holding.shares, 2000); XCTAssertEqual(holding.unitCost, 35, accuracy: 0.0001)
+        XCTAssertThrowsError(try store.applyTrade(.sell, symbol: "0056", date: Date(), shares: 5000, amount: 1, broker: "測試"), "Selling more than held is refused")
+        try store.applyTrade(.sell, symbol: "0056", date: Date(), shares: 500, amount: 20000, broker: "測試")
+        XCTAssertEqual(store.data.trades?.last?.realized, 2500)
+        try store.applyTrade(.sell, symbol: "0056", date: Date(), shares: 1500, amount: 60000, broker: "測試")
+        XCTAssertNil(store.data.holdings.first { $0.symbol == "0056" && $0.broker == "測試" }, "A holding sold down to zero is removed")
+        XCTAssertEqual(store.data.trades?.suffix(4).map(\.action), [.buy, .buy, .sell, .sell])
+    }
+    func testOfficialDistributionHelpers() {
+        XCTAssertEqual(OfficialDividends.rocDay("115年10月22日"), "2026-10-22")
+        XCTAssertEqual(OfficialDividends.rocDay("1151016"), "2026-10-16")
+        XCTAssertNil(OfficialDividends.rocDay("abc"))
+        let days = (1...4).map { DataChecks.day(Calendar.current.date(byAdding: .month, value: -3 * $0 + 1, to: Date())!) }
+        XCTAssertEqual(OfficialDividends.frequency(of: days.map { OfficialDistribution(ex: $0, pay: "", amount: 1) }), "季配")
+        XCTAssertEqual(OfficialDividends.frequency(of: Array(days.prefix(2)).map { OfficialDistribution(ex: $0, pay: "", amount: 1) }), "半年配")
+    }
     @MainActor func testMalformedFileIsNotOverwritten() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let original = Data("invalid data".utf8)

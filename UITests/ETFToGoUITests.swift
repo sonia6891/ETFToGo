@@ -11,8 +11,9 @@ final class ETFToGoUITests: XCTestCase {
         XCTAssertTrue(app.buttons["更新成分股"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["尚無成分資料"].exists)
         let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = "restored-components"; attachment.lifetime = .keepAlways; add(attachment)
-        app.tabBars.buttons["工具"].tap(); app.swipeUp()
-        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "券商持有資料")).firstMatch.tap()
+        app.buttons["tab-工具"].tap()
+        XCTAssertTrue(app.buttons["tool-broker"].waitForExistence(timeout: 5))
+        app.buttons["tool-broker"].tap()
         XCTAssertTrue(app.textFields["broker-import-name"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["選擇庫存 CSV"].exists)
     }
@@ -38,18 +39,18 @@ final class ETFToGoUITests: XCTestCase {
     func testAllTabsAndSearch() {
         let app = XCUIApplication(); app.launchArguments = ["--demo"]; app.launch()
         XCTAssertTrue(app.staticTexts["portfolio-value"].waitForExistence(timeout: 10)); capture(app,"screen-0")
-        app.tabBars.buttons["探索"].tap(); capture(app,"screen-1")
+        app.buttons["tab-探索"].tap(); capture(app,"screen-1")
         let search = app.textFields["fund-search"]
         XCTAssertTrue(search.waitForExistence(timeout: 5))
         search.tap(); search.typeText("0050\n")
         XCTAssertTrue(app.staticTexts["元大台灣50"].exists)
         XCTAssertFalse(app.staticTexts["國泰永續高股息"].exists)
-        app.tabBars.buttons["持有"].tap()
+        app.buttons["tab-持有"].tap()
         XCTAssertTrue(app.buttons["add-holding"].waitForExistence(timeout: 5)); capture(app,"screen-2")
-        app.tabBars.buttons["配息"].tap()
+        app.buttons["tab-配息"].tap()
         XCTAssertTrue(app.buttons["新增配息紀錄"].waitForExistence(timeout: 5)); capture(app,"screen-3")
-        app.tabBars.buttons["工具"].tap(); capture(app,"screen-4"); app.swipeUp()
-        XCTAssertTrue(app.staticTexts["富果行情連線"].waitForExistence(timeout: 5))
+        app.buttons["tab-工具"].tap(); capture(app,"screen-4")
+        XCTAssertTrue(app.buttons["tool-backup"].waitForExistence(timeout: 5))
     }
     func testHoldingSurvivesRelaunch() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-testing", "--reset"]; app.launch()
@@ -66,10 +67,10 @@ final class ETFToGoUITests: XCTestCase {
         XCTAssertFalse(app.buttons["home-add-holding"].exists, "The empty-portfolio prompt disappears once a holding is saved")
         app.terminate(); app.launchArguments = ["--ui-testing", "--tab", "2"]; app.launch()
         XCTAssertTrue(app.staticTexts["0050"].waitForExistence(timeout: 10))
-        app.buttons["交易紀錄"].tap()
+        app.buttons["交易"].tap()
         XCTAssertTrue(app.staticTexts["買進"].waitForExistence(timeout: 5), "Saving a new holding is recorded in the trade log")
-        XCTAssertTrue(app.staticTexts["Test Broker"].exists)
-        app.buttons["資產配置"].tap()
+        app.buttons["配置"].tap()
         XCTAssertTrue(app.staticTexts["券商帳戶"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Test Broker"].exists)
     }
 }
