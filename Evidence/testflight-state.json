@@ -1,0 +1,21 @@
+{
+  "recordedAt": "2026-10-15T02:11:57.905883+00:00",
+  "appleVerifiedAt": "2026-10-15T02:07:48.615Z",
+  "appId": "6822974128",
+  "version": "0.2.0",
+  "buildNumber": "2.3",
+  "buildId": "d7fe4f43-8762-46c6-82e1-7654ac055128",
+  "upload": "success",
+  "processingState": "VALID",
+  "internalBuildState": "IN_BETA_TESTING",
+  "groupId": "bab761d7-dec0-4ae7-8e60-602b7a4c9e07",
+  "groupName": "ETF ToGo 內部測試",
+  "groupBuildCount": 1,
+  "testerCount": 1,
+  "uiBuildState": "正在測試",
+  "uiTesterStateAtInvitation": "已邀請",
+  "deviceInstallationVerified": true,
+  "deviceVerificationMethod": "User report in this conversation, not agent-operated device testing",
+  "userDeviceReport": "已安裝，能開啟",
+  "evidence": "App Store Connect visible UI, apple-processing.json, and user installation confirmation"
+}

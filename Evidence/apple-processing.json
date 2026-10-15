@@ -1,0 +1,51 @@
+{
+  "checkedAt": "2026-10-15T02:07:48.615Z",
+  "appId": "6822974128",
+  "uploads": [
+    {
+      "id": "d7fe4f43-8762-46c6-82e1-7654ac055128",
+      "cfBundleShortVersionString": "0.2.0",
+      "cfBundleVersion": "2.3",
+      "createdDate": "2026-10-14T18:58:13-07:00",
+      "state": {
+        "errors": [],
+        "warnings": [],
+        "infos": [],
+        "state": "COMPLETE"
+      },
+      "platform": "IOS",
+      "uploadedDate": "2026-10-14T18:59:20-07:00"
+    },
+    {
+      "id": "a0164f96-6e99-4ad4-b57b-5505515cca57",
+      "cfBundleShortVersionString": "0.2.0",
+      "cfBundleVersion": "2.2",
+      "createdDate": "2026-10-14T18:49:35-07:00",
+      "state": {
+        "errors": [],
+        "warnings": [],
+        "infos": [],
+        "state": "AWAITING_UPLOAD"
+      },
+      "platform": "IOS",
+      "uploadedDate": null
+    }
+  ],
+  "builds": [
+    {
+      "id": "d7fe4f43-8762-46c6-82e1-7654ac055128",
+      "version": "2.3",
+      "uploadedDate": "2026-10-14T19:05:09-07:00",
+      "processingState": "VALID",
+      "usesNonExemptEncryption": false
+    }
+  ],
+  "beta": [
+    {
+      "buildId": "d7fe4f43-8762-46c6-82e1-7654ac055128",
+      "autoNotifyEnabled": true,
+      "internalBuildState": "IN_BETA_TESTING",
+      "externalBuildState": "READY_FOR_BETA_SUBMISSION"
+    }
+  ]
+}

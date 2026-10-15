@@ -1,46 +1,41 @@
-# ETF 袋著走 — 原生 UI 審閱版與發佈紀錄
+# ETF 袋著走 — TestFlight 發佈紀錄
 
-更新日期：2026-10-15。目前唯一開發來源為 SwiftUI 0.2.0。依使用者決定，現行工程與交付包僅保留最新版，取消舊版原始碼整合工作。
+更新日期：2026-10-15（台灣時間）。目前唯一開發來源為 SwiftUI 0.2.0，現行工程與交付包僅保留最新版。
 
-## 已實際完成
+## 已完成發佈與安裝
 
-- 五個原生分頁：首頁、找 ETF、我的持有、配息、工具。
-- 可操作的持有新增／編輯／刪除、配息記錄、收藏、比較、試算、備份與富果金鑰設定。
-- 正式 Bundle ID：`com.sonia.etftogo`。Apple 資源 ID：`465MBRR9MN`。
-- 專用 App Store profile：`M8Z48T98CP`，狀態 ACTIVE，有效至 2027-09-30。
-- 原生 arm64 iPhone App 簽署、封存、匯出成功，版本 `0.2.0 (2.2)`。
-- 封存工具：Xcode 26.6 (17F113)，iOS 26.5 SDK；最低 iOS 17。
-- IPA 含正式 Bundle ID、原生執行檔、App Icon 與 embedded provisioning profile。CI 已執行嚴格簽署驗證。
-- IPA SHA-256：`1bc8250e10a6b2eb7439370352ba298a4d7402ebf11ae45687d2f36a86ecf185`。
+- App Store Connect 已建立「ETF 袋著走」，App ID `6822974128`，Bundle ID `com.sonia.etftogo`，SKU `ETFTOGO-IOS-001`，主要語言為繁體中文。
+- 原生 iPhone 版本 **0.2.0（2.3）** 已完成簽署、封存、匯出，於 2026-10-15 09:59 成功上傳 Apple。上傳紀錄明確顯示 `Upload succeeded`。
+- Apple 處理狀態為 `VALID`，內部測試狀態為 `IN_BETA_TESTING`。建置 ID：`d7fe4f43-8762-46c6-82e1-7654ac055128`。
+- 已加入「ETF ToGo 內部測試」群組；網站顯示 1 位測試人員、1 個建置版本及「正在測試」。已設定測試版介紹與意見回饋信箱。
+- **使用者已在本對話回報「已安裝，能開啟」。** 這是使用者對實體 iPhone 安裝及啟動的確認；尚未代表所有功能都已完成實機驗證。
+- 本次為 TestFlight 內部測試，沒有建立公開加入連結，也沒有提交 App Store 正式版審查。
 
-## 可重查的證據
+## 測試與可重查的證據
 
-- [Xcode 26.6 模擬器驗證](https://github.com/sonia6891/ETFToGo/actions/runs/38665125561)：**成功**。iPhone 17 Pro / iOS 26.4.1 上完成原生編譯、五頁截圖、6 項單元測試及 2 項 UI 測試，全部零失敗。包含損壞資料原始位元組匯出、搜尋鍵盤收起與持有重新啟動後保留。
-- [正式簽署與匯出](https://github.com/sonia6891/meow-work-app/actions/runs/38665723372)：ARCHIVE SUCCEEDED、EXPORT SUCCEEDED。Upload 步驟為 skipped。
-- 本資料夾 `Evidence/` 保存封存、匯出、Apple 設定與 IPA 檢查結果。
-- `Screens/` 保存五張 1206 × 2622 原尺寸截圖與總覽；全部為實際模擬器輸出，使用示範資料。
-- 編譯／封存來源：ETFToGo commit `b4d340a506324318969c8c550ee8e95ef259e0fd`。
+- [原生編譯與測試](https://github.com/sonia6891/ETFToGo/actions/runs/38668396989)：成功。iPhone 17 Pro / iOS 26.4.1 模擬器完成五頁截圖、6 項單元測試及 2 項 UI 測試，全部零失敗。包含損壞資料原始位元組匯出、搜尋鍵盤收起，以及持有資料重新啟動後保留。
+- [簽署、封存、匯出及上傳](https://github.com/sonia6891/meow-work-app/actions/runs/38668432671)：全部成功。工具為 Xcode 26.6 (17F113) / iOS 26.5 SDK，最低 iOS 17，arm64 iPhone 原生程式。
+- [Apple 處理狀態查核](https://github.com/sonia6891/meow-work-app/actions/runs/38669200605)，第 2 次執行成功：上傳狀態 `COMPLETE`、處理狀態 `VALID`、內部測試狀態 `IN_BETA_TESTING`；`usesNonExemptEncryption=false`。
+- 編譯與封存來源：`f2b6008573c5f9b0d768dd362394b06ca5347f9d`。後續提交僅更新交付紀錄與通用發佈流程，不更動此次已測試的 App 原始碼。
+- IPA SHA-256：`3daf115937af67db277ec2c87e4a3538a67946a276a47bb87202db72791da951`。
+- `Evidence/` 保存當次編譯與測試、封存、匯出、上傳紀錄，以及 Apple API 狀態、IPA 檢查結果和使用者安裝回報。
+- `Screens/screen-0.png` 至 `screen-4.png` 為此次原生模擬器的五個分頁截圖，使用明確標示的示範資料。首頁截圖上方出現模擬器的 Apple Intelligence 系統通知，保留原始輸出未修圖；`overview.png` 是先前相同 SwiftUI 畫面的總覽。
 
-## TestFlight 尚缺的步驟
+## 工程與簽署設定
 
-Apple API 可讀取帳號並使用現有發佈憑證；不需要再購買會員或重建憑證。目前缺少 ETF 的 App Store Connect App 記錄，網站尚未登入成功。
+- 正式 Apple Bundle 資源 ID：`465MBRR9MN`。專用 App Store profile：`M8Z48T98CP`，狀態 ACTIVE，有效至 2027-09-30。
+- App、單元測試與 UI 測試目標均明確指定 iPhone 裝置家族；實際 IPA 驗證 `UIDeviceFamily=[1]`，並檢查 Bundle ID、圖示、原生執行檔與 embedded provisioning profile。
+- 前次 2.2 上傳被 Apple 90474 拒絕，原因是 XcodeGen 的目標層級預設值導致 IPA 包含 iPad，但僅設定直向。2.3 已修正目標層級設定並加入封存及 IPA 防回歸檢查，Apple 已接受此建置。
+- 成功使用既有簽署環境的獨立分支：`sonia6891/meow-work-app` 的 `codex/etftogo-signing-check-20261015`。輸入為固定版本 ETF 原生來源 ZIP；未改動該 App 主分支，也未把簽署秘密匯出到本機或 ETF 倉庫。
+- ETF 倉庫保留通用發佈流程；若後續改從 ETF 倉庫直接簽署，仍需配置其專屬 repository secrets。此次成功發佈使用的是上述已有簽署權限的 CI。
 
-1. 在 [App Store Connect](https://appstoreconnect.apple.com/apps) 登入既有 Apple Developer 帳號並完成雙重驗證。
-2. 在「我的 App」新增 iOS App：名稱「ETF 袋著走」、主要語言繁體中文、Bundle ID `com.sonia.etftogo`、SKU `ETFTOGO-IOS-001`。若 Apple 提示名稱不可用，需另行決定名稱，不能宣稱已建立。
-3. 完成後即可續行原生上傳；再確認 Apple 處理成功、出口合規、測試群組與邀請。外部測試可能需要 Beta App Review。
+## 這版的功能與限制
 
-既有簽署環境的獨立分支為 `sonia6891/meow-work-app` 的 `codex/etftogo-signing-check-20261015`，工作流程 `.github/workflows/etftogo-archive.yml`。其輸入是固定版本的 ETF 原生來源 ZIP；不改動原 App 主分支、不把秘密匯出到本機或 ETF 倉庫。重新執行會先查詢 ETF App 記錄；不存在時仍會跳過上傳。
-
-**目前沒有 TestFlight 安裝連結，也沒有實機安裝成功證據。** 已簽署 IPA 只能作為發佈產物，不能冒充 TestFlight 邀請。
-
-## 這版的範圍
-
-- 正常啟動為空資料。截圖使用 `--demo`，數字為示範資料，且不寫入使用者正式資料。
-- 本版僅內建 6 檔 UI 起始清單，不代表即時全台 ETF 總數；正式名單待使用交易所資料擴充。
-- 原生 JSON 存檔採原子寫入，壞檔不覆寫，匯出會保留損壞檔原始位元組以便救援。本版 schema 1 備份尚不相容舊 PWA 備份。
-- 富果以官方 HTTP API 和 Keychain 實作；尚無可用的個人富果金鑰，因此沒有帳戶連線實測證據。報價缺失時不會用成本假裝市值。
-- 配息由使用者記錄，區分已入帳、已公告、預估，沒有自動公告串接。
-- 成分股穿透、完整費用率與歷史績效尚未實作；後續功能以本工程繼續開發。
-- App Icon 沿用既有 512 × 512 圖案，1024 × 1024 版本為等比放大，已成功納入 App。
-
-Apple 官方說明：[新增 App 必須從網站進行](https://developer.apple.com/documentation/appstoreconnectapi/apps)、[建立 App 記錄](https://developer.apple.com/help/app-store-connect/create-an-app-record/add-a-new-app/)、[現行 SDK 最低要求](https://developer.apple.com/news/upcoming-requirements/?id=04282026a)。
+- 五個原生分頁：首頁、找 ETF、我的持有、配息、工具。支援持有新增／編輯／刪除、配息記錄、收藏、比較、試算、備份及富果金鑰設定。
+- 正常啟動為空資料。`--demo` 使用示範數字，且不寫入使用者正式資料。
+- 內建 6 檔起始清單，並非完整台灣 ETF 名單。
+- 原生 JSON 存檔採原子寫入，壞檔不覆寫；匯出會保留損壞檔原始位元組。本版 schema 1 備份尚不相容舊 PWA 備份。
+- 富果使用官方 HTTP API，個人金鑰存於 Keychain；尚未取得個人富果金鑰進行真實帳戶連線測試。報價缺失時不會用成本假裝市值。
+- 配息由使用者記錄，區分已入帳、已公告、預估，尚未串接自動公告。
+- 成分股穿透、完整費用率與歷史績效尚未實作。
+- App Icon 沿用既有 512 × 512 圖案，1024 × 1024 版本為等比放大，已成功納入 Apple 接受的建置。

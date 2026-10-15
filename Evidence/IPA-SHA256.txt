@@ -1,1 +1,1 @@
-1bc8250e10a6b2eb7439370352ba298a4d7402ebf11ae45687d2f36a86ecf185  build/export/ETFToGo.ipa
+3daf115937af67db277ec2c87e4a3538a67946a276a47bb87202db72791da951  build/export/ETFToGo.ipa

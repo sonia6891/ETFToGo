@@ -1,6 +1,6 @@
 # ETF 袋著走 · Native UI Review
 
-目前唯一使用的原始碼為本工程的 SwiftUI 0.2.0。依 2026-10-15 的決定，後續開發以此版本為準，舊版來源已從現行工程移除。本版尚未完成 TestFlight 發佈。
+目前唯一使用的原始碼為本工程的 SwiftUI 0.2.0。依 2026-10-15 的決定，後續開發以此版本為準，舊版來源已從現行工程移除。建置版本 2.3 已在 TestFlight 開放內部測試，使用者已確認在 iPhone 安裝並開啟；完整紀錄見 RELEASE_STATUS.md。
 
 五個原生分頁：首頁、找 ETF、我的持有、配息、工具。支援持有編輯、本機 JSON 原子儲存、配息紀錄、收藏、兩檔比較、成本配置、複利情境試算、原生備份分享與合併匯入。個人富果金鑰以 Keychain 保存，僅傳給官方 API。
 
@@ -22,9 +22,9 @@
 - 分類是整理策略，不是投資建議、保本或獲利保證。
 - 沿用既有網站口袋圖示：`https://etf-independent-app-production.up.railway.app/icon-512-v171.png`。原圖 512 × 512，SHA-256 `b1ad9792e4c3b90e683b13a1eb68a18239171cdbc4c0bf67a77aaf0a0a558f6a`。App Icon 的 1024 版本是放大，不是新增細節。
 
-## 尚待發佈工作
+## 發佈狀態
 
-Apple Team、正式 Bundle ID、ETF 專用 provisioning profile 與已簽署 archive 均已備妥。接下來需要建立 App Store Connect App 記錄、上傳並確認 TestFlight 處理與測試者可用狀態。
+Apple Team、正式 Bundle ID、ETF 專用 provisioning profile 與 App Store Connect App 記錄均已備妥。App ID 為 6822974128；原生 0.2.0 (2.3) 已完成簽署與上傳。內部測試群組為「ETF ToGo 內部測試」。完整處理與測試者狀態見 RELEASE_STATUS.md。
 
 `native-ui.yml` 做模擬器驗證。`testflight.yml` 提供此倉庫專用的手動發佈流程，缺設定會在前置檢查停止。
 
