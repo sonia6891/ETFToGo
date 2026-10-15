@@ -256,6 +256,9 @@ enum StoreError: LocalizedError {
                 fetched[symbol] = quote
                 if symbol != targets.last { try await Task.sleep(nanoseconds: 2_100_000_000) }
             }
+            // The user may have edited holdings while the requests were running.
+            var next = data
+            next.quotes.merge(fetched) { _, refreshed in refreshed }
             try commit(next)
         } catch { message = error.localizedDescription }
     }

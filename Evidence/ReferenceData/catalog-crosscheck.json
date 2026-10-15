@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-15",
+  "source": "https://isin.twse.com.tw/isin/C_public.jsp?strMode=2",
+  "responseSHA256": "08bd259025a3ef12792893d489d8272f78d8422197e0f6aaf2423bd8b3c29356",
+  "isinETFCodeCount": 242,
+  "officialActiveFilterCodeCount": 242,
+  "notYetListed": [
+    {
+      "code": "00415A",
+      "listingDate": "2026-10-20"
+    }
+  ],
+  "listedAsOfToday": 241,
+  "missingCurrentCodes": [],
+  "extraCurrentCodes": []
+}

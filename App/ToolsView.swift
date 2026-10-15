@@ -54,15 +54,14 @@ struct ComparisonView: View {
     @State private var left = "0050"
     @State private var right = "00878"
     var body: some View { Page {
-        HStack { fundPicker("左側 ETF", selection: $left); fundPicker("右側 ETF", selection: $right) }
+        HStack { fundPicker("左側 ETF", selection: Binding(get: { left }, set: { left = $0; saveSelection() })); fundPicker("右側 ETF", selection: Binding(get: { right }, set: { right = $0; saveSelection() })) }
         HStack(alignment: .top, spacing: 12) { column(left); column(right) }
         OverlapPanel(left: left, right: right)
         Text("策略分類為初步標籤，資料日期與範圍須一起比較。").font(.caption).foregroundStyle(.secondary)
     }.navigationTitle("ETF 比較").navigationBarTitleDisplayMode(.inline)
         .onAppear { if let saved = store.data.comparison, saved.count >= 2 { left = saved[0]; right = saved[1] } }
-        .onChange(of: left) { _, _ in saveSelection() }.onChange(of: right) { _, _ in saveSelection() }
     }
-    private func saveSelection() { var next = store.data; next.comparison = [left, right]; do { try store.commit(next) } catch { store.message = error.localizedDescription } }
+    private func saveSelection() { var next = store.data; next.comparison = [left, right] + Array((next.comparison ?? []).dropFirst(2)); do { try store.commit(next) } catch { store.message = error.localizedDescription } }
     func fundPicker(_ title: String, selection: Binding<String>) -> some View { Picker(title, selection: selection) { ForEach(store.funds) { Text($0.id).tag($0.id) } }.pickerStyle(.menu).frame(maxWidth: .infinity).padding(10).background(.white, in: RoundedRectangle(cornerRadius: 15)) }
     func column(_ symbol: String) -> some View { let fund = store.funds.first { $0.id == symbol } ?? Fund(id: symbol, name: symbol, strategy: .unclassified); return Card { VStack(alignment: .leading, spacing: 18) { Text(symbol).font(.title2.bold()).foregroundStyle(Palette.blue); Text(fund.name).font(.headline).frame(minHeight: 44, alignment: .topLeading); StrategyPill(strategy: fund.strategy); Divider(); Text("已取得報價").font(.caption).foregroundStyle(.secondary); Text(store.data.quotes[symbol].map { decimal($0.price) } ?? "—").font(.title2.bold()); Text(store.data.quotes[symbol]?.date ?? "尚未取得").font(.caption2).foregroundStyle(.secondary) } } }
 }
