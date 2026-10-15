@@ -94,12 +94,17 @@ struct FeesView: View {
         Card {
             Text("已公布的年度實際費用").font(.title2.bold()).accessibilityIdentifier("annual-fee-heading")
             if let catalog = AnnualFeeCatalog.bundled, let fee = catalog.records[fund.id] {
-                LabeledContent("\(fee.year) 年總費用率", value: "\(decimal(fee.total))%").font(.headline).padding(.vertical, 16)
+                LabeledContent("\(String(fee.year)) 年總費用率", value: "\(decimal(fee.total))%")
+                    .font(.headline).padding(.vertical, 16)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(String(fee.year)) 年總費用率")
+                    .accessibilityValue("\(decimal(fee.total))%")
+                    .accessibilityIdentifier("annual-fee-total")
                 feeLine("經理費", fee.management); feeLine("保管費", fee.custody)
                 feeLine("交易手續費", fee.commission); feeLine("交易稅", fee.tax)
                 feeLine("申購／買回交易費（扣抵）", fee.subscriptionOffset)
                 feeLine("保證費", fee.guarantee); feeLine("其他費用", fee.other)
-                Text("統計截至 \(fee.year)/12/31；取得日 \(catalog.fetchedDay)。來源：投信投顧公會，各投信申報。基金統編 \(fee.fundID)。").font(.caption).foregroundStyle(.secondary).padding(.top, 12)
+                Text("統計截至 \(String(fee.year))/12/31；取得日 \(catalog.fetchedDay)。來源：投信投顧公會，各投信申報。基金統編 \(fee.fundID)。").font(.caption).foregroundStyle(.secondary).padding(.top, 12)
                 Text("全年累計實際比率，並非現行契約費率；當年新成立基金可能未涵蓋完整一年。總費用率使用原始公布值，各項四捨五入後可能不完全相加一致。交易費用扣抵申購／買回交易費，不能全部相加。").font(.caption).foregroundStyle(.secondary).padding(.top, 10)
                 Link("查看公會月／季／年報表", destination: URL(string: catalog.sourceURL)!).padding(.top, 12)
             } else {
@@ -112,7 +117,7 @@ struct FeesView: View {
             if let fee = store.data.fees?[fund.id] {
                 Text("經理費").font(.headline).padding(.top, 18); Text(fee.management).padding(.top, 5)
                 Text("保管費").font(.headline).padding(.top, 18); Text(fee.custody).padding(.top, 5)
-                if let rate = fee.annualExpensePercent, let year = fee.expenseYear { LabeledContent("\(year) 年總費用率", value: "\(decimal(rate))%").padding(.top, 18) }
+                if let rate = fee.annualExpensePercent, let year = fee.expenseYear { LabeledContent("\(String(year)) 年總費用率", value: "\(decimal(rate))%").padding(.top, 18) }
                 Text("資料日期：\(fee.effectiveDate)").font(.caption).foregroundStyle(.secondary).padding(.top, 14)
                 Text(fee.note).font(.caption).foregroundStyle(.secondary).padding(.top, 8)
                 if let url = URL(string: fee.sourceURL) { Link("查看記錄的資料來源", destination: url).padding(.top, 12) }

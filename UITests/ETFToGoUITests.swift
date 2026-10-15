@@ -26,7 +26,11 @@ final class ETFToGoUITests: XCTestCase {
         search.tap(); search.typeText("0050\n"); app.staticTexts["元大台灣50"].tap(); app.swipeUp()
         app.buttons["費用率與級距"].tap()
         XCTAssertTrue(app.staticTexts["annual-fee-heading"].waitForExistence(timeout:5))
-        XCTAssertTrue(app.staticTexts["0.22%"].exists); capture(app,"annual-fees-0050")
+        let totalFee = app.descendants(matching: .any).matching(identifier: "annual-fee-total").firstMatch
+        XCTAssertTrue(totalFee.waitForExistence(timeout: 5))
+        XCTAssertEqual(totalFee.label, "2025 年總費用率")
+        XCTAssertEqual(totalFee.value as? String, "0.22%")
+        capture(app,"annual-fees-0050")
         app.navigationBars.buttons.element(boundBy:0).tap()
         app.buttons["歷史績效"].tap()
         XCTAssertTrue(app.buttons["更新歷史績效"].waitForExistence(timeout:5))
