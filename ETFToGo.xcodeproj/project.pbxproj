@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5A1C0E7B2D9F4A6E8B3C1D21 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1C0E7B2D9F4A6E8B3C1D20 /* Theme.swift */; };
+		7B2D1F8C3E0A5B7F9C4D2E31 /* DiscoverViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B2D1F8C3E0A5B7F9C4D2E30 /* DiscoverViews.swift */; };
 		07875818890007E983D5143F /* BrokerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87259F36DC852AF8135E965 /* BrokerView.swift */; };
 		10F7E36B158DB7E63CA101B4 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5FE47A3C3D19B0FABF00359 /* Models.swift */; };
 		149FEC2B487F219A5B8A3B4D /* ResearchViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA91E706AB643380F621F219 /* ResearchViews.swift */; };
@@ -46,6 +48,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5A1C0E7B2D9F4A6E8B3C1D20 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		7B2D1F8C3E0A5B7F9C4D2E30 /* DiscoverViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverViews.swift; sourceTree = "<group>"; };
 		072093705488342334C91245 /* ETFToGoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ETFToGoApp.swift; sourceTree = "<group>"; };
 		0DDD6383D83BF9DFC36FFC44 /* Catalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalog.swift; sourceTree = "<group>"; };
 		236619A27ADADAE44D858CC7 /* ResearchData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchData.swift; sourceTree = "<group>"; };
@@ -125,6 +129,7 @@
 				CF2030D8EDBE2B88BB042831 /* BrokerImport.swift */,
 				A87259F36DC852AF8135E965 /* BrokerView.swift */,
 				0DDD6383D83BF9DFC36FFC44 /* Catalog.swift */,
+				7B2D1F8C3E0A5B7F9C4D2E30 /* DiscoverViews.swift */,
 				072093705488342334C91245 /* ETFToGoApp.swift */,
 				4AAF6C96139C535AD4A19E50 /* LegacyImport.swift */,
 				F5FE47A3C3D19B0FABF00359 /* Models.swift */,
@@ -133,6 +138,7 @@
 				74D27FC0D6D38787C4BE5FB6 /* PrivacyInfo.xcprivacy */,
 				236619A27ADADAE44D858CC7 /* ResearchData.swift */,
 				CA91E706AB643380F621F219 /* ResearchViews.swift */,
+				5A1C0E7B2D9F4A6E8B3C1D20 /* Theme.swift */,
 				D293146BB8B94669BF6CFA5E /* ToolsView.swift */,
 				326FCE6E7900546067FA3A20 /* Resources */,
 			);
@@ -269,6 +275,7 @@
 				F27E7984B1E62699D593C989 /* BrokerImport.swift in Sources */,
 				07875818890007E983D5143F /* BrokerView.swift in Sources */,
 				52A39EB754258C874176C931 /* Catalog.swift in Sources */,
+				7B2D1F8C3E0A5B7F9C4D2E31 /* DiscoverViews.swift in Sources */,
 				643F72EA9C36FF060E0C5B54 /* ETFToGoApp.swift in Sources */,
 				D8EA314C066A59ADEBDCEC05 /* LegacyImport.swift in Sources */,
 				10F7E36B158DB7E63CA101B4 /* Models.swift in Sources */,
@@ -276,6 +283,7 @@
 				2293242942C405A47B28DE85 /* PortfolioViews.swift in Sources */,
 				29962F132B27E812DF5B6966 /* ResearchData.swift in Sources */,
 				149FEC2B487F219A5B8A3B4D /* ResearchViews.swift in Sources */,
+				5A1C0E7B2D9F4A6E8B3C1D21 /* Theme.swift in Sources */,
 				6EE9393DFDC3396CE5DEA967 /* ToolsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

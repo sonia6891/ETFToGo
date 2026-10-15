@@ -61,7 +61,17 @@ struct Quote: Codable {
     var date: String
     var fetchedAt: Date
     var currency: String? = nil
+    var change: Double? = nil
+    var open: Double? = nil
+    var high: Double? = nil
+    var low: Double? = nil
+    /// Trading volume in lots (張), as reported by Fugle intraday quotes.
+    var volume: Double? = nil
     var isTWD: Bool { currency == "TWD" || (currency == nil && Fund.starters.contains { $0.id == symbol }) }
+    var isValid: Bool {
+        price.isFinite && price > 0 && [change, changePercent].allSatisfy { $0?.isFinite ?? true }
+            && [open, high, low, volume].allSatisfy { value in value.map { $0.isFinite && $0 >= 0 } ?? true }
+    }
 }
 struct Portfolio: Codable {
     var schema = 1
@@ -89,7 +99,7 @@ struct Portfolio: Codable {
         guard Set(value.holdings.map(\.id)).count == value.holdings.count,
               Set(value.dividends.map(\.id)).count == value.dividends.count,
               value.dividends.allSatisfy({ !$0.symbol.isEmpty && $0.amount.isFinite && $0.amount >= 0 }),
-              value.quotes.allSatisfy({ $0.key == $0.value.symbol && $0.value.price.isFinite && $0.value.price > 0 })
+              value.quotes.allSatisfy({ $0.key == $0.value.symbol && $0.value.isValid })
         else { throw StoreError.unsupportedBackup }
         try value.legacyPlan?.validate()
         for d in (value.legacyDividends ?? [:]).values { try d.validate() }
@@ -115,6 +125,46 @@ struct Portfolio: Codable {
             Dividend(symbol: "00919", date: Calendar.current.date(byAdding: .day, value: 19, to: start)!, amount: 3600, status: .announced)
         ]
         value.favorites = ["0050", "00878", "00919"]
+        return value
+    }
+    /// Explicit `--demo` interface preview only; never written to the user's file.
+    static var demoPreview: Portfolio {
+        var value = Portfolio.demo
+        let calendar = Calendar.current
+        let start = calendar.date(from: calendar.dateComponents([.year, .month], from: Date()))!
+        func day(_ offset: Int, months: Int = 0) -> Date { calendar.date(byAdding: .day, value: offset, to: calendar.date(byAdding: .month, value: months, to: start)!)! }
+        value.dividends += [
+            Dividend(symbol: "0050", date: day(21), amount: 2000, status: .estimated),
+            Dividend(symbol: "00878", date: day(15, months: -3), amount: 2280, status: .paid),
+            Dividend(symbol: "00919", date: day(18, months: -3), amount: 3450, status: .paid),
+            Dividend(symbol: "0050", date: day(20, months: -4), amount: 1900, status: .paid)
+        ]
+        let moves: [String: (Double, Double)] = ["0050": (0.65, 186), "00878": (0.54, 12458), "00919": (-0.22, 8730)]
+        for (symbol, move) in moves {
+            guard var quote = value.quotes[symbol] else { continue }
+            quote.changePercent = move.0
+            quote.open = quote.price * 0.995; quote.high = quote.price * 1.004; quote.low = quote.price * 0.992; quote.volume = move.1
+            value.quotes[symbol] = quote
+        }
+        var histories: [String: PriceHistory] = [:]
+        for (index, holding) in value.holdings.enumerated() {
+            guard let price = value.quotes[holding.symbol]?.price else { continue }
+            var points: [PricePoint] = []
+            var cursor = calendar.date(byAdding: .day, value: -400, to: Date())!
+            var step = 0
+            while cursor <= Date() {
+                if !calendar.isDateInWeekend(cursor) {
+                    let wave = sin(Double(step) / (9 + Double(index) * 3)) * 0.018
+                    points.append(PricePoint(date: DataChecks.day(cursor), close: price * (0.9 + 0.1 * Double(step) / 280 + wave)))
+                    step += 1
+                }
+                cursor = calendar.date(byAdding: .day, value: 1, to: cursor)!
+            }
+            var unique: [PricePoint] = []
+            for point in points where unique.last?.date != point.date { unique.append(point) }
+            histories[holding.symbol] = PriceHistory(symbol: holding.symbol, adjusted: true, points: unique, fetchedDay: DataChecks.day(), source: "示範資料")
+        }
+        value.histories = histories
         return value
     }
 }
@@ -150,7 +200,7 @@ enum StoreError: LocalizedError {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         self.url = url ?? base.appendingPathComponent("ETFToGo/portfolio.json")
         if let bytes = try? Data(contentsOf: self.url.appendingPathExtension("catalog")), let cached = try? JSONDecoder().decode(CatalogSnapshot.self, from: bytes), (try? cached.validate()) != nil { catalog = cached }
-        if demo { data = .demo; return }
+        if demo { data = .demoPreview; return }
         if reset { try? FileManager.default.removeItem(at: self.url) }
         if FileManager.default.fileExists(atPath: self.url.path) {
             do { data = try Portfolio.decodeBackup(Data(contentsOf: self.url)) }
@@ -182,6 +232,20 @@ enum StoreError: LocalizedError {
         do { try commit(next) } catch { message = error.localizedDescription }
     }
     func record(_ dividend: Dividend) throws { var next = data; next.dividends.append(dividend); try commit(next) }
+    func markPaid(_ dividend: Dividend) throws {
+        var next = data
+        guard let i = next.dividends.firstIndex(where: { $0.id == dividend.id }) else { return }
+        next.dividends[i].status = .paid
+        try commit(next)
+    }
+    func addToComparison(_ symbol: String) {
+        var list = data.comparison ?? []
+        if list.contains(symbol) { message = "\(symbol) 已在比較清單，可到「工具 › 三檔比較」查看。"; return }
+        if list.count >= 3 { list.removeFirst() }
+        list.append(symbol)
+        var next = data; next.comparison = list
+        do { try commit(next); message = "已加入比較：\(list.joined(separator: "、"))。可到「工具 › 三檔比較」查看。" } catch { message = error.localizedDescription }
+    }
     func removeDividend(_ dividend: Dividend) throws { var next = data; next.dividends.removeAll { $0.id == dividend.id }; try commit(next) }
     func export() throws -> URL {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("ETFToGo-backup-\(UUID().uuidString.prefix(8)).json")
@@ -284,7 +348,8 @@ enum SecureKey {
     static func remove() throws { let result = SecItemDelete(query as CFDictionary); guard result == errSecSuccess || result == errSecItemNotFound else { throw StoreError.keychain(result) } }
 }
 enum Fugle {
-    struct Response: Decodable { let symbol: String; let date: String; let closePrice: Double?; let lastPrice: Double?; let changePercent: Double? }
+    struct Total: Decodable { let tradeVolume: Double? }
+    struct Response: Decodable { let symbol: String; let date: String; let closePrice: Double?; let lastPrice: Double?; let changePercent: Double?; let change: Double?; let openPrice: Double?; let highPrice: Double?; let lowPrice: Double?; let total: Total? }
     static func quote(symbol: String, key: String) async throws -> Quote {
         guard symbol.range(of: "^[0-9A-Z]{4,8}$", options: .regularExpression) != nil else { throw StoreError.invalidQuote }
         let url = URL(string: "https://api.fugle.tw/marketdata/v1.0/stock/intraday/quote/\(symbol)")!
@@ -299,7 +364,9 @@ enum Fugle {
     static func decode(_ bytes: Data, expectedSymbol: String) throws -> Quote {
         let value = try JSONDecoder().decode(Response.self, from: bytes)
         guard value.symbol == expectedSymbol, let price = value.closePrice ?? value.lastPrice, price.isFinite, price > 0 else { throw StoreError.invalidQuote }
-        return Quote(symbol: value.symbol, price: price, changePercent: value.changePercent, date: value.date, fetchedAt: Date())
+        let quote = Quote(symbol: value.symbol, price: price, changePercent: value.changePercent, date: value.date, fetchedAt: Date(), change: value.change, open: value.openPrice, high: value.highPrice, low: value.lowPrice, volume: value.total?.tradeVolume)
+        guard quote.isValid else { throw StoreError.invalidQuote }
+        return quote
     }
 }
 enum Projection {

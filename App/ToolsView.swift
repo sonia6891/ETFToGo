@@ -1,69 +1,156 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import UserNotifications
 
 struct ToolsView: View {
     @EnvironmentObject var store: PortfolioStore
     var body: some View {
         Page {
-            Text("把投資整理得更明白").font(.subheadline).foregroundStyle(.secondary)
-            NavigationLink { AllocationView() } label: {
-                HStack(spacing: 18) { Image(systemName: "chart.pie.fill").font(.system(size: 35)).foregroundStyle(.white.opacity(0.9)); VStack(alignment: .leading, spacing: 7) { Text("持有配置").font(.title2.bold()); Text("看看資金放在哪裡").font(.subheadline).foregroundStyle(.white.opacity(0.8)) }; Spacer(); Image(systemName: "arrow.up.right") }.padding(24).foregroundStyle(.white).background(Palette.blue, in: RoundedRectangle(cornerRadius: 24))
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                tile("股息複利", "試算長期領息效果", icon: "chart.bar.fill", color: Palette.blue) { PlanView() }
+                tile("領息目標", "設定並追蹤目標", icon: "target", color: Palette.purple) { GoalView() }
+                tile("定期定額", "試算投入成果", icon: "calendar.badge.clock", color: Palette.orange) { CalculatorView() }
+                tile("三檔比較", "快速比較多檔 ETF", icon: "chart.bar.xaxis", color: Palette.blue) { ComparisonView() }
+                tile("持股透視", "合併成分股曝險", icon: "chart.pie.fill", color: Palette.orange) { ExposureView() }
+                tile("提醒中心", "配息入帳提醒", icon: "bell.badge.fill", color: Palette.red) { ReminderCenterView() }
             }
-            Card {
-                NavigationLink { ExposureView() } label: { toolRow("持股穿透", "合併 ETF 背後的股票曝險", icon: "square.stack.3d.up") }
-            }
-            SectionHeading(title: "規劃與比較")
-            Card {
-                NavigationLink { ComparisonView() } label: { toolRow("ETF 比較", "並排查看策略與已取得的報價", icon: "rectangle.split.2x1") }
-                Divider().padding(.vertical, 7)
-                NavigationLink { CalculatorView() } label: { toolRow("複利試算", "每月多存一點，未來有什麼不同", icon: "function") }
-                Divider().padding(.vertical, 7)
-                NavigationLink { PlanView() } label: { toolRow("配息再投入試算", "延續舊版試算設定與現金規劃", icon: "arrow.2.circlepath") }
-            }
+            ComparisonPreview()
             SectionHeading(title: "連線與資料")
-            Card {
-                NavigationLink { ConnectionView() } label: { toolRow("富果行情連線", "使用你自己的 API Key", icon: "waveform.path") }
-                Divider().padding(.vertical, 7)
-                NavigationLink { BrokerView() } label: { toolRow("券商持有資料", "所有券商 CSV 欄位對應與預覽", icon: "building.columns") }
-                Divider().padding(.vertical, 7)
-                NavigationLink { BackupView() } label: { toolRow("資料備份", "匯出與匯入，保留你的每筆紀錄", icon: "externaldrive") }
-            }
-            HStack(alignment: .top, spacing: 12) { Image(systemName: "lock.shield").foregroundStyle(Palette.blue); VStack(alignment: .leading, spacing: 6) { Text("你的紀錄，留在你的手機").font(.subheadline.bold()); Text("持有與配息儲存在本機，行情金鑰使用 iOS Keychain 保存，不包含在備份內。").font(.caption).foregroundStyle(.secondary) } }.padding(.horizontal, 4)
-            Text("ETF 袋著走 \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") · 原生 iPhone App").font(.caption2).foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(.top, 10)
-        }.navigationTitle("工具")
-    }
-    func toolRow(_ title: String, _ subtitle: String, icon: String) -> some View { HStack(spacing: 13) { Image(systemName: icon).font(.title3).foregroundStyle(Palette.blue).frame(width: 40, height: 44); VStack(alignment: .leading, spacing: 5) { Text(title).font(.headline).foregroundStyle(Palette.ink); Text(subtitle).font(.caption).foregroundStyle(.secondary) }; Spacer(minLength: 0); Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary) }.padding(.vertical, 7) }
-}
-struct AllocationView: View {
-    @EnvironmentObject var store: PortfolioStore
-    var body: some View { Page {
-        Card { Text("投入成本").foregroundStyle(.secondary); Text("$\(money(store.data.cost))").font(.largeTitle.bold()).padding(.top, 6) }
-        SectionHeading(title: "依 ETF 分配")
-        let symbols = Array(Set(store.data.holdings.map(\.symbol))).sorted()
-        ForEach(symbols, id: \.self) { symbol in
-            let holdings = store.data.holdings.filter { $0.symbol == symbol }
-            let amount = holdings.reduce(0) { $0 + $1.cost }
-            Card { HStack { Text(holdings.first?.name ?? symbol).font(.headline); Spacer(); Text("\(decimal(amount / max(store.data.cost, 1) * 100))%").font(.headline).foregroundStyle(Palette.blue) }; ProgressView(value: amount, total: max(store.data.cost, 1)).padding(.vertical, 12); Text("\(symbol) · 成本 $\(money(amount))").font(.caption).foregroundStyle(.secondary) }
+            DataLinks()
+            PrivacyNote()
         }
-        if symbols.isEmpty { ContentUnavailableView("還沒有持有紀錄", systemImage: "chart.pie") }
-        Text("這裡顯示投入成本的 ETF 配置；股票曝險請前往持股穿透，兩檔共同成分可在 ETF 比較查看。").font(.caption).foregroundStyle(.secondary)
-    }.navigationTitle("持有配置").navigationBarTitleDisplayMode(.inline) }
+        .navigationTitle("工具").navigationBarTitleDisplayMode(.inline)
+    }
+    private func tile<Destination: View>(_ title: String, _ subtitle: String, icon: String, color: Color, @ViewBuilder destination: @escaping () -> Destination) -> some View {
+        NavigationLink { destination() } label: {
+            VStack(spacing: 8) {
+                Image(systemName: icon).font(.system(size: 30, weight: .semibold)).foregroundStyle(color.gradient).frame(height: 40)
+                Text(title).font(.headline).foregroundStyle(Palette.ink)
+                Text(subtitle).font(.caption).foregroundStyle(Palette.muted).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 18).padding(.horizontal, 8)
+            .background(.white, in: RoundedRectangle(cornerRadius: 20))
+            .shadow(color: Palette.blue.opacity(0.07), radius: 10, y: 4)
+        }.buttonStyle(.plain)
+    }
+}
+struct DataLinks: View {
+    var body: some View {
+        Card(padding: 12) {
+            NavigationLink { ConnectionView() } label: { ToolRow(title: "富果行情連線", subtitle: "使用你自己的 API Key", icon: "waveform.path") }
+            Divider()
+            NavigationLink { BrokerView() } label: { ToolRow(title: "券商持有資料", subtitle: "所有券商 CSV 欄位對應與預覽", icon: "building.columns") }
+            Divider()
+            NavigationLink { BackupView() } label: { ToolRow(title: "資料備份", subtitle: "匯出與匯入，保留你的每筆紀錄", icon: "externaldrive") }
+        }.buttonStyle(.plain)
+    }
+}
+struct PrivacyNote: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) { Image(systemName: "lock.shield").foregroundStyle(Palette.blue); VStack(alignment: .leading, spacing: 6) { Text("你的紀錄，留在你的手機").font(.subheadline.bold()).foregroundStyle(Palette.ink); Text("持有與配息儲存在本機，行情金鑰使用 iOS Keychain 保存，不包含在備份內。").font(.caption).foregroundStyle(Palette.muted) } }.padding(.horizontal, 4)
+        Text("ETF 袋著走 \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") · 原生 iPhone App").font(.caption2).foregroundStyle(Palette.muted).frame(maxWidth: .infinity).padding(.top, 10)
+    }
+}
+struct SettingsView: View {
+    @EnvironmentObject var store: PortfolioStore
+    var body: some View {
+        Page {
+            DataLinks()
+            Card {
+                Text("ETF 名單").font(.headline).foregroundStyle(Palette.ink)
+                if let catalog = store.catalog, !store.isDemo { Text("上市資料日 \(catalog.listedDate) · 上櫃取得日 \(catalog.fetchedDay) · 共 \(catalog.funds.count) 個代碼").font(.caption).foregroundStyle(Palette.muted).padding(.top, 6) }
+                if let message = store.catalogMessage { Text(message).font(.caption).foregroundStyle(Palette.muted).padding(.top, 6) }
+                Button(store.catalogRefreshing ? "更新中…" : "更新上市櫃名單") { Task { await store.refreshCatalog() } }.buttonStyle(.bordered).disabled(store.catalogRefreshing || store.isDemo).padding(.top, 10)
+            }
+            PrivacyNote()
+        }.navigationTitle("設定").navigationBarTitleDisplayMode(.inline)
+    }
+}
+enum ComparisonDefaults {
+    static func symbols(_ saved: [String]?) -> [String] {
+        var result: [String] = []
+        for code in (saved ?? []) where result.count < 3 && !result.contains(code) { result.append(code) }
+        for code in ["0050", "00878", "00919", "0056", "006208"] where result.count < 3 && !result.contains(code) { result.append(code) }
+        return result
+    }
+}
+struct ComparisonTable: View {
+    @EnvironmentObject var store: PortfolioStore
+    let symbols: [String]
+    var detailed = false
+    var body: some View {
+        Grid(alignment: .trailing, horizontalSpacing: 8, verticalSpacing: 10) {
+            GridRow {
+                Text("項目").gridColumnAlignment(.leading)
+                ForEach(symbols, id: \.self) { Text($0).font(.caption.bold()).foregroundStyle(Palette.blue) }
+            }
+            Divider()
+            if detailed {
+                line("名稱") { Text(store.name(for: $0)).lineLimit(2).multilineTextAlignment(.trailing) }
+                line("策略") { symbol in StrategyPill(strategy: store.funds.first { $0.id == symbol }?.strategy ?? .unclassified) }
+            }
+            line("最新價") { symbol in Text(store.data.quotes[symbol].map { priceText($0.price) } ?? "—") }
+            line("漲跌幅") { symbol in
+                let percent = store.data.quotes[symbol]?.changePercent
+                Text(percent.map(percentText) ?? "—").foregroundStyle(percent.map(Palette.trend) ?? Palette.muted)
+            }
+            line("年度總費用率") { symbol in Text(AnnualFeeCatalog.bundled?.records[symbol].map { "\(decimal($0.total))%" } ?? "未收錄") }
+            if detailed {
+                line("報價日期") { symbol in Text(store.data.quotes[symbol]?.date ?? "—") }
+                line("已揭露成分") { symbol in Text(store.data.components?[symbol].map { "\($0.components.count) 檔" } ?? "—") }
+                line("年化波動") { symbol in Text(volatility(symbol).map { "\(decimal($0 * 100))%" } ?? "—") }
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(Palette.ink)
+    }
+    private func line<Cell: View>(_ title: String, @ViewBuilder cell: @escaping (String) -> Cell) -> some View {
+        GridRow {
+            Text(title).foregroundStyle(Palette.muted).gridColumnAlignment(.leading)
+            ForEach(symbols, id: \.self) { symbol in cell(symbol).monospacedDigit() }
+        }
+    }
+    private func volatility(_ symbol: String) -> Double? {
+        guard let history = store.data.histories?[symbol] else { return nil }
+        return (try? PerformanceStats(history))?.volatility
+    }
+}
+struct ComparisonPreview: View {
+    @EnvironmentObject var store: PortfolioStore
+    var body: some View {
+        NavigationLink { ComparisonView() } label: {
+            Card {
+                HStack {
+                    Image(systemName: "chart.bar.xaxis").foregroundStyle(Palette.blue)
+                    Text("三檔 ETF 比較").font(.headline).foregroundStyle(Palette.ink)
+                    Spacer()
+                    HStack(spacing: 2) { Text("完整比較"); Image(systemName: "chevron.right") }.font(.caption).foregroundStyle(Palette.blue)
+                }.padding(.bottom, 12)
+                ComparisonTable(symbols: ComparisonDefaults.symbols(store.data.comparison))
+                Text("在 ETF 詳情按「加入比較」即可更換；未取得報價或未收錄的欄位不顯示估計值。").font(.caption2).foregroundStyle(Palette.muted).padding(.top, 10)
+            }
+        }.buttonStyle(.plain)
+    }
 }
 struct ComparisonView: View {
     @EnvironmentObject var store: PortfolioStore
-    @State private var left = "0050"
-    @State private var right = "00878"
+    @State private var symbols = ComparisonDefaults.symbols(nil)
+    @State private var pair = 0
+    private var pairs: [(String, String)] { [(symbols[0], symbols[1]), (symbols[0], symbols[2]), (symbols[1], symbols[2])] }
     var body: some View { Page {
-        HStack { fundPicker("左側 ETF", selection: Binding(get: { left }, set: { left = $0; saveSelection() })); fundPicker("右側 ETF", selection: Binding(get: { right }, set: { right = $0; saveSelection() })) }
-        HStack(alignment: .top, spacing: 12) { column(left); column(right) }
-        OverlapPanel(left: left, right: right)
-        Text("策略分類為初步標籤，資料日期與範圍須一起比較。").font(.caption).foregroundStyle(.secondary)
-    }.navigationTitle("ETF 比較").navigationBarTitleDisplayMode(.inline)
-        .onAppear { if let saved = store.data.comparison, saved.count >= 2 { left = saved[0]; right = saved[1] } }
+        HStack(spacing: 8) { ForEach(0..<3, id: \.self) { fundPicker($0) } }
+        Card { ComparisonTable(symbols: symbols, detailed: true) }
+        Picker("重疊比較", selection: $pair) { ForEach(0..<3, id: \.self) { i in Text("\(pairs[i].0) × \(pairs[i].1)").tag(i) } }.pickerStyle(.segmented)
+        OverlapPanel(left: pairs[pair].0, right: pairs[pair].1)
+        Text("策略分類為初步標籤，資料日期與範圍須一起比較。殖利率需要完整配息資料，未收錄前不顯示。").font(.caption).foregroundStyle(Palette.muted)
+    }.navigationTitle("三檔比較").navigationBarTitleDisplayMode(.inline)
+        .onAppear { symbols = ComparisonDefaults.symbols(store.data.comparison) }
     }
-    private func saveSelection() { var next = store.data; next.comparison = [left, right] + Array((next.comparison ?? []).dropFirst(2)); do { try store.commit(next) } catch { store.message = error.localizedDescription } }
-    func fundPicker(_ title: String, selection: Binding<String>) -> some View { Picker(title, selection: selection) { ForEach(store.funds) { Text($0.id).tag($0.id) } }.pickerStyle(.menu).frame(maxWidth: .infinity).padding(10).background(.white, in: RoundedRectangle(cornerRadius: 15)) }
-    func column(_ symbol: String) -> some View { let fund = store.funds.first { $0.id == symbol } ?? Fund(id: symbol, name: symbol, strategy: .unclassified); return Card { VStack(alignment: .leading, spacing: 18) { Text(symbol).font(.title2.bold()).foregroundStyle(Palette.blue); Text(fund.name).font(.headline).frame(minHeight: 44, alignment: .topLeading); StrategyPill(strategy: fund.strategy); Divider(); Text("已取得報價").font(.caption).foregroundStyle(.secondary); Text(store.data.quotes[symbol].map { decimal($0.price) } ?? "—").font(.title2.bold()); Text(store.data.quotes[symbol]?.date ?? "尚未取得").font(.caption2).foregroundStyle(.secondary) } } }
+    private func save() { var next = store.data; next.comparison = symbols; do { try store.commit(next) } catch { store.message = error.localizedDescription } }
+    private func fundPicker(_ index: Int) -> some View {
+        Picker("第 \(index + 1) 檔", selection: Binding(get: { symbols[index] }, set: { symbols[index] = $0; save() })) { ForEach(store.funds) { Text($0.id).tag($0.id) } }
+            .pickerStyle(.menu).frame(maxWidth: .infinity).padding(8).background(.white, in: RoundedRectangle(cornerRadius: 14))
+    }
 }
 struct CalculatorView: View {
     @State private var initial = "100000"
@@ -77,7 +164,132 @@ struct CalculatorView: View {
         Section("投入計畫") { TextField("起始本金（元）", text: $initial).keyboardType(.decimalPad); TextField("每月底投入（元）", text: $monthly).keyboardType(.decimalPad); Stepper("累積 \(years) 年", value: $years, in: 1...40); VStack(alignment: .leading) { Text("假設年報酬率 \(decimal(rate))%"); Slider(value: $rate, in: -10...15, step: 0.5) } }
         Section("試算結果") { if valid { LabeledContent("累計投入", value: "$\(money(principal))"); LabeledContent("期末試算金額", value: "$\(money(total))").foregroundStyle(Palette.blue); LabeledContent("試算損益", value: "$\(money(total - principal))") } else { Text("請輸入有效且非負的本金及每月投入金額。").foregroundStyle(.red) } }
         Section { Text("假設報酬按月平均複利、每月底投入，不含稅費與通膨。這是情境試算，不是預測或保證。負報酬情境下可能虧損本金。").font(.footnote).foregroundStyle(.secondary) }
-    }.navigationTitle("複利試算").navigationBarTitleDisplayMode(.inline) }
+    }.navigationTitle("定期定額試算").navigationBarTitleDisplayMode(.inline) }
+}
+struct GoalView: View {
+    @EnvironmentObject var store: PortfolioStore
+    @AppStorage("goalMonthlyIncome") private var target = 10000.0
+    @AppStorage("goalAssumedYield") private var assumedYield = 5.0
+    private var lastYearPaid: Double {
+        let start = Calendar.current.date(byAdding: .month, value: -12, to: Date()) ?? Date()
+        return store.data.dividends.filter { $0.status == .paid && $0.date >= start && $0.date <= Date() }.reduce(0.0) { $0 + $1.amount }
+    }
+    var body: some View {
+        let monthly = lastYearPaid / 12
+        let goal = max(target, 0)
+        let progress = goal > 0 ? min(monthly / goal, 1) : 0
+        let needed = goal * 12 / (assumedYield / 100)
+        Form {
+            Section("我的目標") {
+                HStack { Text("每月領息目標"); TextField("元", value: $target, format: .number).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+            }
+            Section("目前進度（近 12 個月已入帳）") {
+                LabeledContent("平均每月已領", value: "$\(money(monthly))")
+                ProgressView(value: progress) { Text("已達成 \(decimal(progress * 100))%") }.tint(Palette.purple)
+                LabeledContent("近 12 個月合計", value: "$\(money(lastYearPaid))")
+            }
+            Section("需要多少本金？（情境試算）") {
+                VStack(alignment: .leading) { Text("假設年殖利率 \(decimal(assumedYield))%"); Slider(value: $assumedYield, in: 1...12, step: 0.5) }
+                LabeledContent("約需投入本金", value: "$\(money(needed))")
+                LabeledContent("與目前投入成本差距", value: "$\(money(max(0, needed - store.data.cost)))")
+            }
+            Section { Text("進度只計算你記錄為「已入帳」的配息，不含已公告與預估。所需本金以固定殖利率估算；配息率不等於報酬率，配息也可能來自本金。這是情境試算，不是保證收益。").font(.footnote).foregroundStyle(.secondary) }
+        }.navigationTitle("領息目標").navigationBarTitleDisplayMode(.inline)
+    }
+}
+enum DividendReminders {
+    static let key = "dividendReminders"
+    private static let prefix = "dividend-"
+    static func syncIfEnabled(_ dividends: [Dividend]) async {
+        guard UserDefaults.standard.bool(forKey: key) else { return }
+        await sync(dividends)
+    }
+    static func requestAccess() async -> Bool {
+        (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+    }
+    /// Schedules a 09:00 reminder on the expected payment day of each announced or estimated dividend.
+    @discardableResult static func sync(_ dividends: [Dividend]) async -> Int {
+        await clear()
+        let center = UNUserNotificationCenter.current()
+        let now = Date()
+        var scheduled = 0
+        for item in dividends.filter({ $0.status != .paid }).sorted(by: { $0.date < $1.date }) where scheduled < 60 {
+            var parts = Calendar.current.dateComponents([.year, .month, .day], from: item.date)
+            parts.hour = 9
+            guard let fire = Calendar.current.date(from: parts), fire > now else { continue }
+            let content = UNMutableNotificationContent()
+            content.title = "配息提醒：\(item.symbol)"
+            content.body = "\(item.status.rawValue)配息 $\(money(item.amount)) 預計今天入帳。確認入帳後，可在配息月曆長按紀錄標記為已入帳。"
+            content.sound = .default
+            let request = UNNotificationRequest(identifier: prefix + item.id.uuidString, content: content, trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false))
+            do { try await center.add(request); scheduled += 1 } catch { continue }
+        }
+        return scheduled
+    }
+    static func clear() async {
+        let center = UNUserNotificationCenter.current()
+        let pending = await center.pendingNotificationRequests()
+        center.removePendingNotificationRequests(withIdentifiers: pending.map(\.identifier).filter { $0.hasPrefix(prefix) })
+    }
+}
+struct ReminderCenterView: View {
+    @EnvironmentObject var store: PortfolioStore
+    @AppStorage(DividendReminders.key) private var enabled = false
+    @State private var working = false
+    @State private var note: String?
+    private var upcoming: [Dividend] {
+        let today = Calendar.current.startOfDay(for: Date())
+        return store.data.dividends.filter { $0.status != .paid && $0.date >= today }.sorted { $0.date < $1.date }
+    }
+    var body: some View {
+        Page {
+            Card {
+                Toggle(isOn: Binding(get: { enabled }, set: { value in Task { await setEnabled(value) } })) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("配息入帳提醒").font(.headline).foregroundStyle(Palette.ink)
+                        Text("在已公告／預估配息的預計入帳日早上 9 點通知").font(.caption).foregroundStyle(Palette.muted)
+                    }
+                }.tint(Palette.blue).disabled(working || store.isDemo)
+                if let note { Text(note).font(.caption).foregroundStyle(Palette.muted).padding(.top, 10) }
+            }
+            SectionHeading(title: "即將入帳", subtitle: "依你的配息紀錄")
+            if upcoming.isEmpty {
+                Card { ContentUnavailableView("目前沒有待入帳配息", systemImage: "bell.slash", description: Text("在配息月曆新增「已公告」或「預估」的紀錄。")) }
+            } else {
+                Card(padding: 14) {
+                    ForEach(upcoming) { item in
+                        HStack(spacing: 10) {
+                            Text(monthDay(item.date)).font(.subheadline.bold()).monospacedDigit().foregroundStyle(Palette.blue).frame(width: 48, alignment: .leading)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(item.symbol) \(store.name(for: item.symbol))").font(.subheadline).foregroundStyle(Palette.ink).lineLimit(1)
+                                Text("$\(money(item.amount))").font(.caption).foregroundStyle(Palette.muted)
+                            }
+                            Spacer()
+                            StatusPill(status: item.status)
+                        }.padding(.vertical, 6)
+                    }
+                }
+            }
+            Card {
+                Label("價格與折溢價提醒", systemImage: "chart.line.uptrend.xyaxis").font(.headline).foregroundStyle(Palette.ink)
+                Text("需要背景行情服務，目前尚未提供；不會以過期報價觸發通知。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 6)
+            }
+        }.navigationTitle("提醒中心").navigationBarTitleDisplayMode(.inline)
+    }
+    private func setEnabled(_ value: Bool) async {
+        working = true
+        defer { working = false }
+        if value {
+            guard await DividendReminders.requestAccess() else { enabled = false; note = "未取得通知權限，可到 iPhone 設定 › 通知 開啟。"; return }
+            enabled = true
+            let count = await DividendReminders.sync(store.data.dividends)
+            note = "已排程 \(count) 則提醒。新增或刪除配息紀錄時會自動更新。"
+        } else {
+            enabled = false
+            await DividendReminders.clear()
+            note = "已關閉並清除排程提醒。"
+        }
+    }
 }
 struct ConnectionView: View {
     @EnvironmentObject var store: PortfolioStore
@@ -102,7 +314,7 @@ struct BackupView: View {
     var body: some View { Form {
         Section("匯出") { Text("包含持有、配息、收藏與已取得報價，不包含行情金鑰。").font(.subheadline).foregroundStyle(.secondary); Button("建立備份檔") { do { exportURL = try store.export() } catch { message = error.localizedDescription } }; if let exportURL { ShareLink("儲存或分享備份", item: exportURL) } }
         Section("匯入") { Button("選擇備份檔") { importing = true }; Text("匯入會合併紀錄；相同識別碼更新，其他現有紀錄保留。支援目前原生版、舊原生版與 PWA 備份。匯入前顯示筆數並保留復原副本；舊版手填參考價保留在備份中，不當成即時報價。").font(.footnote).foregroundStyle(.secondary) }
-        if let preview { Section("預覽") { LabeledContent("持有", value: "\(preview.holdings.count) 筆"); LabeledContent("配息", value: "\(preview.dividends.count) 筆"); LabeledContent("收藏", value: "\(preview.favorites.count) 檔"); LabeledContent("投入成本", value: "$\(money(preview.cost))"); if preview.legacyPlan != nil { Text("包含舊版試算設定，會可在「配息再投入試算」繼續使用。") }; Button("確認合併匯入") { confirmation = true } } }
+        if let preview { Section("預覽") { LabeledContent("持有", value: "\(preview.holdings.count) 筆"); LabeledContent("配息", value: "\(preview.dividends.count) 筆"); LabeledContent("收藏", value: "\(preview.favorites.count) 檔"); LabeledContent("投入成本", value: "$\(money(preview.cost))"); if preview.legacyPlan != nil { Text("包含舊版試算設定，會可在「股息複利」繼續使用。") }; Button("確認合併匯入") { confirmation = true } } }
         if !message.isEmpty { Section { Text(message) } }
     }.navigationTitle("資料備份").navigationBarTitleDisplayMode(.inline)
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in

@@ -2,6 +2,13 @@
 
 更新日期：2026-10-15（台灣時間）。唯一持續開發來源為本 SwiftUI 工程。**開發中原始碼為 0.3.0；已發佈到 TestFlight 的版本仍為 0.2.0（2.3）。**
 
+## 0.3.0 介面改版（ui/pocket-redesign 分支），尚未編譯
+
+- 依「ETF 袋著走」設計稿重做五個分頁、ETF 詳情、配息月曆與工具頁，並新增領息目標、提醒中心（本機通知）、三檔比較、篩選、隱藏金額及報價開高低量。功能與資料串接說明見 README。
+- 此改版在沒有 Xcode 的 Windows 環境撰寫，**只做過 Swift 語法剖析（tree-sitter，0 錯誤），尚未經 Xcode 編譯、單元測試或 UI 測試。** UI 測試已依新分頁名稱（探索、持有）、詳情分頁（持股、走勢、資訊）與按鈕文字（新增配息紀錄）更新。
+- 新增 Theme.swift、DiscoverViews.swift，已同時加入 project.yml 來源資料夾與 ETFToGo.xcodeproj。
+- 合併前需在 Mac 執行 `xcodegen generate` 及 native-ui workflow，確認編譯、測試與五頁截圖。
+
 ## 0.3.0 開發中，尚未發佈
 
 - [上一輪原生編譯與測試](https://github.com/sonia6891/ETFToGo/actions/runs/38673558659)使用來源 `4fba133bc226d4481a9a0aee454b4342ac27fe0a`：編譯成功、五分頁截圖已查看；26 項單元測試及 3 項 UI 測試通過。另一項 UI 測試未找到獨立的 `0.22%` 文字元件，失敗截圖確認該值確實顯示在費率頁。

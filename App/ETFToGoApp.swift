@@ -9,46 +9,20 @@ import SwiftUI
     }
     var body: some Scene { WindowGroup { RootView().environmentObject(store).preferredColorScheme(.light) } }
 }
-enum Palette {
-    static let blue = Color(red: 0.08, green: 0.36, blue: 0.87)
-    static let ink = Color(red: 0.08, green: 0.15, blue: 0.28)
-    static let background = Color(red: 0.95, green: 0.97, blue: 0.99)
-    static let red = Color(red: 0.75, green: 0.16, blue: 0.24)
-    static let green = Color(red: 0.0, green: 0.45, blue: 0.34)
-    static func strategy(_ value: Strategy) -> Color { switch value { case .saving: return blue; case .income: return Color(red: 0.0, green: 0.47, blue: 0.43); case .risk: return Color(red: 0.65, green: 0.34, blue: 0.08); case .unclassified: return .secondary } }
-}
-func money(_ value: Double) -> String { value.formatted(.number.precision(.fractionLength(0))) }
-func decimal(_ value: Double) -> String { value.formatted(.number.precision(.fractionLength(0...2))) }
-struct Card<Content: View>: View {
-    @ViewBuilder var content: Content
-    var body: some View { VStack(alignment: .leading, spacing: 0) { content }.padding(20).frame(maxWidth: .infinity, alignment: .leading).background(.white, in: RoundedRectangle(cornerRadius: 24)).overlay(RoundedRectangle(cornerRadius: 24).stroke(Palette.ink.opacity(0.04))) }
-}
-struct StrategyPill: View {
-    let strategy: Strategy
-    var body: some View { Label(strategy.rawValue, systemImage: strategy.symbol).font(.caption.weight(.medium)).padding(.horizontal, 10).padding(.vertical, 6).foregroundStyle(Palette.strategy(strategy)).background(Palette.strategy(strategy).opacity(0.08), in: Capsule()) }
-}
-struct SectionHeading: View {
-    let title: String
-    var subtitle: String? = nil
-    var body: some View { VStack(alignment: .leading, spacing: 4) { Text(title).font(.title3.bold()).foregroundStyle(Palette.ink); if let subtitle { Text(subtitle).font(.caption).foregroundStyle(.secondary) } }.frame(maxWidth: .infinity, alignment: .leading) }
-}
-struct Page<Content: View>: View {
-    @ViewBuilder var content: Content
-    var body: some View { ScrollView { VStack(alignment: .leading, spacing: 22) { content }.padding(.horizontal, 20).padding(.top, 10).padding(.bottom, 28) }.background(Palette.background) }
-}
 struct RootView: View {
     @EnvironmentObject var store: PortfolioStore
     @State private var tab = 0
     var body: some View {
         TabView(selection: $tab) {
-            NavigationStack { HomeView(tab: $tab) }.tabItem { Label("首頁", systemImage: "square.grid.2x2.fill") }.tag(0)
-            NavigationStack { DiscoverView() }.tabItem { Label("找 ETF", systemImage: "magnifyingglass") }.tag(1)
-            NavigationStack { HoldingsView() }.tabItem { Label("我的持有", systemImage: "wallet.bifold") }.tag(2)
-            NavigationStack { DividendsView() }.tabItem { Label("配息", systemImage: "calendar") }.tag(3)
-            NavigationStack { ToolsView() }.tabItem { Label("工具", systemImage: "slider.horizontal.3") }.tag(4)
+            NavigationStack { HomeView(tab: $tab) }.tabItem { Label("首頁", systemImage: "house.fill") }.tag(0)
+            NavigationStack { DiscoverView() }.tabItem { Label("探索", systemImage: "magnifyingglass") }.tag(1)
+            NavigationStack { HoldingsView() }.tabItem { Label("持有", systemImage: "bag") }.tag(2)
+            NavigationStack { DividendsView() }.tabItem { Label("配息", systemImage: "bell") }.tag(3)
+            NavigationStack { ToolsView() }.tabItem { Label("工具", systemImage: "line.3.horizontal") }.tag(4)
         }
         .tint(Palette.blue)
         .task { if !ProcessInfo.processInfo.arguments.contains("--ui-testing") { await store.refreshCatalog() } }
+        .task(id: store.data.dividends.map(\.id)) { await DividendReminders.syncIfEnabled(store.data.dividends) }
         .onAppear {
             let args = ProcessInfo.processInfo.arguments
             if let i = args.firstIndex(of: "--tab"), args.indices.contains(i + 1), let value = Int(args[i + 1]) { tab = value }
@@ -56,118 +30,163 @@ struct RootView: View {
         .alert("ETF 袋著走", isPresented: Binding(get: { store.message != nil }, set: { if !$0 { store.message = nil } })) { Button("知道了", role: .cancel) { store.message = nil } } message: { Text(store.message ?? "") }
     }
 }
+enum HomeRoute: Hashable { case settings, reminders }
+
 struct HomeView: View {
     @EnvironmentObject var store: PortfolioStore
     @Binding var tab: Int
     @State private var add = false
-    private var paid: Double { store.data.dividends.filter { $0.status == .paid }.reduce(0) { $0 + $1.amount } }
-    private var currentMonth: [Dividend] { store.data.dividends.filter { Calendar.current.isDate($0.date, equalTo: Date(), toGranularity: .month) } }
+    @State private var range = ChartRange.month
+    @AppStorage("hideAmounts") private var hidden = false
+    private var summary: PortfolioSummary { PortfolioSummary(store.data) }
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        return hour < 11 ? "早安！" : (hour < 18 ? "午安！" : "晚安！")
+    }
+    private var upcoming: [Dividend] {
+        let today = Calendar.current.startOfDay(for: Date())
+        let future = store.data.dividends.filter { $0.date >= today }.sorted { $0.date < $1.date }
+        if !future.isEmpty { return Array(future.prefix(3)) }
+        return Array(store.data.dividends.sorted { $0.date > $1.date }.prefix(3))
+    }
     var body: some View {
         Page {
-            HStack(spacing: 12) {
-                Image("Pocket").resizable().scaledToFit().frame(width: 46, height: 46).clipShape(RoundedRectangle(cornerRadius: 13))
-                VStack(alignment: .leading, spacing: 3) { Text("ETF 袋著走").font(.headline); Text("把每一份累積，看清楚。").font(.caption).foregroundStyle(.secondary) }
-                Spacer()
-                Button { Task { await store.refresh() } } label: { Image(systemName: "arrow.clockwise").font(.headline).padding(12).background(.white, in: Circle()) }.disabled(store.refreshing).accessibilityLabel("更新持有行情")
-            }
+            header
             if store.isDemo { Label("介面預覽・金額及報價均為示範", systemImage: "info.circle").font(.caption).foregroundStyle(Palette.blue) }
-            VStack(alignment: .leading, spacing: 19) {
-                HStack { Label("持有總市值", systemImage: "wallet.bifold").font(.subheadline); Spacer(); Text("TWD").font(.caption.weight(.semibold)).padding(.horizontal, 9).padding(.vertical, 5).background(.white.opacity(0.13), in: Capsule()) }
-                Text(store.data.marketValue.map(money) ?? "—").font(.system(size: 43, weight: .bold, design: .rounded)).minimumScaleFactor(0.6).lineLimit(1).accessibilityIdentifier("portfolio-value")
-                if let value = store.data.marketValue {
-                    HStack(spacing: 6) { Image(systemName: value >= store.data.cost ? "arrow.up.right" : "arrow.down.right"); Text("未實現損益 \(value >= store.data.cost ? "+" : "")\(money(value - store.data.cost))").fontWeight(.semibold) }.font(.subheadline).foregroundStyle(Color(red: 0.65, green: 0.88, blue: 1))
-                } else { Text("加入持有並連接行情，即可查看估值").font(.subheadline).foregroundStyle(.white.opacity(0.8)) }
-                Rectangle().fill(.white.opacity(0.18)).frame(height: 1)
-                HStack {
-                    heroStat("投入成本", value: money(store.data.cost)); Spacer(); heroStat("累計已入帳股息", value: money(paid))
-                }
-                if !store.data.quotes.isEmpty { Text(store.isDemo ? "示範報價，非即時市場資訊" : "依已取得報價估算・不含交易費用").font(.caption2).foregroundStyle(.white.opacity(0.7)) }
-            }.padding(24).foregroundStyle(.white).background(LinearGradient(colors: [Palette.blue, Color(red: 0.06, green: 0.19, blue: 0.47)], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 28))
-            HStack(spacing: 12) {
-                Button { add = true } label: { Label("新增持有", systemImage: "plus").frame(maxWidth: .infinity).padding(.vertical, 15) }.buttonStyle(.borderedProminent).buttonBorderShape(.roundedRectangle(radius: 15)).accessibilityIdentifier("home-add-holding")
-                Button { tab = 3 } label: { Label("查看配息", systemImage: "calendar").frame(maxWidth: .infinity).padding(.vertical, 15) }.buttonStyle(.bordered).buttonBorderShape(.roundedRectangle(radius: 15))
+            hero
+            HStack(spacing: 10) {
+                StatTile(title: "本月已領", value: shown(money(summary.monthPaid), hidden: hidden))
+                StatTile(title: "待入帳", value: shown(money(summary.monthPending), hidden: hidden))
+                StatTile(title: "持有檔數", value: "\(summary.symbolCount)")
             }
-            SectionHeading(title: "這個月，收進口袋", subtitle: Date().formatted(.dateTime.year().month(.wide).locale(Locale(identifier: "zh_Hant_TW"))))
-            Card {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 9) { Text("已入帳").font(.subheadline).foregroundStyle(.secondary); Text("$\(money(currentMonth.filter { $0.status == .paid }.reduce(0) { $0 + $1.amount }))").font(.title.bold()).foregroundStyle(Palette.ink) }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 9) { Text("已公告待入帳").font(.subheadline).foregroundStyle(.secondary); Text("$\(money(currentMonth.filter { $0.status == .announced }.reduce(0) { $0 + $1.amount }))").font(.title2.bold()).foregroundStyle(Palette.blue) }
-                }
-                Divider().padding(.vertical, 12)
-                if currentMonth.isEmpty { Text("新增一筆配息，開始記錄你的現金流。").font(.subheadline).foregroundStyle(.secondary) }
-                else { ForEach(currentMonth.prefix(2)) { item in HStack { Text(item.symbol).font(.subheadline.bold()); Text(item.date.formatted(.dateTime.month().day().locale(Locale(identifier: "zh_Hant_TW")))).font(.caption).foregroundStyle(.secondary); Spacer(); Text(item.status.rawValue).font(.caption).foregroundStyle(item.status == .paid ? Palette.green : Palette.blue) }.padding(.vertical, 4) } }
+            trend
+            quickActions
+            if store.data.holdings.isEmpty {
+                Button { add = true } label: { PrimaryButtonLabel(title: "新增第一筆持有") }.buttonStyle(.plain).accessibilityIdentifier("home-add-holding")
             }
-            HStack { SectionHeading(title: "我的配置", subtitle: "依投入成本計算"); Button("查看全部") { tab = 2 }.font(.subheadline) }
-            Card {
-                if store.data.holdings.isEmpty { Label("你的第一筆投資，從這裡開始。", systemImage: "leaf").foregroundStyle(.secondary) }
-                else { ForEach(Strategy.allCases) { strategy in
-                    let amount = store.data.holdings.filter { $0.strategy == strategy }.reduce(0) { $0 + $1.cost }
-                    if amount > 0 { VStack(spacing: 8) { HStack { StrategyPill(strategy: strategy); Spacer(); Text("\(Int(amount / max(store.data.cost, 1) * 100))%").font(.subheadline.bold()) }; ProgressView(value: amount, total: max(store.data.cost, 1)).tint(Palette.strategy(strategy)) }.padding(.bottom, 12) }
-                } }
+            reminders
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .refreshable { await store.refresh() }
+        .sheet(isPresented: $add) { HoldingEditor() }
+        .navigationDestination(for: HomeRoute.self) { route in
+            switch route {
+            case .settings: SettingsView()
+            case .reminders: ReminderCenterView()
             }
-        }.toolbar(.hidden, for: .navigationBar).sheet(isPresented: $add) { HoldingEditor() }
+        }
     }
-    private func heroStat(_ title: String, value: String) -> some View { VStack(alignment: .leading, spacing: 7) { Text(title).font(.caption).foregroundStyle(.white.opacity(0.75)); Text(value).font(.title3.bold()).monospacedDigit() } }
-}
-struct FundRow: View {
-    @EnvironmentObject var store: PortfolioStore
-    let fund: Fund
-    var body: some View {
-        HStack(spacing: 13) {
-            Text(String(fund.id.suffix(2))).font(.system(.title3, design: .rounded).bold()).foregroundStyle(Palette.strategy(fund.strategy)).frame(width: 46, height: 46).background(Palette.strategy(fund.strategy).opacity(0.09), in: RoundedRectangle(cornerRadius: 14))
-            VStack(alignment: .leading, spacing: 6) { Text(fund.name).font(.subheadline.bold()).foregroundStyle(Palette.ink); HStack { Text(fund.id).font(.caption).foregroundStyle(.secondary); Text("· \(fund.strategy.rawValue)").font(.caption).foregroundStyle(Palette.strategy(fund.strategy)) } }
-            Spacer(minLength: 4)
-            VStack(alignment: .trailing, spacing: 5) { Text(store.data.quotes[fund.id].map { decimal($0.price) } ?? "—").font(.headline).foregroundStyle(Palette.ink); Text(store.data.quotes[fund.id] == nil ? "尚未取得報價" : (store.isDemo ? "示範報價" : store.data.quotes[fund.id]!.date)).font(.system(size: 10)).foregroundStyle(.secondary) }
-            Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
-        }.padding(.vertical, 8)
+    private var header: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(greeting).font(.title2.bold()).foregroundStyle(Palette.ink)
+                Text("今天也是存股的好日子 😊").font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink.opacity(0.8))
+            }
+            Spacer()
+            NavigationLink(value: HomeRoute.reminders) { headerIcon("bell") }.accessibilityLabel("提醒中心")
+            NavigationLink(value: HomeRoute.settings) { headerIcon("gearshape") }.accessibilityLabel("設定")
+        }.padding(.top, 6)
     }
-}
-struct DiscoverView: View {
-    @EnvironmentObject var store: PortfolioStore
-    @State private var query = ""
-    @State private var filter = "全部"
-    @State private var favoritesOnly = false
-    @FocusState private var searchFocused: Bool
-    var funds: [Fund] { store.funds.filter { (query.isEmpty || $0.id.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query)) && (filter == "全部" || $0.strategy.rawValue == filter) && (!favoritesOnly || store.data.favorites.contains($0.id)) } }
-    var body: some View {
-        Page {
-            Text("找到適合你的累積方式").font(.subheadline).foregroundStyle(.secondary)
-            HStack { Image(systemName: "magnifyingglass").foregroundStyle(.secondary); TextField("搜尋代碼或名稱", text: $query).autocorrectionDisabled().textInputAutocapitalization(.never).focused($searchFocused).submitLabel(.search).onSubmit { searchFocused = false }.accessibilityIdentifier("fund-search"); if !query.isEmpty { Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }.accessibilityLabel("清除搜尋") } }.padding(15).background(.white, in: RoundedRectangle(cornerRadius: 16))
-            ScrollView(.horizontal, showsIndicators: false) { HStack(spacing: 8) { ForEach(["全部"] + Strategy.allCases.filter { $0 != .unclassified }.map(\.rawValue), id: \.self) { value in Button { filter = value } label: { Text(value).font(.subheadline.weight(.semibold)).padding(.horizontal, 17).padding(.vertical, 11).background(filter == value ? Palette.blue : .white, in: Capsule()).foregroundStyle(filter == value ? .white : Palette.ink) } } } }
-            if filter != "全部", let s = Strategy(rawValue: filter) { Text("\(s.subtitle)・策略標籤不代表保本或保證獲利。").font(.caption).foregroundStyle(.secondary) }
-            HStack { Text("ETF 清單").font(.title3.bold()); Text("\(funds.count)").font(.caption.bold()).padding(6).background(.white, in: Circle()); Spacer(); Button { favoritesOnly.toggle() } label: { Label("收藏", systemImage: favoritesOnly ? "star.fill" : "star") }.font(.subheadline) }
-            Card {
-                if funds.isEmpty { ContentUnavailableView.search(text: query) }
-                ForEach(funds) { fund in
-                    NavigationLink(value: fund) { FundRow(fund: fund) }
-                    if fund.id != funds.last?.id { Divider() }
+    private func headerIcon(_ name: String) -> some View {
+        Image(systemName: name).font(.title3).foregroundStyle(Palette.ink).frame(width: 40, height: 40)
+    }
+    private var hero: some View {
+        let s = summary
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("我的資產總覽").font(.subheadline.weight(.semibold))
+                Text("(TWD)").font(.caption).opacity(0.8)
+                Spacer()
+                Button { hidden.toggle() } label: { Image(systemName: hidden ? "eye.slash" : "eye") }.accessibilityLabel(hidden ? "顯示金額" : "隱藏金額")
+            }
+            Text(shown(s.marketValue.map(money) ?? "—", hidden: hidden))
+                .font(.system(size: 38, weight: .bold, design: .rounded)).monospacedDigit()
+                .minimumScaleFactor(0.6).lineLimit(1).accessibilityIdentifier("portfolio-value")
+            if let total = s.totalReturn, let percent = s.totalReturnPercent {
+                HStack(spacing: 6) {
+                    Image(systemName: total >= 0 ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill").font(.caption2)
+                    Text(shown("\(signed(total)) (\(percentText(percent)))", hidden: hidden)).font(.subheadline.bold()).monospacedDigit()
+                    Text("含息報酬").font(.caption).opacity(0.8)
+                }
+            } else {
+                Text(store.data.holdings.isEmpty ? "新增持有後，這裡會整理你的資產" : "取得全部持有的台幣報價後，即可估算市值").font(.subheadline).opacity(0.85)
+            }
+            HStack(spacing: 10) {
+                heroTile("未實現損益", icon: "chart.line.uptrend.xyaxis", value: s.unrealized.map { shown(signed($0), hidden: hidden) } ?? "—", detail: s.unrealizedPercent.map { "(\(percentText($0)))" }, tint: s.unrealized.map(Palette.trend) ?? Palette.ink)
+                heroTile("累計領息", icon: "banknote", value: shown(money(s.paidTotal), hidden: hidden), detail: nil, tint: Palette.ink)
+            }
+            if !store.data.quotes.isEmpty { Text(store.isDemo ? "示範報價，非即時市場資訊" : "依已取得報價估算・不含交易費用・下拉可更新報價").font(.caption2).opacity(0.75) }
+        }
+        .padding(18)
+        .foregroundStyle(.white)
+        .background(Palette.hero, in: RoundedRectangle(cornerRadius: 24))
+        .shadow(color: Palette.blue.opacity(0.28), radius: 14, y: 6)
+    }
+    private func heroTile(_ title: String, icon: String, value: String, detail: String?, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label(title, systemImage: icon).font(.caption).foregroundStyle(Palette.muted)
+            Text(value).font(.headline).monospacedDigit().foregroundStyle(tint).minimumScaleFactor(0.6).lineLimit(1)
+            if let detail { Text(detail).font(.caption2.weight(.semibold)).foregroundStyle(tint) }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white, in: RoundedRectangle(cornerRadius: 14))
+    }
+    private var trend: some View {
+        let points = TrendMath.slice(TrendMath.portfolio(store.data), range)
+        return Card(padding: 14) {
+            if points.count >= 2 {
+                ValueChart(points: points, height: 110)
+                RangeChips(options: [.week, .month, .quarter, .year, .all], selection: $range).padding(.top, 10)
+                Text("以目前股數 × 還原收盤價估算，不是帳戶實際歷史。").font(.caption2).foregroundStyle(Palette.muted).padding(.top, 8)
+            } else {
+                Label("資產走勢", systemImage: "chart.xyaxis.line").font(.subheadline.bold()).foregroundStyle(Palette.ink)
+                Text("每檔持有都取得報價與歷史走勢後（ETF 詳情 › 走勢），這裡會顯示目前持股的市值變化。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 6)
+            }
+        }
+    }
+    private var quickActions: some View {
+        HStack(spacing: 0) {
+            quick("ETF 探索", icon: "magnifyingglass", color: Palette.green) { tab = 1 }
+            quick("我的持有", icon: "star.fill", color: Palette.orange) { tab = 2 }
+            quick("配息月曆", icon: "calendar", color: Palette.pink) { tab = 3 }
+            quick("試算工具", icon: "square.grid.2x2.fill", color: Palette.blue) { tab = 4 }
+        }
+    }
+    private func quick(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon).font(.title3.weight(.bold)).foregroundStyle(.white)
+                    .frame(width: 54, height: 54)
+                    .background(color.gradient, in: Circle())
+                    .shadow(color: color.opacity(0.35), radius: 6, y: 3)
+                Text(title).font(.caption.weight(.semibold)).foregroundStyle(Palette.ink)
+            }.frame(maxWidth: .infinity)
+        }.buttonStyle(.plain)
+    }
+    private var reminders: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                SectionHeading(title: "近期配息提醒")
+                Button { tab = 3 } label: { HStack(spacing: 2) { Text("查看全部"); Image(systemName: "chevron.right") }.font(.caption) }
+            }
+            Card(padding: 14) {
+                if upcoming.isEmpty {
+                    Text("記錄已公告或預估的配息，就能在這裡提前看到入帳日。").font(.subheadline).foregroundStyle(Palette.muted)
+                } else {
+                    ForEach(upcoming) { item in
+                        HStack(spacing: 10) {
+                            Circle().fill(Palette.status(item.status).opacity(0.15)).frame(width: 26, height: 26)
+                                .overlay(Circle().fill(Palette.status(item.status)).frame(width: 9, height: 9))
+                            Text(item.symbol).font(.subheadline.bold()).foregroundStyle(Palette.ink)
+                            Text(store.name(for: item.symbol)).font(.caption).foregroundStyle(Palette.muted).lineLimit(1)
+                            Spacer(minLength: 4)
+                            Text(monthDay(item.date)).font(.caption.weight(.semibold)).monospacedDigit().foregroundStyle(Palette.ink)
+                            StatusPill(status: item.status)
+                        }.padding(.vertical, 6)
+                    }
                 }
             }
-            Text(store.isDemo ? "示範清單；正式模式使用上市與上櫃名單。" : "上市 \(store.funds.filter { $0.market == "TWSE" }.count) · 上櫃 \(store.funds.filter { $0.market == "TPEx" }.count) 個代碼。外幣級別分開計數，代碼數不等於獨立基金數。" ).font(.caption).foregroundStyle(.secondary)
-        if let catalog = store.catalog, !store.isDemo { Text("上市資料日 \(catalog.listedDate) · 上櫃取得日 \(catalog.fetchedDay)").font(.caption).foregroundStyle(.secondary) }; if let message = store.catalogMessage { Text(message).font(.caption).foregroundStyle(.secondary) }; Button(store.catalogRefreshing ? "更新中…" : "更新上市櫃名單") { Task { await store.refreshCatalog() } }.disabled(store.catalogRefreshing || store.isDemo)
-        }.navigationTitle("找 ETF").navigationDestination(for: Fund.self) { FundDetail(fund: $0) }
-            .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("完成搜尋") { searchFocused = false } } }
-    }
-}
-struct FundDetail: View {
-    @EnvironmentObject var store: PortfolioStore
-    let fund: Fund
-    @State private var add = false
-    var body: some View {
-        Page {
-            StrategyPill(strategy: fund.strategy)
-            Text(fund.name).font(.title.bold())
-            Card { Text("最近取得的報價").font(.subheadline).foregroundStyle(.secondary); Text(store.data.quotes[fund.id].map { "$\(decimal($0.price))" } ?? "尚未連線").font(.largeTitle.bold()).padding(.vertical, 8); Text(store.data.quotes[fund.id].map { "報價日期：\($0.date)" } ?? "接上你的富果行情後即可更新。").font(.caption).foregroundStyle(.secondary); Button("更新這檔報價") { Task { await store.refresh(symbols: [fund.id]) } }.buttonStyle(.bordered).disabled(store.refreshing).padding(.top, 10) }
-            Button { add = true } label: { Label("新增到我的持有", systemImage: "plus").frame(maxWidth: .infinity).padding(10) }.buttonStyle(.borderedProminent)
-            Card { Label("策略怎麼看", systemImage: "info.circle").font(.headline); Text("\(fund.strategy.rawValue)是整理持有的方式，不是收益保證。配息可能來自收益或本金；槓桿策略需注意每日重設及波動風險。").font(.subheadline).foregroundStyle(.secondary).padding(.top, 8) }
-        Card {
-                NavigationLink("成分股與權重") { ComponentsView(symbol: fund.id) }.padding(.vertical, 10)
-                Divider()
-                NavigationLink("歷史績效") { HistoryView(symbol: fund.id) }.padding(.vertical, 10)
-                Divider()
-                NavigationLink("費用率與級距") { FeesView(fund: fund) }.padding(.vertical, 10)
-            }
-        }.navigationTitle(fund.id).navigationBarTitleDisplayMode(.inline).toolbar { Button { store.favorite(fund.id) } label: { Image(systemName: store.data.favorites.contains(fund.id) ? "star.fill" : "star") }.accessibilityLabel("切換收藏") }.sheet(isPresented: $add) { HoldingEditor(fund: fund) }
+        }
     }
 }
