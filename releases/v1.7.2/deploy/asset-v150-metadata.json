@@ -1,0 +1,35 @@
+{
+  "sha256": "b7e50fc84069c57584b8bcdf1a42a834d22086de5b106ad17d8a2016ddb59cdb",
+  "htmlSha256": "8e048288bee8ffd955ed38da9a6fce9d3ad2365ec53af6c8f5793a03168d9000",
+  "partCount": 18,
+  "keys": [
+    "ETF_UI_V150_1",
+    "ETF_UI_V150_2",
+    "ETF_UI_V150_3",
+    "ETF_UI_V150_4",
+    "ETF_UI_V150_5",
+    "ETF_UI_V150_6",
+    "ETF_UI_V150_7",
+    "ETF_UI_V150_8",
+    "ETF_UI_V150_9",
+    "ETF_UI_V150_10",
+    "ETF_UI_V150_11",
+    "ETF_UI_V150_12",
+    "ETF_UI_V150_13",
+    "ETF_UI_V150_14",
+    "ETF_UI_V150_15",
+    "ETF_UI_V150_16",
+    "ETF_UI_V150_17",
+    "ETF_UI_V150_18"
+  ],
+  "rawBytes": 250023,
+  "compressedBase64Bytes": 154984,
+  "files": [
+    "index.html",
+    "manifest.webmanifest",
+    "sw.js",
+    "icon-192-v150.png",
+    "icon-512-v150.png",
+    "apple-touch-icon-v150.png"
+  ]
+}

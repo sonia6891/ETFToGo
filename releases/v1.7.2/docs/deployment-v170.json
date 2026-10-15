@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-10-15T00:04:34.543652+00:00",
+  "intendedVersion": "1.7.0",
+  "liveVersion": "1.6.2",
+  "matchesLocalBuild": false,
+  "publicUrl": "https://etf-independent-app-production.up.railway.app",
+  "deploymentState": "APPLYING",
+  "patchId": "46bbe9a9-2c58-4561-a7b1-745777a4de6a",
+  "runningDeploymentId": "13eff7aa-8c4c-47e3-bd09-f41252cb82ee",
+  "note": "Source update accepted by Railway, but no new deployment has started at this check. Do not claim 1.7.0 is live. Recheck pending work before further deployment mutations."
+}

@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+*.pid
+.DS_Store
+__pycache__/
+docs/test-backup.json
+original/
+deploy/ui-payload-*.txt
+deploy/ui-payload.json
+deploy/railway-check.mjs
+dist/*.check.mjs
+dist/railway-preview.html

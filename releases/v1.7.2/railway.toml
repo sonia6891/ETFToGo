@@ -1,0 +1,9 @@
+[build]
+buildCommand = "bun scripts/build.mjs"
+
+[deploy]
+startCommand = "bun server/index.js"
+healthcheckPath = "/health"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

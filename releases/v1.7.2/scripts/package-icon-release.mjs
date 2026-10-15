@@ -1,0 +1,21 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {brotliCompressSync} from 'node:zlib';
+import {createHash} from 'node:crypto';
+// Use the already provisioned assets, then replace only current text files and icon aliases.
+const previous=readFileSync('deploy/railway-v170.ts','utf8');
+const boundary=previous.indexOf("const UI_HASH=hash(source['index.html']);");
+if(boundary<1000)throw Error('Invalid bootstrap');
+const textFiles=['index.html','manifest.webmanifest','sw.js','install-pocket.html'];
+const raw=Buffer.from(JSON.stringify(Object.fromEntries(textFiles.map(f=>[f,readFileSync('dist/'+f,'utf8')]))));
+const digest=createHash('sha256').update(raw).digest('hex');
+let code=previous.slice(0,boundary);
+code+=`const overlay171=brotliDecompressSync(Buffer.from('${brotliCompressSync(raw).toString('base64')}','base64'));
+if(hash(overlay171)!=='${digest}')throw Error('1.7.1 asset checksum mismatch');
+Object.assign(source,JSON.parse(overlay171.toString('utf8')));
+for(const name of ['icon-192','icon-512','apple-touch-icon'])source[name+'-v171.png']=source[name+'-v161.png'];
+delete source['ETFToGo-Pocket.mobileconfig'];
+const UI_HASH=hash(source['index.html']);\n`;
+for(const name of ['quote-api.js','catalog-proxy.js','host.js'])code+=readFileSync('server/'+name,'utf8').replace(/^import .*?;\n/gm,'').replace(/\bexport /g,'')+'\n';
+code+="await startHost({source,version:'1.7.1',htmlSha256:UI_HASH,origin:'https://etf-independent-app-production.up.railway.app',referenceEndpoint:'http://etf-reference-data.railway.internal:3000/catalog'});\n";
+writeFileSync('deploy/railway-v171.ts',code);
+console.log(JSON.stringify({functionBytes:Buffer.byteLength(code),assetDigest:digest}));

@@ -1,0 +1,41 @@
+{
+  "version": "0.1.0-native-source",
+  "basedOn": "1.5.0",
+  "appName": "ETF 袋著走",
+  "implementation": "SwiftUI native, no WebView",
+  "catalog": {
+    "market": "TWSE only",
+    "sourceDate": "2026-10-14",
+    "securityCodes": 272,
+    "includesCurrencyClasses": true
+  },
+  "classification": {
+    "ruleVersion": "role-1.0",
+    "piggyBank": 14,
+    "printerCandidates": 43,
+    "slotMachinePreliminary": 119,
+    "insufficientEvidence": 96,
+    "historicalProfitStabilityVerified": false
+  },
+  "verification": {
+    "swiftCoreCompiled": true,
+    "xctest": {
+      "passed": 25,
+      "failed": 0,
+      "runner": "direct Swift 6.2.3 XCTest on Linux"
+    },
+    "swiftUISyntaxParsed": true,
+    "xcodeProjectStructure": "PASS",
+    "xcodeBuild": "NOT_RUN",
+    "simulator": "NOT_RUN",
+    "device": "NOT_RUN",
+    "signedIPA": false,
+    "fugleLiveKey": "NOT_TESTED"
+  },
+  "github": {
+    "pushed": false,
+    "workflowExecuted": false,
+    "reason": "No ETF-specific repository accessible"
+  },
+  "existingRailwayDeployment": "UNCHANGED"
+}

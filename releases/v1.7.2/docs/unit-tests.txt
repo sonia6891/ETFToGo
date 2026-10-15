@@ -1,0 +1,290 @@
+
+> etf-classifier@1.3.0 test
+> node --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: zero return, no distributions: wealth equals external contributions
+ok 1 - zero return, no distributions: wealth equals external contributions
+  ---
+  duration_ms: 4.81954
+  type: 'test'
+  ...
+# Subtest: zero return + distributions: cash and investment preserve wealth for all reinvest ratios
+ok 2 - zero return + distributions: cash and investment preserve wealth for all reinvest ratios
+  ---
+  duration_ms: 1.02722
+  type: 'test'
+  ...
+# Subtest: no distributions: reinvest setting has no effect
+ok 3 - no distributions: reinvest setting has no effect
+  ---
+  duration_ms: 0.247623
+  type: 'test'
+  ...
+# Subtest: full reinvestment: distribution rate/frequency never double count total return
+ok 4 - full reinvestment: distribution rate/frequency never double count total return
+  ---
+  duration_ms: 5.893894
+  type: 'test'
+  ...
+# Subtest: zero contributions and principal remain zero
+ok 5 - zero contributions and principal remain zero
+  ---
+  duration_ms: 0.420424
+  type: 'test'
+  ...
+# Subtest: negative returns: reinvesting may underperform cash withdrawal
+ok 6 - negative returns: reinvesting may underperform cash withdrawal
+  ---
+  duration_ms: 1.912988
+  type: 'test'
+  ...
+# Subtest: all reinvested distributions are not added to total again
+ok 7 - all reinvested distributions are not added to total again
+  ---
+  duration_ms: 0.44053
+  type: 'test'
+  ...
+# Subtest: no reinvestment: distributions are retained in cash
+ok 8 - no reinvestment: distributions are retained in cash
+  ---
+  duration_ms: 0.801077
+  type: 'test'
+  ...
+# Subtest: zero return with deductions: final wealth plus deductions equals contributions
+ok 9 - zero return with deductions: final wealth plus deductions equals contributions
+  ---
+  duration_ms: 1.549645
+  type: 'test'
+  ...
+# Subtest: input validation rejects NaN, infinities, invalid frequencies and years
+ok 10 - input validation rejects NaN, infinities, invalid frequencies and years
+  ---
+  duration_ms: 0.688943
+  type: 'test'
+  ...
+# Subtest: income target 10000/month at 4% => 3000000 principal
+ok 11 - income target 10000/month at 4% => 3000000 principal
+  ---
+  duration_ms: 3.777485
+  type: 'test'
+  ...
+# Subtest: income goal handles zero rate and zero target without infinity
+ok 12 - income goal handles zero rate and zero target without infinity
+  ---
+  duration_ms: 0.629747
+  type: 'test'
+  ...
+# Subtest: income target deductions and already sufficient capital
+ok 13 - income target deductions and already sufficient capital
+  ---
+  duration_ms: 0.094717
+  type: 'test'
+  ...
+# Subtest: holding shares are positive integer, not negative/fractional
+ok 14 - holding shares are positive integer, not negative/fractional
+  ---
+  duration_ms: 1.549892
+  type: 'test'
+  ...
+# Subtest: missing price is not zero and requires matching coverage
+ok 15 - missing price is not zero and requires matching coverage
+  ---
+  duration_ms: 2.054458
+  type: 'test'
+  ...
+# Subtest: all missing prices yields unavailable value and gain
+ok 16 - all missing prices yields unavailable value and gain
+  ---
+  duration_ms: 0.197863
+  type: 'test'
+  ...
+# Subtest: reference price requires a valid date; optional blank price is valid
+ok 17 - reference price requires a valid date; optional blank price is valid
+  ---
+  duration_ms: 0.106722
+  type: 'test'
+  ...
+# Subtest: payment date controls calendar year/month, not ex-date
+ok 18 - payment date controls calendar year/month, not ex-date
+  ---
+  duration_ms: 1.164862
+  type: 'test'
+  ...
+# Subtest: received overrides estimated amount and is counted once
+ok 19 - received overrides estimated amount and is counted once
+  ---
+  duration_ms: 0.171698
+  type: 'test'
+  ...
+# Subtest: received record requires explicit actual amount, including zero
+ok 20 - received record requires explicit actual amount, including zero
+  ---
+  duration_ms: 0.105382
+  type: 'test'
+  ...
+# Subtest: eligibility snapshot is independent of current holding mutations
+ok 21 - eligibility snapshot is independent of current holding mutations
+  ---
+  duration_ms: 1.827223
+  type: 'test'
+  ...
+# Subtest: deductions cannot exceed gross; payment cannot precede ex-date
+ok 22 - deductions cannot exceed gross; payment cannot precede ex-date
+  ---
+  duration_ms: 0.532254
+  type: 'test'
+  ...
+# Subtest: invalid dates and unsafe source links rejected
+ok 23 - invalid dates and unsafe source links rejected
+  ---
+  duration_ms: 0.453886
+  type: 'test'
+  ...
+# Subtest: backup JSON validates schema, duplicate IDs, malformed input
+ok 24 - backup JSON validates schema, duplicate IDs, malformed input
+  ---
+  duration_ms: 2.064421
+  type: 'test'
+  ...
+# Subtest: backup roundtrip preserves holdings and dividends
+ok 25 - backup roundtrip preserves holdings and dividends
+  ---
+  duration_ms: 5.061053
+  type: 'test'
+  ...
+# Subtest: corrupt localStorage is not overwritten on read
+ok 26 - corrupt localStorage is not overwritten on read
+  ---
+  duration_ms: 0.179109
+  type: 'test'
+  ...
+# Subtest: unavailable storage returns explicit warning; failed write throws
+ok 27 - unavailable storage returns explicit warning; failed write throws
+  ---
+  duration_ms: 0.537518
+  type: 'test'
+  ...
+# Subtest: CSV quotes fields, preserves UTF-8 BOM and neutralizes text formulas
+ok 28 - CSV quotes fields, preserves UTF-8 BOM and neutralizes text formulas
+  ---
+  duration_ms: 0.327785
+  type: 'test'
+  ...
+# Subtest: calendar weekdays and days line up in October 2026
+ok 29 - calendar weekdays and days line up in October 2026
+  ---
+  duration_ms: 25.998106
+  type: 'test'
+  ...
+# Subtest: February leap year has 29 days, not 28
+ok 30 - February leap year has 29 days, not 28
+  ---
+  duration_ms: 4.07231
+  type: 'test'
+  ...
+# Subtest: reject invalid calendar month and year
+ok 31 - reject invalid calendar month and year
+  ---
+  duration_ms: 4.617238
+  type: 'test'
+  ...
+# Subtest: one lot is 1000 shares; cost is not multiplied
+ok 32 - one lot is 1000 shares; cost is not multiplied
+  ---
+  duration_ms: 12.587624
+  type: 'test'
+  ...
+# Subtest: fractional shares rejected after conversion
+ok 33 - fractional shares rejected after conversion
+  ---
+  duration_ms: 3.35999
+  type: 'test'
+  ...
+# Subtest: empty portfolio has unknown value, not zero
+ok 34 - empty portfolio has unknown value, not zero
+  ---
+  duration_ms: 15.333266
+  type: 'test'
+  ...
+# Subtest: partial prices compare only known cost; allocation uses all cost
+ok 35 - partial prices compare only known cost; allocation uses all cost
+  ---
+  duration_ms: 30.266
+  type: 'test'
+  ...
+# Subtest: received dividends not added to holding value
+ok 36 - received dividends not added to holding value
+  ---
+  duration_ms: 2.630234
+  type: 'test'
+  ...
+# Subtest: unknown saved code preserved without loaded catalog
+ok 37 - unknown saved code preserved without loaded catalog
+  ---
+  duration_ms: 1.12121
+  type: 'test'
+  ...
+# Subtest: catalog rejects duplicate codes
+ok 38 - catalog rejects duplicate codes
+  ---
+  duration_ms: 5.043126
+  type: 'test'
+  ...
+# Subtest: unknown strategy is pending, not other
+ok 39 - unknown strategy is pending, not other
+  ---
+  duration_ms: 0.193166
+  type: 'test'
+  ...
+# Subtest: open trading window uses Taipei time
+ok 40 - open trading window uses Taipei time
+  ---
+  duration_ms: 6.623533
+  type: 'test'
+  ...
+# Subtest: weekend is not scheduled open
+ok 41 - weekend is not scheduled open
+  ---
+  duration_ms: 17.186225
+  type: 'test'
+  ...
+# Subtest: trial price is never substituted for actual trade
+ok 42 - trial price is never substituted for actual trade
+  ---
+  duration_ms: 2.714219
+  type: 'test'
+  ...
+# Subtest: actual trade and source reference drive change
+ok 43 - actual trade and source reference drive change
+  ---
+  duration_ms: 0.59527
+  type: 'test'
+  ...
+# Subtest: previous-day quote explicitly marked
+ok 44 - previous-day quote explicitly marked
+  ---
+  duration_ms: 1.814657
+  type: 'test'
+  ...
+# Subtest: status needs no key; quote query requires session
+ok 45 - status needs no key; quote query requires session
+  ---
+  duration_ms: 67.622879
+  type: 'test'
+  ...
+# Subtest: cross-origin key submissions rejected before fetch
+ok 46 - cross-origin key submissions rejected before fetch
+  ---
+  duration_ms: 1.483364
+  type: 'test'
+  ...
+1..46
+# tests 46
+# suites 0
+# pass 46
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1605.099634

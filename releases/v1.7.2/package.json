@@ -1,0 +1,16 @@
+{
+  "name": "etf-togo",
+  "version": "1.7.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "start:production": "bun server/index.js",
+    "start:reference": "bun server/reference-service.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

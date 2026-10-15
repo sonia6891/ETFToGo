@@ -1,0 +1,64 @@
+{
+  "checkedAt": "2026-10-15T00:20:36.390352+00:00",
+  "version": "1.7.1",
+  "deploymentId": "46787da1-0bab-4b5c-9956-25ea50d94bd7",
+  "deploymentStatus": "SUCCESS",
+  "publicUrl": "https://etf-independent-app-production.up.railway.app/app-v171.html",
+  "checks": [
+    {
+      "path": "/",
+      "status": 200,
+      "matchesBuild": true,
+      "sha256": "a941bbfbcb42b79a19b21bcc86fd4cd466745e46bdd4c4ed0be8604a852c143d",
+      "cacheControl": "no-cache"
+    },
+    {
+      "path": "/app-v171.html",
+      "status": 200,
+      "matchesBuild": true,
+      "sha256": "a941bbfbcb42b79a19b21bcc86fd4cd466745e46bdd4c4ed0be8604a852c143d",
+      "cacheControl": "no-cache"
+    },
+    {
+      "path": "/manifest.webmanifest",
+      "status": 200,
+      "matchesBuild": true,
+      "sha256": "c8c1e7819af87643d2b10fd6c505a74e99ff86c0dbf2df91ba96e86f1fbee31d",
+      "cacheControl": "no-cache"
+    },
+    {
+      "path": "/sw.js",
+      "status": 200,
+      "matchesBuild": true,
+      "sha256": "52f83ec4e1e8fe951e6819fa4dcb28b08a6ff9d123fd8849aaf794671d03625f",
+      "cacheControl": "no-cache"
+    },
+    {
+      "path": "/apple-touch-icon-v171.png",
+      "status": 200,
+      "matchesBuild": true,
+      "sha256": "54ac65bd3151291c9988466eb0d42f001a93c36bb5e57ffa26902a64049be1a9",
+      "cacheControl": "no-store, max-age=0"
+    },
+    {
+      "path": "/icon-192-v171.png",
+      "status": 200,
+      "matchesBuild": true,
+      "sha256": "72a382caff4bd36c0ac37500bf6860dba66b54a334678ad764e5e6d4959fdfbb",
+      "cacheControl": "no-store, max-age=0"
+    },
+    {
+      "path": "/icon-512-v171.png",
+      "status": 200,
+      "matchesBuild": true,
+      "sha256": "b1ad9792e4c3b90e683b13a1eb68a18239171cdbc4c0bf67a77aaf0a0a558f6a",
+      "cacheControl": "no-store, max-age=0"
+    }
+  ],
+  "unitTestsPassed": 63,
+  "iconConditionalGet": 200,
+  "iconHeadLengthCorrect": true,
+  "iphoneHomeScreenVerified": false,
+  "causeStatus": "Deployment was not applied. iOS received icon HTTP 200 but selected monogram; exact client-side cause unconfirmed.",
+  "browserRendering": "Browser binaries unavailable; no new browser rendering claim."
+}

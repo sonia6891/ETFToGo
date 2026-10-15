@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "All 15 Swift sources included exactly once; no duplicate basenames",
+    "Shared scheme target and all project references resolve",
+    "9 App Icon outputs have matching pixel sizes and no alpha; artwork preserved",
+    "272 unique TWSE-listed ETF security codes; no TPEx rows; source date retained",
+    "Native SwiftUI source; no embedded web application"
+  ],
+  "result": "PASS",
+  "iosCompilation": "NOT RUN: macOS/Xcode unavailable",
+  "deviceInstallation": "NOT RUN: no signed app"
+}

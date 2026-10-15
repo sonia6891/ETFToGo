@@ -1,0 +1,17 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {brotliCompressSync} from 'node:zlib';
+import {createHash} from 'node:crypto';
+const assets=Object.fromEntries(['index.html','manifest.webmanifest','sw.js','install-pocket.html','ETFToGo-Pocket.mobileconfig'].map(f=>[f,readFileSync('dist/'+f,'utf8')]));
+const raw=Buffer.from(JSON.stringify(assets));
+const parts=brotliCompressSync(raw).toString('base64').match(/.{1,9000}/g);
+writeFileSync('deploy/assets-v162.json',JSON.stringify(Object.fromEntries(parts.map((p,i)=>['ETF_ASSETS_V162_'+(i+1),p]))));
+let previous=readFileSync('deploy/legacy-v161.ts','utf8');
+let code=previous.slice(0,previous.indexOf("const UI_HASH=hash(source['index.html']);"));
+if(code.length<1000)throw Error('Invalid bootstrap');
+code+=`const overlay162=brotliDecompressSync(Buffer.from(Array.from({length:${parts.length}},(_,i)=>Bun.env[\`ETF_ASSETS_V162_\${i+1}\`]||'').join(''),'base64'));
+if(hash(overlay162)!=='${createHash('sha256').update(raw).digest('hex')}')throw Error('1.6.2 public asset checksum mismatch');
+Object.assign(source,JSON.parse(overlay162.toString('utf8')));
+const UI_HASH=hash(source['index.html']);\n`;
+for(const name of ['quote-api.js','catalog-proxy.js','host.js'])code+=readFileSync('server/'+name,'utf8').replace(/^import .*?;\n/gm,'').replace(/\bexport /g,'')+'\n';
+code+="await startHost({source,version:'1.6.2',htmlSha256:UI_HASH,origin:'https://etf-independent-app-production.up.railway.app',referenceEndpoint:'http://etf-reference-data.railway.internal:3000/catalog'});\n";
+writeFileSync('deploy/railway-v162.ts',code);console.log({functionBytes:Buffer.byteLength(code),payloadParts:parts.length});

@@ -1,0 +1,23 @@
+name: ETF tests and build
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      # No external npm packages; tests and bundling use Node built-ins.
+      - run: npm test
+      - run: npm run build
+      - run: node --check dist/app.check.mjs

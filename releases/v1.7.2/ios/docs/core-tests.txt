@@ -1,0 +1,59 @@
+Test Suite 'All tests' started at 2026-10-14 18:49:44.928
+Test Suite 'direct-core.xctest' started at 2026-10-14 18:49:44.929
+Test Suite 'CoreTests' started at 2026-10-14 18:49:44.929
+Test Case 'CoreTests.testLegacyV150MigrationRetainsMoneyAndFavorites' started at 2026-10-14 18:49:44.929
+Test Case 'CoreTests.testLegacyV150MigrationRetainsMoneyAndFavorites' passed (0.008 seconds)
+Test Case 'CoreTests.testPlainPlanningBackupMigration' started at 2026-10-14 18:49:44.937
+Test Case 'CoreTests.testPlainPlanningBackupMigration' passed (0.002 seconds)
+Test Case 'CoreTests.testLegacyPlanningWithoutOptionalPlanUsesDefaults' started at 2026-10-14 18:49:44.940
+Test Case 'CoreTests.testLegacyPlanningWithoutOptionalPlanUsesDefaults' passed (0.0 seconds)
+Test Case 'CoreTests.testInvalidDates' started at 2026-10-14 18:49:44.940
+Test Case 'CoreTests.testInvalidDates' passed (0.002 seconds)
+Test Case 'CoreTests.testAllListedCoverageIncludesNonDomesticAndLeveraged' started at 2026-10-14 18:49:44.942
+Test Case 'CoreTests.testAllListedCoverageIncludesNonDomesticAndLeveraged' passed (0.289 seconds)
+Test Case 'CoreTests.testPiggyBankDoesNotMatchTaiwanAsAI' started at 2026-10-14 18:49:45.231
+Test Case 'CoreTests.testPiggyBankDoesNotMatchTaiwanAsAI' passed (0.0 seconds)
+Test Case 'CoreTests.testLeveragedOverridesIncomeName' started at 2026-10-14 18:49:45.231
+Test Case 'CoreTests.testLeveragedOverridesIncomeName' passed (0.0 seconds)
+Test Case 'CoreTests.testIndustryOverridesDividendName' started at 2026-10-14 18:49:45.231
+Test Case 'CoreTests.testIndustryOverridesDividendName' passed (0.0 seconds)
+Test Case 'CoreTests.testDividendIsOnlyPrinterCandidate' started at 2026-10-14 18:49:45.231
+Test Case 'CoreTests.testDividendIsOnlyPrinterCandidate' passed (0.0 seconds)
+Test Case 'CoreTests.testUnknownNotForcedIntoRole' started at 2026-10-14 18:49:45.232
+Test Case 'CoreTests.testUnknownNotForcedIntoRole' passed (0.0 seconds)
+Test Case 'CoreTests.testActiveNotAutomaticallySlotMachine' started at 2026-10-14 18:49:45.232
+Test Case 'CoreTests.testActiveNotAutomaticallySlotMachine' passed (0.0 seconds)
+Test Case 'CoreTests.testForeignShortTreasuryNotGuaranteedCapital' started at 2026-10-14 18:49:45.232
+Test Case 'CoreTests.testForeignShortTreasuryNotGuaranteedCapital' passed (0.0 seconds)
+Test Case 'CoreTests.testLongBondNotAssumedStableIncome' started at 2026-10-14 18:49:45.232
+Test Case 'CoreTests.testLongBondNotAssumedStableIncome' passed (0.0 seconds)
+Test Case 'CoreTests.testPartialValuationUsesOnlyPricedCost' started at 2026-10-14 18:49:45.233
+Test Case 'CoreTests.testPartialValuationUsesOnlyPricedCost' passed (0.0 seconds)
+Test Case 'CoreTests.testDividendActualOverridesEstimate' started at 2026-10-14 18:49:45.233
+Test Case 'CoreTests.testDividendActualOverridesEstimate' passed (0.001 seconds)
+Test Case 'CoreTests.testReceivedNeedsActualAndExDateOrder' started at 2026-10-14 18:49:45.234
+Test Case 'CoreTests.testReceivedNeedsActualAndExDateOrder' passed (0.001 seconds)
+Test Case 'CoreTests.testProjectionDoesNotDoubleCountReinvestedDistributions' started at 2026-10-14 18:49:45.235
+Test Case 'CoreTests.testProjectionDoesNotDoubleCountReinvestedDistributions' passed (0.0 seconds)
+Test Case 'CoreTests.testZeroReturnCashDistributionConservesTotal' started at 2026-10-14 18:49:45.236
+Test Case 'CoreTests.testZeroReturnCashDistributionConservesTotal' passed (0.0 seconds)
+Test Case 'CoreTests.testContributionTimingAtZeroReturn' started at 2026-10-14 18:49:45.236
+Test Case 'CoreTests.testContributionTimingAtZeroReturn' passed (0.0 seconds)
+Test Case 'CoreTests.testInvalidProjectionRejected' started at 2026-10-14 18:49:45.236
+Test Case 'CoreTests.testInvalidProjectionRejected' passed (0.0 seconds)
+Test Case 'CoreTests.testInvalidBackupDoesNotOverwriteFile' started at 2026-10-14 18:49:45.236
+Test Case 'CoreTests.testInvalidBackupDoesNotOverwriteFile' passed (0.003 seconds)
+Test Case 'CoreTests.testCorruptExistingDataThrowsInsteadOfResetting' started at 2026-10-14 18:49:45.239
+Test Case 'CoreTests.testCorruptExistingDataThrowsInsteadOfResetting' passed (0.0 seconds)
+Test Case 'CoreTests.testForeignComponentSymbolAndPartialExposure' started at 2026-10-14 18:49:45.240
+Test Case 'CoreTests.testForeignComponentSymbolAndPartialExposure' passed (0.001 seconds)
+Test Case 'CoreTests.testComponentsRejectWrongCodeAndOversizedWeight' started at 2026-10-14 18:49:45.241
+Test Case 'CoreTests.testComponentsRejectWrongCodeAndOversizedWeight' passed (0.001 seconds)
+Test Case 'CoreTests.testBackupPreservesComponentsAndNeverHasKeyField' started at 2026-10-14 18:49:45.242
+Test Case 'CoreTests.testBackupPreservesComponentsAndNeverHasKeyField' passed (0.002 seconds)
+Test Suite 'CoreTests' passed at 2026-10-14 18:49:45.244
+	 Executed 25 tests, with 0 failures (0 unexpected) in 0.315 (0.315) seconds
+Test Suite 'direct-core.xctest' passed at 2026-10-14 18:49:45.244
+	 Executed 25 tests, with 0 failures (0 unexpected) in 0.315 (0.315) seconds
+Test Suite 'All tests' passed at 2026-10-14 18:49:45.244
+	 Executed 25 tests, with 0 failures (0 unexpected) in 0.315 (0.315) seconds
