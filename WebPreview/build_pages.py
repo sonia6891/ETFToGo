@@ -5,6 +5,7 @@ page in a full document with the app icon and home-screen metadata.
 
 Usage, from the repository root:  python -I WebPreview/build_pages.py <output-dir>
 """
+import hashlib
 import json
 import shutil
 import sys
@@ -16,6 +17,15 @@ here = Path(__file__).resolve().parent
 root = here.parent
 out = Path(sys.argv[1]).resolve()
 out.mkdir(parents=True, exist_ok=True)
+
+pocket = root / "App/Assets.xcassets/Pocket.imageset/pocket.png"
+# iOS keeps a home-screen icon per URL, so icon and manifest names carry the icon's content hash:
+# a new icon gets new URLs and is fetched again when the page is re-added to the home screen.
+version = hashlib.sha256(pocket.read_bytes()).hexdigest()[:8]
+icons = {size: f"icon-{version}-{size}.png" for size in (180, 192, 512)}
+manifest_name = f"manifest-{version}.webmanifest"
+for stale in [*out.glob("icon-*.png"), *out.glob("manifest*.webmanifest")]:
+    stale.unlink()
 
 page = (here / "index.html").read_text(encoding="utf-8")
 # index.html starts with its own charset/viewport lines for local testing; the wrapper supplies them.
@@ -35,18 +45,20 @@ head = "\n".join([
     '<meta name="apple-mobile-web-app-status-bar-style" content="default">',
     '<meta name="theme-color" content="#edf2ff">',
     '<meta name="description" content="ETF 袋著走：台灣上市 ETF 持有、配息與試算的網頁版。">',
-    '<link rel="apple-touch-icon" href="apple-touch-icon.png">',
-    '<link rel="icon" type="image/png" href="icon-192.png">',
-    '<link rel="manifest" href="manifest.webmanifest">',
+    f'<link rel="apple-touch-icon" sizes="180x180" href="{icons[180]}">',
+    f'<link rel="icon" type="image/png" sizes="192x192" href="{icons[192]}">',
+    f'<link rel="manifest" href="{manifest_name}">',
     "<style>html,body{margin:0;height:100%}</style>",
     "</head>",
     "<body>",
 ])
 (out / "index.html").write_text(head + "\n" + "\n".join(lines) + "\n</body>\n</html>\n", encoding="utf-8")
 
-icon = Image.open(root / "App/Assets.xcassets/Pocket.imageset/pocket.png").convert("RGB")
-for name, size in [("apple-touch-icon.png", 180), ("icon-192.png", 192), ("icon-512.png", 512)]:
+icon = Image.open(pocket).convert("RGB")
+for size, name in icons.items():
     icon.resize((size, size), Image.LANCZOS).save(out / name, optimize=True)
+# Fallback for clients that probe the conventional name.
+icon.resize((180, 180), Image.LANCZOS).save(out / "apple-touch-icon.png", optimize=True)
 
 manifest = {
     "name": "ETF 袋著走",
@@ -58,11 +70,11 @@ manifest = {
     "background_color": "#edf2ff",
     "theme_color": "#edf2ff",
     "icons": [
-        {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
-        {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+        {"src": icons[192], "sizes": "192x192", "type": "image/png"},
+        {"src": icons[512], "sizes": "512x512", "type": "image/png"},
     ],
 }
-(out / "manifest.webmanifest").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+(out / manifest_name).write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 shutil.copyfile(here / "etf-data.json", out / "etf-data.json")
 # Illustrations (made with Figma AI, prepared by prepare_art.py) are referenced as assets/<name>.png.
 shutil.copytree(here / "assets", out / "assets", dirs_exist_ok=True)
