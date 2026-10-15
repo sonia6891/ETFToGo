@@ -19,7 +19,10 @@
 
 ## 網頁測試版（WebPreview/）
 
-在 Mac 編譯前，用來在手機上試用新版介面的單頁網頁：`WebPreview/index.html` 加上由 `python -I WebPreview/build_data.py` 從 App 內建名單與年度費用產生的 `etf-data.json`。可切換示範資料或記錄自己的測試資料；網頁版無法連線富果行情、匯入券商 CSV 或發送通知，沒有報價時市值顯示「—」。它是介面試用，不取代 iPhone App。
+在 Mac 編譯前，用來在手機上試用新版介面的單頁網頁：`WebPreview/index.html` 加上由 `python -I WebPreview/build_data.py` 從 App 內建名單與年度費用產生的 `etf-data.json`。可切換示範資料或記錄自己的測試資料。它是介面試用，不取代 iPhone App；券商 CSV 匯入、成分股與通知只在 App。
+
+- **網頁版 App（可連富果）**：https://sonia6891.github.io/etftogo-web/ ，公開 repo `sonia6891/etftogo-web` 只放建置後檔案。以 `python -I WebPreview/build_pages.py <輸出資料夾>` 產生（加上 App 圖示、主畫面名稱與 manifest），再推到該 repo 的 main。富果金鑰只存在使用者瀏覽器，只傳給 api.fugle.tw。
+- **Claude 連結版**：在 Claude 的安全沙盒中執行，無法連線外部網址，所以不能使用富果；資料存在使用者的 Claude 帳號，可跨裝置同步。
 
 ## 這次補回的功能
 
