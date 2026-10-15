@@ -1477,14 +1477,15 @@ VIEWS.install = () => {
         ? `<div class="card"><b>請先用 Safari 或 Chrome 開啟</b><p class="note" style="margin:6px 0 10px">LINE、Facebook 等 App 內建的瀏覽器不能加入主畫面。點右上角選單，選「用瀏覽器開啟」，或複製網址貼到 Safari。</p><button type="button" class="btn soft block" data-act="copy" data-text="${PAGES_URL}">複製網址</button></div>`
         : "";
   // iOS sometimes cannot fetch the icon when adding from Safari; a Web Clip profile carries the icon itself.
-  const profileCard = IS_STANDALONE || os !== "ios" ? "" : `<div class="card"><b>最穩的方法：用描述檔加入</b><p class="note" style="margin:6px 0 4px">有些 iPhone 從 Safari 加入時抓不到圖示，只顯示字母「E」。這個描述檔直接把藍底口袋圖示放到主畫面，不靠 Safari 抓圖。</p>
+  const profileCard = IS_STANDALONE || os !== "ios" || !CAN_FUGLE ? "" : `<div class="card"><b>最穩的方法：用描述檔加入</b><p class="note" style="margin:6px 0 4px">有些 iPhone 從 Safari 加入時抓不到圖示，只顯示字母「E」。這個描述檔直接把藍底口袋圖示放到主畫面，不靠 Safari 抓圖。</p>
       <ol class="steps">
         <li><span>用 <b>Safari</b> 點下面的按鈕，問「要允許下載描述檔嗎？」時點「允許」。</span></li>
         <li><span>打開 iPhone「設定」，點最上面的「已下載描述檔」，再點右上角「安裝」。會顯示「未驗證」，因為描述檔沒有付費簽章；裡面只有這一個主畫面圖示。</span></li>
         <li><span>回到主畫面，就會看到藍底口袋的「ETF 袋著走」。</span></li>
       </ol>
-      <a class="btn primary block" style="text-decoration:none;margin-top:6px" href="${CAN_FUGLE ? "" : PAGES_URL}ETFToGo.mobileconfig">${icon("addSquare")}下載主畫面描述檔</a>
-      <p class="note" style="margin-top:8px">不想要時：長按圖示刪除，或到「設定 › 一般 › VPN 與裝置管理」移除描述檔。</p></div>`;
+      <a class="btn primary block" style="text-decoration:none;margin-top:6px" href="ETFToGo.mobileconfig" data-act="profile">${icon("addSquare")}下載主畫面描述檔</a>
+      <p class="note" style="margin-top:8px">按了沒反應，或檔案跑到「檔案」App 裡：<a href="ETFToGo.mobileconfig" style="color:var(--blue);font-weight:700">直接下載描述檔</a>，再到「檔案 › 下載項目」點它。</p>
+      <p class="note" style="margin-top:6px">不想要時：長按圖示刪除，或到「設定 › 一般 › VPN 與裝置管理」移除描述檔。</p></div>`;
   const quick = !IS_STANDALONE && CAN_FUGLE && installPrompt ? `<button type="button" class="btn primary block" data-act="install">${icon("addSquare")}加入主畫面</button>` : "";
   const steps = os === "ios"
     ? `<ol class="steps">
@@ -2584,6 +2585,16 @@ const ACT = {
   theme: (ds) => { S.prefs.theme = ds.v; S.prefs.themeSet = true; savePrefs(); applyTheme(); renderScreen(); },
   hideInstall: () => { S.prefs.installHidden = true; savePrefs(); renderScreen(); toast("之後可在「設定 › 加入主畫面」找到"); },
   installOS: (ds) => { S.ui.installOS = ds.v; renderScreen(); },
+  // GitHub Pages serves the profile as a generic download; handing Safari a blob with the profile type lets it
+  // offer to install it. If that fails, the plain link still downloads the file.
+  profile: async () => {
+    try {
+      const res = await fetch("ETFToGo.mobileconfig", { cache: "no-store" });
+      if (!res.ok) throw new Error(res.status);
+      const blob = new Blob([await res.arrayBuffer()], { type: "application/x-apple-aspen-config" });
+      location.href = URL.createObjectURL(blob);
+    } catch (e) { location.href = "ETFToGo.mobileconfig"; }
+  },
   install: async () => {
     const prompt = installPrompt; if (!prompt) return;
     installPrompt = null; prompt.prompt();
