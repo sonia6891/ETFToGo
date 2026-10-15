@@ -8,6 +8,7 @@
 - 此改版在沒有 Xcode 的 Windows 環境撰寫，**只做過 Swift 語法剖析（tree-sitter，0 錯誤），尚未經 Xcode 編譯、單元測試或 UI 測試。** UI 測試已依新分頁名稱（探索、持有）、詳情分頁（持股、走勢、資訊）與按鈕文字（新增配息紀錄）更新。
 - 新增 Theme.swift、DiscoverViews.swift，已同時加入 project.yml 來源資料夾與 ETFToGo.xcodeproj。
 - 合併前需在 Mac 執行 `xcodegen generate` 及 native-ui workflow，確認編譯、測試與五頁截圖。
+- 2026-10-15 Tuist Runners 檢查：GitHub 連結（etftogo ↔ sonia6891/ETFToGo）與 `tuist-macos` 規格均已設定，工作會送進 Tuist；但 macOS 工作在 Tuist 佇列中未被任何機器認領（[run 38680144589](https://github.com/sonia6891/ETFToGo/actions/runs/38680144589) 排隊 5 小時後取消、[run 38715224691](https://github.com/sonia6891/ETFToGo/actions/runs/38715224691) 仍在排隊）。Linux 測試工作在 Tuist 顯示已認領，但 GitHub 端 12 分鐘仍未取得 runner。sonia6891 是個人帳號，而 Tuist 文件要求連結 GitHub organization，推測與此有關，需向 Tuist 確認。
 
 ## 0.3.0 開發中，尚未發佈
 
