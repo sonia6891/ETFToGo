@@ -64,5 +64,7 @@ manifest = {
 }
 (out / "manifest.webmanifest").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 shutil.copyfile(here / "etf-data.json", out / "etf-data.json")
+# Illustrations (made with Figma AI, prepared by prepare_art.py) are referenced as assets/<name>.png.
+shutil.copytree(here / "assets", out / "assets", dirs_exist_ok=True)
 (out / ".nojekyll").write_text("", encoding="utf-8")
 print("built", sorted(p.name for p in out.iterdir()))
