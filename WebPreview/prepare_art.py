@@ -12,8 +12,8 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 SENTINEL = (255, 0, 255)
-# Images whose generated background carries a soft grey floor shadow need a looser cut.
-THRESH = {"cat-saving.png": 46}
+# Images whose generated background carries a soft floor shadow or glow need a looser cut.
+THRESH = {"cat-saving.png": 46, "div-confirm.png": 52, "misc-bulb.png": 70}
 
 
 def transparent(img, thresh=24):
