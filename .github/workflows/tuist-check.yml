@@ -1,0 +1,20 @@
+name: Check authorized Tuist Mac runner
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  toolchain:
+    runs-on: tuist-macos
+    timeout-minutes: 5
+    steps:
+      - name: Inspect selected Xcode and iPhone simulators
+        run: |
+          set -euo pipefail
+          sw_vers
+          uname -m
+          xcodebuild -version
+          xcode-select -p
+          xcrun simctl list devices available
+          command -v brew
+          command -v python3
