@@ -76,15 +76,19 @@ a { color: var(--blue); }
   backdrop-filter: blur(22px) saturate(1.9) brightness(1.04); -webkit-backdrop-filter: blur(22px) saturate(1.9) brightness(1.04);
   box-shadow: inset 0 1px 0 var(--glass-hi), inset 0 -1px 0 rgba(255,255,255,.12), 0 12px 32px rgba(20,40,90,.18);
   transition: max-width .5s cubic-bezier(.32,.72,0,1), padding .5s cubic-bezier(.32,.72,0,1), border-radius .5s; }
-.tab-indicator { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 5); border-radius: 24px; pointer-events: none;
-  background: var(--glass-pill); box-shadow: inset 0 0 0 1px var(--glass-hi), inset 0 10px 16px rgba(255,255,255,.22), 0 6px 18px rgba(31,107,255,.16);
-  backdrop-filter: blur(4px) saturate(2.2); -webkit-backdrop-filter: blur(4px) saturate(2.2);
-  transform: translateX(calc(var(--i, 0) * 100%)); transition: transform .55s cubic-bezier(.3,1.45,.55,1), opacity .3s; }
-.tab-indicator.moving { animation: glass-stretch .55s cubic-bezier(.3,.9,.4,1); }
-@keyframes glass-stretch { 0% { scale: 1 1; } 30% { scale: 1.32 .86; } 65% { scale: .94 1.06; } 100% { scale: 1 1; } }
+/* Round glass lens around the selected orb; while switching it flows like a droplet from the old orb to the new one. */
+.tab-indicator { position: absolute; top: -4px; left: 0; width: 56px; height: 56px; border-radius: 28px; pointer-events: none;
+  background: radial-gradient(circle at 50% 28%, rgba(255,255,255,.55), var(--glass-pill) 62%);
+  box-shadow: inset 0 0 0 1.5px var(--glass-hi), inset 0 -7px 12px rgba(31,107,255,.14), inset 0 4px 6px rgba(255,255,255,.5), 0 8px 20px rgba(31,107,255,.22);
+  backdrop-filter: blur(3px) saturate(2.3) brightness(1.08); -webkit-backdrop-filter: blur(3px) saturate(2.3) brightness(1.08);
+  transition: left .42s cubic-bezier(.3,1.35,.5,1), width .42s cubic-bezier(.3,1.35,.5,1), height .3s ease, top .3s ease, opacity .3s; }
+.tab-indicator.flowing { height: 48px; top: 0; transition: left .2s cubic-bezier(.4,0,.6,1), width .2s cubic-bezier(.4,0,.6,1), height .2s ease, top .2s ease; }
 .tab { position: relative; z-index: 1; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: var(--ink); transition: flex .5s cubic-bezier(.32,.72,0,1), opacity .3s; }
-.tab .ball { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
-.tab .ball svg { width: 21px; height: 21px; stroke-width: 2.3; }
+/* Each coloured icon is a glossy glass orb: specular highlight on top, light rim, darker inner edge below. */
+.tab .ball { position: relative; overflow: hidden; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+.tab .ball::before { content: ""; position: absolute; left: 17%; right: 17%; top: 5%; height: 40%; border-radius: 50%; background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,0)); pointer-events: none; }
+.tab .ball::after { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(255,255,255,.45), inset 0 -5px 9px rgba(0,0,0,.16); pointer-events: none; }
+.tab .ball svg { position: relative; z-index: 1; width: 21px; height: 21px; stroke-width: 2.3; filter: drop-shadow(0 1px 1px rgba(0,0,0,.18)); }
 .tab .lbl { white-space: nowrap; transition: opacity .25s, max-height .4s; max-height: 16px; }
 .tab.on .ball { transform: translateY(-3px) scale(1.12); }
 .tab:active .ball { transform: scale(.84); }
@@ -2217,17 +2221,35 @@ let shownTab = null;
 function updateTabs() {
   const box = $("#tabs");
   if (!box.dataset.built) {
-    box.innerHTML = `<span class="tab-indicator" aria-hidden="true"></span>` + TABS.map((t, i) => `<button type="button" class="tab" data-act="tab" data-i="${i}" aria-label="${t.label}"><span class="ball" style="background:${t.ball};box-shadow:0 6px 14px ${t.glow}">${icon(t.icon)}</span><span class="lbl">${t.label}</span></button>`).join("");
+    box.innerHTML = `<span class="tab-indicator" aria-hidden="true"></span>` + TABS.map((t, i) => `<button type="button" class="tab" data-act="tab" data-i="${i}" aria-label="${t.label}"><span class="ball" style="background:radial-gradient(circle at 30% 22%, rgba(255,255,255,.5), rgba(255,255,255,0) 46%), ${t.ball};box-shadow:0 6px 14px ${t.glow}">${icon(t.icon)}</span><span class="lbl">${t.label}</span></button>`).join("");
     box.dataset.built = "1";
+    // Keep the lens on the orb while the bar resizes (rotation, or shrinking and expanding on scroll).
+    if (window.ResizeObserver) new ResizeObserver(() => { if (!$("#tabs .tab-indicator.flowing")) placeLens(S.tab, false); }).observe(box);
+    else window.addEventListener("resize", () => placeLens(S.tab, false));
   }
   box.querySelectorAll(".tab").forEach((b, i) => { b.classList.toggle("on", i === S.tab); b.setAttribute("aria-current", i === S.tab ? "page" : "false"); });
-  const pill = box.querySelector(".tab-indicator");
-  pill.style.setProperty("--i", S.tab);
-  if (shownTab !== null && shownTab !== S.tab) {
-    pill.classList.remove("moving"); void pill.offsetWidth; pill.classList.add("moving");
+  const moved = shownTab !== null && shownTab !== S.tab;
+  if (moved) {
     const b = box.querySelectorAll(".tab")[S.tab]; b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
-  }
+    flowLens(shownTab, S.tab);
+  } else placeLens(S.tab, false);
   shownTab = S.tab;
+}
+/* Centre of a tab's orb, relative to the bar. */
+function orbCentre(i) { const tab = $("#tabs").querySelectorAll(".tab")[i]; return tab.offsetLeft + tab.offsetWidth / 2; }
+function placeLens(i, animate) {
+  const lens = $("#tabs .tab-indicator"); if (!lens) return;
+  if (!animate) lens.style.transition = "none";
+  lens.classList.remove("flowing"); lens.style.width = "56px"; lens.style.left = orbCentre(i) - 28 + "px";
+  if (!animate) { void lens.offsetWidth; lens.style.transition = ""; }
+}
+let flowTimer = null;
+function flowLens(from, to) {
+  const lens = $("#tabs .tab-indicator"); if (!lens) return;
+  const a = orbCentre(from), b = orbCentre(to);
+  clearTimeout(flowTimer);
+  lens.classList.add("flowing"); lens.style.left = Math.min(a, b) - 26 + "px"; lens.style.width = Math.abs(b - a) + 52 + "px";
+  flowTimer = setTimeout(() => placeLens(to, true), 190);
 }
 /* Scrolling down shrinks the bar to the current tab; scrolling up, reaching the top or tapping it restores it. */
 let lastScroll = 0;

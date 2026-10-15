@@ -488,33 +488,59 @@ enum AppTabs {
         TabSpec(title: "工具", icon: "square.grid.2x2.fill", colors: [Color(red: 0.67, green: 0.55, blue: 1.0), Palette.purple]),
     ]
 }
-/// The design's floating tab bar with iOS 26-style motion: a glass bubble slides to the selected tab, icons bounce,
-/// presses squeeze, and scrolling down shrinks the bar to the current tab (scrolling up or tapping restores it).
-/// On iOS 26 the bar uses Liquid Glass; earlier versions use a frosted material.
+/// The design's floating tab bar with iOS 26-style motion. Each icon is a glass orb; the selection is a round glass
+/// lens that flows like a droplet from the old orb to the new one and settles around it. Icons bounce, presses
+/// squeeze, and scrolling down shrinks the bar to the current tab (scrolling up or tapping restores it).
+/// On iOS 26 the bar and orbs use Liquid Glass; earlier versions draw glossy orbs on a frosted bar.
 struct FloatingTabBar: View {
     @Binding var selection: Int
     var minimized = false
     var reselect: (Int) -> Void
     var expand: () -> Void = {}
-    @Namespace private var bubble
     @State private var bounce = [0, 0, 0, 0, 0]
+    @State private var centres: [Int: CGFloat] = [:]
+    @State private var lensX: CGFloat = 0
+    @State private var lensWidth: CGFloat = 52
+    @State private var flowing = false
+    /// Vertical centre of an orb inside the row of tabs.
+    private let orbCentreY: CGFloat = 20
     var body: some View {
         HStack(spacing: 0) {
             if minimized {
-                Button(action: expand) { ball(selection, on: false).padding(6) }
+                Button(action: expand) { orb(selection, on: false).padding(6) }
                     .buttonStyle(PressScale())
                     .accessibilityLabel("展開分頁列，目前在\(AppTabs.items[selection].title)")
             } else {
                 ForEach(AppTabs.items.indices, id: \.self) { index in item(index) }
             }
         }
+        .coordinateSpace(.named("tabbar"))
+        .background(alignment: .topLeading) {
+            if !minimized {
+                SelectionLens()
+                    .frame(width: lensWidth, height: flowing ? 46 : 52)
+                    .offset(x: lensX, y: orbCentreY - (flowing ? 23 : 26))
+                    .allowsHitTesting(false)
+            }
+        }
+        .onPreferenceChange(OrbCentresKey.self) { value in
+            centres = value
+            if !flowing, let centre = value[selection] { lensX = centre - 26; lensWidth = 52 }
+        }
+        .onChange(of: selection) { old, new in flow(from: old, to: new) }
         .padding(.vertical, minimized ? 0 : 7).padding(.horizontal, minimized ? 0 : 4)
         .modifier(LiquidGlass(shape: RoundedRectangle(cornerRadius: 30, style: .continuous)))
         .frame(maxWidth: .infinity, alignment: minimized ? .leading : .center)
         .padding(.horizontal, minimized ? 16 : 12).padding(.bottom, 4)
-        .animation(.spring(response: 0.42, dampingFraction: 0.72), value: selection)
         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: minimized)
         .sensoryFeedback(.selection, trigger: selection)
+    }
+    private func flow(from old: Int, to new: Int) {
+        guard let a = centres[old], let b = centres[new] else { return }
+        withAnimation(.easeInOut(duration: 0.2)) { lensX = min(a, b) - 26; lensWidth = abs(b - a) + 52; flowing = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.19) {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.6)) { lensX = b - 26; lensWidth = 52; flowing = false }
+        }
     }
     private func item(_ index: Int) -> some View {
         let item = AppTabs.items[index], on = selection == index
@@ -522,11 +548,11 @@ struct FloatingTabBar: View {
             if on { reselect(index) } else { bounce[index] += 1; selection = index }
         } label: {
             VStack(spacing: 3) {
-                ball(index, on: on)
+                orb(index, on: on)
                 Text(item.title).font(.caption2.weight(on ? .heavy : .bold)).foregroundStyle(Palette.ink)
             }
             .frame(maxWidth: .infinity).padding(.vertical, 3)
-            .background { if on { SelectionBubble().matchedGeometryEffect(id: "bubble", in: bubble) } }
+            .background(GeometryReader { proxy in Color.clear.preference(key: OrbCentresKey.self, value: [index: proxy.frame(in: .named("tabbar")).midX]) })
             .contentShape(Rectangle())
         }
         .buttonStyle(PressScale())
@@ -534,24 +560,61 @@ struct FloatingTabBar: View {
         .accessibilityIdentifier("tab-\(item.title)")
         .accessibilityAddTraits(on ? .isSelected : [])
     }
-    private func ball(_ index: Int, on: Bool) -> some View {
+    private func orb(_ index: Int, on: Bool) -> some View {
         let item = AppTabs.items[index]
         return Image(systemName: item.icon).font(.system(size: 17, weight: .bold)).foregroundStyle(.white)
+            .shadow(color: Color.black.opacity(0.18), radius: 1, y: 1)
             .symbolEffect(.bounce, value: bounce[index])
             .frame(width: 40, height: 40)
-            .background(LinearGradient(colors: item.colors, startPoint: .top, endPoint: .bottom), in: Circle())
-            .shadow(color: (item.colors.last ?? Palette.blue).opacity(0.35), radius: 6, y: 3)
+            .modifier(GlassOrb(colors: item.colors))
             .scaleEffect(on ? 1.12 : 1).offset(y: on ? -3 : 0)
+            .animation(.spring(response: 0.38, dampingFraction: 0.6), value: on)
     }
 }
-/// The lens-like bubble behind the selected tab.
-struct SelectionBubble: View {
+private struct OrbCentresKey: PreferenceKey {
+    static let defaultValue: [Int: CGFloat] = [:]
+    static func reduce(value: inout [Int: CGFloat], nextValue: () -> [Int: CGFloat]) { value.merge(nextValue()) { $1 } }
+}
+/// A coloured orb: tinted, interactive Liquid Glass on iOS 26; a glossy sphere (highlight, rim, inner shade) before that.
+struct GlassOrb: ViewModifier {
+    let colors: [Color]
+    @ViewBuilder func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(.regular.tint(colors.last ?? Palette.blue).interactive(), in: Circle())
+                .shadow(color: (colors.last ?? Palette.blue).opacity(0.35), radius: 6, y: 3)
+        } else {
+            glossy(content)
+        }
+        #else
+        glossy(content)
+        #endif
+    }
+    private func glossy(_ content: Content) -> some View {
+        content
+            .background {
+                ZStack {
+                    Circle().fill(LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom))
+                    Circle().fill(RadialGradient(colors: [Color.white.opacity(0.5), Color.white.opacity(0)], center: UnitPoint(x: 0.3, y: 0.22), startRadius: 0, endRadius: 18))
+                    Ellipse().fill(LinearGradient(colors: [Color.white.opacity(0.75), Color.white.opacity(0)], startPoint: .top, endPoint: .bottom))
+                        .frame(width: 26, height: 15).offset(y: -10)
+                    Circle().strokeBorder(Color.white.opacity(0.45), lineWidth: 1)
+                    Circle().strokeBorder(LinearGradient(colors: [Color.clear, Color.black.opacity(0.14)], startPoint: .top, endPoint: .bottom), lineWidth: 4).blur(radius: 2)
+                }
+                .clipShape(Circle())
+            }
+            .shadow(color: (colors.last ?? Palette.blue).opacity(0.35), radius: 6, y: 3)
+    }
+}
+/// The round glass lens around the selected orb.
+struct SelectionLens: View {
     var body: some View {
         Capsule(style: .continuous)
-            .fill(LinearGradient(colors: [Color.white.opacity(0.55), Color.white.opacity(0.22)], startPoint: .top, endPoint: .bottom))
-            .overlay(Capsule(style: .continuous).stroke(Color.white.opacity(0.7), lineWidth: 1))
-            .shadow(color: Palette.blue.opacity(0.16), radius: 8, y: 4)
-            .padding(.horizontal, 2)
+            .fill(RadialGradient(colors: [Color.white.opacity(0.55), Color.white.opacity(0.18)], center: UnitPoint(x: 0.5, y: 0.28), startRadius: 0, endRadius: 34))
+            .overlay(Capsule(style: .continuous).strokeBorder(Color.white.opacity(0.85), lineWidth: 1.5))
+            .overlay(Capsule(style: .continuous).strokeBorder(LinearGradient(colors: [Color.clear, Palette.blue.opacity(0.18)], startPoint: .top, endPoint: .bottom), lineWidth: 5).blur(radius: 3))
+            .shadow(color: Palette.blue.opacity(0.22), radius: 10, y: 6)
     }
 }
 /// Buttons squeeze while pressed and spring back.
