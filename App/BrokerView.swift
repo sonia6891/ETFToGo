@@ -49,10 +49,13 @@ struct BrokerView: View {
             Link("永豐官方帳務 API 說明", destination: URL(string: "https://sinotrade.github.io/tutor/accounting/position/")!)
         }
     }.navigationTitle("券商持有資料").navigationBarTitleDisplayMode(.inline)
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in do {
-            let value = try CSVTable.parse(DataChecks.readFile(result.get())); table = value; preview = nil
-            mapping = BrokerMapping(symbol: value.guess(["代碼", "股票代號", "證券代號", "商品代碼", "symbol", "code"]), name: value.guess(["名稱", "股票名稱", "證券名稱", "name"]), shares: value.guess(["股數", "庫存股數", "庫存數量", "數量", "shares", "quantity"]), cost: value.guess(["總成本", "投資成本", "成本", "cost"]))
-        } catch { message = error.localizedDescription } }
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
+            preview = nil; table = nil; message = nil
+            do {
+                let value = try CSVTable.parse(DataChecks.readFile(result.get())); table = value
+                mapping = BrokerMapping(symbol: value.guess(["代碼", "股票代號", "證券代號", "商品代碼", "symbol", "code"]), name: value.guess(["名稱", "股票名稱", "證券名稱", "name"]), shares: value.guess(["股數", "庫存股數", "庫存數量", "數量", "shares", "quantity"]), cost: value.guess(["總成本", "投資成本", "成本", "cost"]))
+            } catch { message = error.localizedDescription }
+        }
         .confirmationDialog("將匯入庫存，並先保存一份復原備份。", isPresented: $confirmation, titleVisibility: .visible) { Button("匯入") { do { if let preview { try store.importBroker(preview, replaceAccount: replace); message = "已匯入 \(preview.holdings.count) 筆。"; self.preview = nil; table = nil } } catch { message = error.localizedDescription } }; Button("取消", role: .cancel) {} }
         .onChange(of: broker) { _, _ in preview = nil }.onChange(of: account) { _, _ in preview = nil }
         .onChange(of: mapping.symbol) { _, _ in preview = nil }.onChange(of: mapping.name) { _, _ in preview = nil }.onChange(of: mapping.shares) { _, _ in preview = nil }.onChange(of: mapping.cost) { _, _ in preview = nil }.onChange(of: mapping.lots) { _, _ in preview = nil }.onChange(of: mapping.totalCost) { _, _ in preview = nil }

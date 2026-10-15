@@ -7,13 +7,24 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		07875818890007E983D5143F /* BrokerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87259F36DC852AF8135E965 /* BrokerView.swift */; };
 		10F7E36B158DB7E63CA101B4 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5FE47A3C3D19B0FABF00359 /* Models.swift */; };
+		149FEC2B487F219A5B8A3B4D /* ResearchViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA91E706AB643380F621F219 /* ResearchViews.swift */; };
 		1AAA72262CE7C3A24ED720B5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 74D27FC0D6D38787C4BE5FB6 /* PrivacyInfo.xcprivacy */; };
 		2293242942C405A47B28DE85 /* PortfolioViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EA07CE1D5B62DDB5D7827A /* PortfolioViews.swift */; };
+		29962F132B27E812DF5B6966 /* ResearchData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 236619A27ADADAE44D858CC7 /* ResearchData.swift */; };
+		35D9F2388BE10124F42EB4F5 /* catalog.json in Resources */ = {isa = PBXBuildFile; fileRef = B437D243F9BD0B9301D39E7E /* catalog.json */; };
 		35DE84119451BDCC8D81B257 /* ETFToGoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5843F400A19431AB664DA7DD /* ETFToGoUITests.swift */; };
+		396CD6BE05F3201DE0CCD0CA /* annual-fees.json in Resources */ = {isa = PBXBuildFile; fileRef = 4C5F2A770E30067FE3AE96E9 /* annual-fees.json */; };
+		40976523A1C62C614DF126B7 /* RestoredFeaturesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DBF15CEEA446757E64F509A /* RestoredFeaturesTests.swift */; };
+		52A39EB754258C874176C931 /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DDD6383D83BF9DFC36FFC44 /* Catalog.swift */; };
 		643F72EA9C36FF060E0C5B54 /* ETFToGoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072093705488342334C91245 /* ETFToGoApp.swift */; };
 		6DF2E960A94EA23671BE19A6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 264E61A5B7FE5D64083F2B65 /* Assets.xcassets */; };
 		6EE9393DFDC3396CE5DEA967 /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D293146BB8B94669BF6CFA5E /* ToolsView.swift */; };
+		A89267F553877B25697A9825 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6742B9A0FF1D739FB63511B8 /* PlanView.swift */; };
+		D8EA314C066A59ADEBDCEC05 /* LegacyImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AAF6C96139C535AD4A19E50 /* LegacyImport.swift */; };
+		F27E7984B1E62699D593C989 /* BrokerImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF2030D8EDBE2B88BB042831 /* BrokerImport.swift */; };
+		F42A3792F17187C2E2072A1D /* AnnualFees.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23E536B95B7E8A30ED169675 /* AnnualFees.swift */; };
 		F8D81FB1E2FD4A8601EB90F2 /* PortfolioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B6A1B483C6A1272C477FB0E /* PortfolioTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -36,14 +47,25 @@
 
 /* Begin PBXFileReference section */
 		072093705488342334C91245 /* ETFToGoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ETFToGoApp.swift; sourceTree = "<group>"; };
+		0DDD6383D83BF9DFC36FFC44 /* Catalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalog.swift; sourceTree = "<group>"; };
+		236619A27ADADAE44D858CC7 /* ResearchData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchData.swift; sourceTree = "<group>"; };
+		23E536B95B7E8A30ED169675 /* AnnualFees.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnualFees.swift; sourceTree = "<group>"; };
 		264E61A5B7FE5D64083F2B65 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		31EA07CE1D5B62DDB5D7827A /* PortfolioViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioViews.swift; sourceTree = "<group>"; };
 		3B6A1B483C6A1272C477FB0E /* PortfolioTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioTests.swift; sourceTree = "<group>"; };
+		3DBF15CEEA446757E64F509A /* RestoredFeaturesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoredFeaturesTests.swift; sourceTree = "<group>"; };
+		4AAF6C96139C535AD4A19E50 /* LegacyImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyImport.swift; sourceTree = "<group>"; };
+		4C5F2A770E30067FE3AE96E9 /* annual-fees.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "annual-fees.json"; sourceTree = "<group>"; };
 		4DB86CEF4552F0B7E34DD701 /* ETFToGoTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ETFToGoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FB1A178D28C7B85C6916E25 /* ETFToGo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ETFToGo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5843F400A19431AB664DA7DD /* ETFToGoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ETFToGoUITests.swift; sourceTree = "<group>"; };
+		6742B9A0FF1D739FB63511B8 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
 		74D27FC0D6D38787C4BE5FB6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		7F7E9EEA92DA1F054BBA3D12 /* ETFToGoUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ETFToGoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A87259F36DC852AF8135E965 /* BrokerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrokerView.swift; sourceTree = "<group>"; };
+		B437D243F9BD0B9301D39E7E /* catalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = catalog.json; sourceTree = "<group>"; };
+		CA91E706AB643380F621F219 /* ResearchViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchViews.swift; sourceTree = "<group>"; };
+		CF2030D8EDBE2B88BB042831 /* BrokerImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrokerImport.swift; sourceTree = "<group>"; };
 		D293146BB8B94669BF6CFA5E /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
 		F5FE47A3C3D19B0FABF00359 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -59,10 +81,20 @@
 			);
 			sourceTree = "<group>";
 		};
+		326FCE6E7900546067FA3A20 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4C5F2A770E30067FE3AE96E9 /* annual-fees.json */,
+				B437D243F9BD0B9301D39E7E /* catalog.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		48E6AB249185E3565A106BC6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
 				3B6A1B483C6A1272C477FB0E /* PortfolioTests.swift */,
+				3DBF15CEEA446757E64F509A /* RestoredFeaturesTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -88,12 +120,21 @@
 		FCAB97D994B54E9FAC21BE8D /* App */ = {
 			isa = PBXGroup;
 			children = (
+				23E536B95B7E8A30ED169675 /* AnnualFees.swift */,
 				264E61A5B7FE5D64083F2B65 /* Assets.xcassets */,
+				CF2030D8EDBE2B88BB042831 /* BrokerImport.swift */,
+				A87259F36DC852AF8135E965 /* BrokerView.swift */,
+				0DDD6383D83BF9DFC36FFC44 /* Catalog.swift */,
 				072093705488342334C91245 /* ETFToGoApp.swift */,
+				4AAF6C96139C535AD4A19E50 /* LegacyImport.swift */,
 				F5FE47A3C3D19B0FABF00359 /* Models.swift */,
+				6742B9A0FF1D739FB63511B8 /* PlanView.swift */,
 				31EA07CE1D5B62DDB5D7827A /* PortfolioViews.swift */,
 				74D27FC0D6D38787C4BE5FB6 /* PrivacyInfo.xcprivacy */,
+				236619A27ADADAE44D858CC7 /* ResearchData.swift */,
+				CA91E706AB643380F621F219 /* ResearchViews.swift */,
 				D293146BB8B94669BF6CFA5E /* ToolsView.swift */,
+				326FCE6E7900546067FA3A20 /* Resources */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -204,6 +245,8 @@
 			files = (
 				6DF2E960A94EA23671BE19A6 /* Assets.xcassets in Resources */,
 				1AAA72262CE7C3A24ED720B5 /* PrivacyInfo.xcprivacy in Resources */,
+				396CD6BE05F3201DE0CCD0CA /* annual-fees.json in Resources */,
+				35D9F2388BE10124F42EB4F5 /* catalog.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -222,9 +265,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F42A3792F17187C2E2072A1D /* AnnualFees.swift in Sources */,
+				F27E7984B1E62699D593C989 /* BrokerImport.swift in Sources */,
+				07875818890007E983D5143F /* BrokerView.swift in Sources */,
+				52A39EB754258C874176C931 /* Catalog.swift in Sources */,
 				643F72EA9C36FF060E0C5B54 /* ETFToGoApp.swift in Sources */,
+				D8EA314C066A59ADEBDCEC05 /* LegacyImport.swift in Sources */,
 				10F7E36B158DB7E63CA101B4 /* Models.swift in Sources */,
+				A89267F553877B25697A9825 /* PlanView.swift in Sources */,
 				2293242942C405A47B28DE85 /* PortfolioViews.swift in Sources */,
+				29962F132B27E812DF5B6966 /* ResearchData.swift in Sources */,
+				149FEC2B487F219A5B8A3B4D /* ResearchViews.swift in Sources */,
 				6EE9393DFDC3396CE5DEA967 /* ToolsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -234,6 +285,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F8D81FB1E2FD4A8601EB90F2 /* PortfolioTests.swift in Sources */,
+				40976523A1C62C614DF126B7 /* RestoredFeaturesTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -318,7 +370,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.3.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -384,7 +436,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.3.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

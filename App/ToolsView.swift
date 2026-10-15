@@ -106,7 +106,8 @@ struct BackupView: View {
         if !message.isEmpty { Section { Text(message) } }
     }.navigationTitle("資料備份").navigationBarTitleDisplayMode(.inline)
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+            pending = nil; preview = nil; message = ""
             do { let url = try result.get(); let access = url.startAccessingSecurityScopedResource(); defer { if access { url.stopAccessingSecurityScopedResource() } }; let bytes = try DataChecks.readFile(url); preview = try BackupImport.decode(bytes); pending = bytes } catch { message = error.localizedDescription }
-        }.confirmationDialog("合併這份備份？", isPresented: $confirmation, titleVisibility: .visible) { Button("合併匯入") { do { if let pending { try store.importBackup(pending); message = "匯入完成，匯入前資料已保存於復原副本。"; preview = nil } } catch { message = error.localizedDescription }; pending = nil }; Button("取消", role: .cancel) { } }
+        }.confirmationDialog("合併這份備份？", isPresented: $confirmation, titleVisibility: .visible) { Button("合併匯入") { do { if let pending { try store.importBackup(pending); message = "匯入完成，匯入前資料已保存於復原副本。"; preview = nil; self.pending = nil } } catch { message = error.localizedDescription } }; Button("取消", role: .cancel) { } }
     }
 }
