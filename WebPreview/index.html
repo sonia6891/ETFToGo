@@ -349,7 +349,7 @@ const emptyData = () => ({ holdings: [], dividends: [], quotes: {}, histories: {
 
 /* ---------- state ---------- */
 const S = {
-  mode: "demo", demo: buildDemo(), mine: emptyData(), storage: "pending",
+  mode: "demo", demo: buildDemo(), mine: emptyData(), storage: "pending", market: {}, marketAt: null, snapshotOK: null,
   tab: 0, stacks: [[], [], [], [], []], sheet: null,
   prefs: { hidden: false },
   ui: { homeRange: "1月", q: "", scope: 0, filter: { strategies: [], management: null, markets: [], assets: [] }, detail: 0, detailRange: "3月", hSection: 0, hSort: "value", hSearch: false, hq: "", dSection: 0, month: null, day: null, cmpPair: 0 },
@@ -432,6 +432,7 @@ async function loadCatalog() {
     FEES = j.fees;
     $("#fund-opts").innerHTML = FUNDS.map((f) => `<option value="${esc(f.id)}">${esc(f.name)}</option>`).join("");
     renderScreen();
+    if (CAN_FUGLE && fugleKey()) refreshMarket({ silent: true });
   } catch (e) { CATALOG_INFO = { error: true }; renderScreen(); }
 }
 function commit() { if (S.mode === "mine") persist(); renderScreen(); }
@@ -449,7 +450,7 @@ function httpMessage(code) {
   return `資料服務暫時無法使用（${code}），保留上次成功資料。`;
 }
 async function fugle(path, sym, query) {
-  if (!/^[0-9A-Z]{4,8}$/.test(sym)) throw new Error("代號格式不正確。");
+  if (!/^[0-9A-Z]{3,8}$/.test(sym)) throw new Error("代號格式不正確。");
   const key = fugleKey();
   if (!key) throw new Error("請先在「工具 › 富果行情連線」存入你的富果 API Key。");
   const url = new URL(`https://api.fugle.tw/marketdata/v1.0/stock/${path}/${sym}`);
@@ -497,8 +498,8 @@ function liveNote() {
 }
 function quoteNote(q) {
   const at = q.fetchedAt ? new Date(q.fetchedAt) : null;
-  const when = at ? `・取得於 ${at.getMonth() + 1}/${at.getDate()} ${pad(at.getHours())}:${pad(at.getMinutes())}` : "";
-  const fx = q.currency && q.currency !== "TWD" ? `・交易幣別 ${esc(q.currency)}，不計入台幣市值` : "";
+  const when = at ? `・${q.source === "snapshot" ? "即時快照" : "取得於"} ${at.getMonth() + 1}/${at.getDate()} ${pad(at.getHours())}:${pad(at.getMinutes())}` : "";
+  const fx = !q.currency || q.currency === "TWD" ? "" : q.currencyGuessed ? "・外幣級別，不計入台幣市值" : `・交易幣別 ${esc(q.currency)}，不計入台幣市值`;
   return `報價日期 ${esc(q.date)}${when}${fx}`;
 }
 function liveBlocked() {
@@ -509,7 +510,9 @@ function liveBlocked() {
   return false;
 }
 async function refreshQuotes(symbols) {
-  if (liveBlocked()) return;
+  // A single ETF's quote is market data, so it may be refreshed in demo mode too; demo holdings are not.
+  if (!(symbols && S.mode === "demo") && liveBlocked()) return;
+  if (symbols && S.mode === "demo" && (!CAN_FUGLE || !fugleKey() || busy)) { liveBlocked(); return; }
   const list = [...new Set(symbols || S.mine.holdings.map((h) => h.symbol))].sort();
   if (!list.length) { toast("請先新增持有，或到 ETF 詳情更新這檔報價。"); return; }
   busy = "quotes"; renderScreen(); toast(`正在更新 ${list.length} 檔報價…`);
@@ -518,9 +521,105 @@ async function refreshQuotes(symbols) {
     try { got[list[i]] = await fetchQuote(list[i]); } catch (e) { error = e.message; if (e.status === 401 || e.status === 403 || e.status === 429 || !fugleKey()) break; }
     if (i < list.length - 1) await sleep(2100);
   }
-  Object.assign(S.mine.quotes, got); busy = null; persist(); renderScreen();
+  if (S.mode === "mine") { Object.assign(S.mine.quotes, got); persist(); }
+  Object.assign(S.market, got); saveMarket(); busy = null; renderScreen();
   const n = Object.keys(got).length;
   toast(error ? `已更新 ${n}／${list.length} 檔。${error}` : `已更新 ${n} 檔報價`);
+}
+
+/* ---------- whole-market quotes: Fugle snapshot (Developer/Advanced plans), else symbol by symbol ---------- */
+const MARKET_KEY = "etftogo-web-market";
+let marketBusy = false;
+function saveMarket() { try { localStorage.setItem(MARKET_KEY, JSON.stringify({ at: S.marketAt, snapshotOK: S.snapshotOK, quotes: S.market })); } catch (e) { /* cache only */ } }
+function loadMarket() { try { const m = JSON.parse(localStorage.getItem(MARKET_KEY) || "null"); if (m && m.quotes) { S.market = m.quotes; S.marketAt = m.at || null; S.snapshotOK = m.snapshotOK == null ? null : m.snapshotOK; } } catch (e) { /* no cache */ } }
+function taipeiNow() {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Taipei", weekday: "short", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(new Date());
+  const get = (t) => (parts.find((p) => p.type === t) || {}).value;
+  return { weekday: get("weekday"), minutes: Number(get("hour")) * 60 + Number(get("minute")) };
+}
+function marketOpen() { const t = taipeiNow(); return !["Sat", "Sun"].includes(t.weekday) && t.minutes >= 8 * 60 + 55 && t.minutes <= 13 * 60 + 40; }
+const guessCurrency = (sym) => (/[CK]$/.test(sym) ? "UNKNOWN" : "TWD"); // foreign-currency share classes end in C or K
+async function fetchSnapshot() {
+  const out = {}; let date = "";
+  for (const market of ["TSE", "OTC"]) {
+    const r = await fugle("snapshot/quotes", market, { type: "ALLBUT0999" });
+    date = r.date || date;
+    (r.data || []).forEach((x) => {
+      if (!FUND_MAP.has(x.symbol)) return;
+      const price = num(x.closePrice) != null ? x.closePrice : num(x.lastPrice);
+      if (!(price > 0)) return;
+      out[x.symbol] = { price, change: num(x.change), changePercent: num(x.changePercent), open: num(x.openPrice), high: num(x.highPrice), low: num(x.lowPrice), volume: num(x.tradeVolume), date: String(r.date || ""), fetchedAt: Date.now(), currency: guessCurrency(x.symbol), currencyGuessed: true, source: "snapshot" };
+    });
+  }
+  return out;
+}
+async function fetchOne(sym) {
+  const q = await fugle("intraday/quote", sym);
+  const price = num(q.closePrice) != null ? q.closePrice : num(q.lastPrice);
+  if (q.symbol !== sym || !(price > 0)) return null;
+  return { price, change: num(q.change), changePercent: num(q.changePercent), open: num(q.openPrice), high: num(q.highPrice), low: num(q.lowPrice), volume: q.total ? num(q.total.tradeVolume) : null, date: String(q.date || ""), fetchedAt: Date.now(), currency: guessCurrency(sym), currencyGuessed: true, source: "quote" };
+}
+function watchList(includeList) {
+  const d = data(); const set = new Set();
+  if (S.mode === "mine") d.holdings.forEach((h) => set.add(h.symbol));
+  d.favorites.forEach((s) => set.add(s)); comparisonSymbols(d).forEach((s) => set.add(s));
+  if (includeList) filteredFunds().slice(0, 20).forEach((f) => set.add(f.id));
+  return [...set].filter((s) => FUND_MAP.has(s)).slice(0, 40);
+}
+async function refreshMarket(opts) {
+  const silent = !!(opts && opts.silent);
+  if (!CAN_FUGLE || !fugleKey()) { if (!silent) toast(liveNote() || "請先存入富果 API Key。"); return; }
+  if (marketBusy || busy) { if (!silent) toast("正在取得資料，請稍候。"); return; }
+  marketBusy = true; renderLive();
+  try {
+    if (S.snapshotOK !== false) {
+      try {
+        const got = await fetchSnapshot(); Object.assign(S.market, got); S.snapshotOK = true; S.marketAt = Date.now(); saveMarket();
+        if (!silent) toast(`已更新 ${Object.keys(got).length} 檔 ETF 即時行情`);
+        return;
+      } catch (e) {
+        if (e.status !== 403) { if (!silent) toast(e.message); return; }
+        S.snapshotOK = false; saveMarket();
+      }
+    }
+    const list = watchList(!silent);
+    if (!list.length) { if (!silent) toast("你的方案沒有全市場快照；加入自選或持有後，會逐檔更新那些 ETF。"); return; }
+    if (!silent) toast(`全市場快照需要富果開發者方案，改為逐檔更新 ${list.length} 檔…`);
+    let n = 0;
+    for (let i = 0; i < list.length; i++) {
+      try { const q = await fetchOne(list[i]); if (q) { S.market[list[i]] = q; n++; } }
+      catch (e) { if (e.status === 401 || e.status === 429) { if (!silent) toast(e.message); break; } }
+      if (i % 5 === 4) { S.marketAt = Date.now(); renderLive(); }
+      if (i < list.length - 1) await sleep(1100);
+    }
+    S.marketAt = Date.now(); saveMarket();
+    if (!silent) toast(`已逐檔更新 ${n}／${list.length} 檔行情`);
+  } finally { marketBusy = false; renderLive(); }
+}
+// Re-render only screens that show market prices, so typing elsewhere is not interrupted.
+function renderLive() { const v = current().view; if (["discover", "detail", "home", "holdings", "compare", "tools"].includes(v) && !S.sheet) renderScreen(); }
+function liveStatus() {
+  if (!CAN_FUGLE) return "";
+  if (!fugleKey()) return `<div class="banner">${icon("key")}<span class="grow">存入你的富果 API Key，就能看到所有 ETF 的即時行情。</span><button type="button" data-act="push" data-view="connection">去設定</button></div>`;
+  const at = S.marketAt ? new Date(S.marketAt) : null;
+  const when = at ? `更新於 ${pad(at.getHours())}:${pad(at.getMinutes())}:${pad(at.getSeconds())}` : "尚未更新";
+  const mode = S.snapshotOK === false ? "逐檔行情（全市場快照需富果開發者方案）" : "全市場即時行情";
+  const auto = S.snapshotOK && marketOpen() ? " · 盤中每分鐘自動更新" : "";
+  return `<div class="row small"><span class="grow muted">${mode} · ${when}${auto}</span><button type="button" class="link" data-act="refreshMarket"${marketBusy || busy ? " disabled" : ""}>${icon("refresh")}${marketBusy ? "更新中…" : "更新行情"}</button></div>`;
+}
+/* Quote shown for an ETF anywhere it is browsed: the freshest live data, else the portfolio's own. */
+function displayQuote(sym) {
+  const own = data().quotes[sym], live = S.market[sym];
+  if (!live) return own || null;
+  if (!own) return live;
+  if (S.mode === "mine" && (own.fetchedAt || 0) > (live.fetchedAt || 0)) return own;
+  return own.currency && !own.currencyGuessed && S.mode === "mine" ? Object.assign({}, live, { currency: own.currency, currencyGuessed: false }) : live;
+}
+/* Quote used for portfolio maths: demo holdings keep their sample prices; real holdings use the freshest data. */
+function quoteOf(sym, d) {
+  d = d || data();
+  if (d === S.demo) return d.quotes[sym] || null;
+  return displayQuote(sym);
 }
 async function loadHistory(sym, years) {
   if (liveBlocked()) return;
@@ -531,10 +630,10 @@ async function loadHistory(sym, years) {
 }
 
 /* ---------- calculations (ported from the Swift app) ---------- */
-function isTWDQuote(d, sym) { const q = d.quotes[sym]; return !!q && (!q.currency || q.currency === "TWD"); }
+function isTWDQuote(d, sym) { const q = quoteOf(sym, d); return !!q && (!q.currency || q.currency === "TWD"); }
 function marketValue(d) {
   if (!d.holdings.length || !d.holdings.every((h) => isTWDQuote(d, h.symbol))) return null;
-  return sum(d.holdings, (h) => h.shares * d.quotes[h.symbol].price);
+  return sum(d.holdings, (h) => h.shares * quoteOf(h.symbol, d).price);
 }
 function summary(d) {
   const now = new Date(); const ym = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
@@ -580,7 +679,7 @@ function perfStats(hist) {
 }
 function allocation(d) {
   const useValue = marketValue(d) != null; const totals = {};
-  d.holdings.forEach((h) => { const v = useValue ? h.shares * d.quotes[h.symbol].price : h.shares * h.unitCost; totals[h.strategy] = (totals[h.strategy] || 0) + v; });
+  d.holdings.forEach((h) => { const v = useValue ? h.shares * quoteOf(h.symbol, d).price : h.shares * h.unitCost; totals[h.strategy] = (totals[h.strategy] || 0) + v; });
   return { basis: useValue ? "依持有市值" : "依投入成本", slices: STRATS.filter((s) => totals[s] > 0).map((s) => ({ strategy: s, amount: totals[s] })) };
 }
 function planProject(p) {
@@ -710,7 +809,7 @@ VIEWS.home = () => {
         <div class="hero-tile"><div class="t">${icon("trend").replace("<svg", '<svg width="14" height="14"')}未實現損益</div><div class="v ${s.unrealized == null ? "" : trendCls(s.unrealized)}">${s.unrealized == null ? "—" : shown(signed(s.unrealized))}</div>${s.unrealizedPct == null ? "" : `<div class="tiny bold ${trendCls(s.unrealized)}">${shown(`(${pct(s.unrealizedPct)})`)}</div>`}</div>
         <div class="hero-tile"><div class="t">${icon("coin").replace("<svg", '<svg width="14" height="14"')}累計領息</div><div class="v">${shown(money(s.paidTotal))}</div></div>
       </div>
-      ${Object.keys(d.quotes).length ? `<div class="tiny" style="opacity:.78">${S.mode === "demo" ? "示範報價，非即時市場資訊" : busy === "quotes" ? "正在更新報價…" : "依已取得報價估算・不含交易費用・按右上角箭頭更新"}</div>` : S.mode === "mine" && d.holdings.length ? `<div class="tiny" style="opacity:.85">${liveNote() || "按右上角箭頭取得持有報價"}</div>` : ""}
+      ${S.mode === "demo" ? `<div class="tiny" style="opacity:.78">示範報價，非即時市場資訊</div>` : d.holdings.some((h) => quoteOf(h.symbol, d)) ? `<div class="tiny" style="opacity:.78">${busy === "quotes" || marketBusy ? "正在更新報價…" : "依最新取得的報價估算・不含交易費用"}</div>` : d.holdings.length ? `<div class="tiny" style="opacity:.85">${liveNote() || "按右上角箭頭取得持有報價"}</div>` : ""}
     </section>
     <div class="tiles">
       <div class="tile"><div class="grow"><div class="t">本月已領</div><div class="v">${shown(money(s.monthPaid))}</div></div></div>
@@ -757,7 +856,7 @@ function fundList() {
   const d = data(), items = filteredFunds();
   if (!items.length) return S.ui.scope === 1 && !d.favorites.length ? empty("⭐", "還沒有自選 ETF", "點清單右側的星號，即可加入自選。") : empty("🔍", "找不到符合的 ETF", "換個代號、名稱或篩選條件試試。");
   return items.map((f) => {
-    const q = d.quotes[f.id], on = d.favorites.includes(f.id);
+    const q = displayQuote(f.id), on = d.favorites.includes(f.id);
     return `<div class="fund-line"><button type="button" class="list-row grow" data-act="open" data-sym="${esc(f.id)}">
       <span class="grow"><b style="font-size:16px">${esc(f.id)}</b><br><span class="small muted ellipsis" style="display:block">${esc(f.name)}</span></span>
       <span class="price-col"><b class="num" style="font-size:16px">${q ? priceText(q.price) : "—"}</b><br>${quoteChange(q, "tiny")}</span>
@@ -774,6 +873,7 @@ VIEWS.discover = () => {
   const tw = FUNDS.filter((x) => x.market === "TWSE").length, tp = FUNDS.filter((x) => x.market === "TPEx").length;
   const body = `
     <label class="search">${icon("search")}<input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="搜尋代號或名稱（例：0050）" value="${esc(S.ui.q)}" aria-label="搜尋 ETF"></label>
+    ${liveStatus()}
     <div class="section-head"><h2 class="section-title">系統自動分類</h2><span class="tiny muted">依名稱規則整理，點選即可篩選</span></div>
     <div class="cats">${["存錢筒", "印鈔機", "老虎機"].map(cat).join("")}</div>
     <div class="row"><div style="flex:0 0 200px">${segment(["全部 ETF", "我的自選"], S.ui.scope, "scope")}</div><span class="grow"></span><button type="button" class="filter-btn" data-act="sheet" data-sheet="filter">${icon("filter")}篩選${chips.length ? " " + chips.length : ""}</button></div>
@@ -785,14 +885,14 @@ VIEWS.discover = () => {
 
 VIEWS.detail = (v) => {
   const d = data(), f = fund(v.sym) || { id: v.sym, name: nameOf(v.sym), strategy: "待分類", market: "", fundType: "", listingDate: "", fullName: "" };
-  const q = d.quotes[f.id], sec = S.ui.detail;
+  const q = displayQuote(f.id), sec = S.ui.detail;
   let content = "";
   if (sec === 0) {
     const pts = slice(historyPoints(d, f.id), S.ui.detailRange); const st = perfStats(d.histories[f.id]); const c = STRAT[f.strategy];
     content = `
       <div><div class="row" style="align-items:baseline;flex-wrap:wrap"><span class="price-big">${q ? priceText(q.price) : "—"}</span>${quoteChange(q, "")}<span class="market-badge">${f.market ? "台灣" + marketName(f) : "示範"}</span></div>
-        <p class="note">${q ? (S.mode === "demo" ? "示範報價，非即時市場資訊" : quoteNote(q)) : liveNote() || "尚未取得報價。"}</p>
-        ${canLive() ? `<button type="button" class="link" data-act="refreshOne" data-sym="${esc(f.id)}"${busy ? " disabled" : ""}>${busy === "quotes" ? "更新中…" : q ? "更新這檔報價" : "取得這檔報價"}</button>` : ""}</div>
+        <p class="note">${q ? (q.date === "示範資料" ? "示範報價，非即時市場資訊" : quoteNote(q)) : liveNote() || "尚未取得報價。"}</p>
+        ${CAN_FUGLE && fugleKey() ? `<button type="button" class="link" data-act="refreshOne" data-sym="${esc(f.id)}"${busy ? " disabled" : ""}>${busy === "quotes" ? "更新中…" : q && q.date !== "示範資料" ? "更新這檔報價" : "取得這檔即時報價"}</button>` : ""}</div>
       <div class="card">${pts.length >= 2 ? `${rangeChips(["1週", "1月", "3月", "1年", "5年"], S.ui.detailRange, "detailRange")}<div style="margin-top:10px">${lineChart(pts, { height: 170, axes: true })}</div><p class="note" style="margin-top:6px">還原日收盤價 · 資料至 ${esc(d.histories[f.id][d.histories[f.id].length - 1][0])}</p>` : `<b>尚無歷史走勢</b><p class="note" style="margin:4px 0 10px">${canLive() ? "用你的富果金鑰取得近 5 年還原日收盤價，約需 10 秒；不以試算資料代替。" : liveNote() || "iPhone App 可用你的富果金鑰取得還原日收盤價。"}</p>${canLive() ? `<button type="button" class="btn primary" data-act="loadHistory" data-sym="${esc(f.id)}" data-years="5"${busy ? " disabled" : ""}>${busy === "history:" + f.id ? "取得中…" : "取得歷史走勢"}</button>` : ""}`}</div>
       <div class="card">
         <div class="row top"><span class="emo-box" style="background:${tint(c.color, 11)}">${c.emoji}</span>
@@ -843,7 +943,7 @@ VIEWS.detail = (v) => {
 };
 
 function holdingRow(h) {
-  const d = data(), q = d.quotes[h.symbol]; const mv = isTWDQuote(d, h.symbol) ? q.price * h.shares : null; const cost = h.shares * h.unitCost; const gain = mv == null ? null : mv - cost;
+  const d = data(), q = quoteOf(h.symbol, d); const mv = isTWDQuote(d, h.symbol) ? q.price * h.shares : null; const cost = h.shares * h.unitCost; const gain = mv == null ? null : mv - cost;
   return `<button type="button" class="list-row" style="flex-direction:column;align-items:stretch;gap:5px" data-act="sheet" data-sheet="holding" data-id="${esc(h.id)}">
     <span class="row"><b>${esc(h.symbol)}</b><span class="grow ellipsis">${esc(h.name)}</span><b class="num">${mv == null ? `<span class="muted small">${q ? "外幣報價" : "尚無報價"}</span>` : shown(money(mv))}</b></span>
     <span class="row"><span class="small muted">${dec(h.shares)} 股 | 成本 ${priceText(h.unitCost)}</span><span class="tiny muted grow ellipsis">${esc(h.broker)}</span>${gain == null || cost <= 0 ? "" : `<span class="small bold num ${trendCls(gain)}">${shown(`${gain >= 0 ? "▲" : "▼"} ${signed(gain)} (${pct(gain / cost * 100)})`)}</span>`}</span></button>`;
@@ -851,7 +951,7 @@ function holdingRow(h) {
 function sortedHoldings() {
   const d = data(), q = S.ui.hq.trim().toLowerCase();
   const items = d.holdings.filter((h) => !q || [h.symbol, h.name, h.broker].some((x) => x.toLowerCase().includes(q)));
-  const mv = (h) => (isTWDQuote(d, h.symbol) ? d.quotes[h.symbol].price * h.shares : -1);
+  const mv = (h) => (isTWDQuote(d, h.symbol) ? quoteOf(h.symbol, d).price * h.shares : -1);
   const by = { value: (a, b) => mv(b) - mv(a), cost: (a, b) => b.shares * b.unitCost - a.shares * a.unitCost, profit: (a, b) => (mv(b) - b.shares * b.unitCost) - (mv(a) - a.shares * a.unitCost), symbol: (a, b) => a.symbol.localeCompare(b.symbol) };
   return items.sort(by[S.ui.hSort]);
 }
@@ -942,10 +1042,10 @@ function comparisonTable(syms, detailed) {
   const d = data();
   const rows = [];
   if (detailed) rows.push(["名稱", (s) => esc(nameOf(s, d))], ["策略", (s) => stratPill((fund(s) || { strategy: "待分類" }).strategy)]);
-  rows.push(["最新價", (s) => (d.quotes[s] ? priceText(d.quotes[s].price) : "—")]);
-  rows.push(["漲跌幅", (s) => { const q = d.quotes[s]; return q && q.changePercent != null ? `<span class="${trendCls(q.changePercent)}">${pct(q.changePercent)}</span>` : "—"; }]);
+  rows.push(["最新價", (s) => { const q = displayQuote(s); return q ? priceText(q.price) : "—"; }]);
+  rows.push(["漲跌幅", (s) => { const q = displayQuote(s); return q && q.changePercent != null ? `<span class="${trendCls(q.changePercent)}">${pct(q.changePercent)}</span>` : "—"; }]);
   rows.push(["年度總費用率", (s) => (FEES && FEES.records[s] ? dec(FEES.records[s][1]) + "%" : "未收錄")]);
-  if (detailed) rows.push(["報價日期", (s) => (d.quotes[s] ? esc(d.quotes[s].date) : "—")], ["年化波動", (s) => { const st = perfStats(d.histories[s]); return st && st.volatility != null ? dec(st.volatility * 100) + "%" : "—"; }]);
+  if (detailed) rows.push(["報價日期", (s) => { const q = displayQuote(s); return q ? esc(q.date) : "—"; }], ["年化波動", (s) => { const st = perfStats(d.histories[s]); return st && st.volatility != null ? dec(st.volatility * 100) + "%" : "—"; }]);
   return `<div class="table-wrap"><table class="cmp"><thead><tr><th>項目</th>${syms.map((s) => `<th>${esc(s)}</th>`).join("")}</tr></thead><tbody>${rows.map(([t, f]) => `<tr><td>${t}</td>${syms.map((s) => `<td>${f(s)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 VIEWS.tools = () => {
@@ -1240,7 +1340,8 @@ const ACT = {
   askClear: () => { S.ui.confirmClear = true; renderScreen(); },
   cancelClear: () => { S.ui.confirmClear = false; renderScreen(); },
   clearMine: () => { S.mine = emptyData(); S.ui.confirmClear = false; persist(); persistHistories(); renderScreen(); toast("已清除我的測試資料"); },
-  refreshAll: () => refreshQuotes(),
+  refreshAll: () => (S.snapshotOK === false ? refreshQuotes() : refreshMarket()),
+  refreshMarket: () => refreshMarket(),
   refreshOne: (ds) => refreshQuotes([ds.sym]),
   loadHistory: (ds) => { const sel = $("#hist-years"); loadHistory(ds.sym, Number(ds.years || (sel && sel.value) || 5)); },
   saveKey: () => {
@@ -1248,7 +1349,8 @@ const ACT = {
     if (!key) { S.ui.keyMsg = "請先貼上金鑰。"; renderScreen(); return; }
     if (key.length > 300 || /\s/.test(key)) { S.ui.keyMsg = "金鑰格式不正確，請重新複製。"; renderScreen(); return; }
     try { localStorage.setItem(FUGLE_KEY, key); } catch (e) { S.ui.keyMsg = "這個瀏覽器不允許儲存（例如私密瀏覽），請改用一般模式。"; renderScreen(); return; }
-    el.value = ""; S.ui.keyMsg = "已存入這個瀏覽器；尚未驗證行情權限。"; renderScreen();
+    el.value = ""; S.ui.keyMsg = "已存入這個瀏覽器，正在取得全部 ETF 行情…"; S.snapshotOK = null; renderScreen();
+    refreshMarket();
   },
   testKey: async () => {
     if (busy) return;
@@ -1256,6 +1358,7 @@ const ACT = {
     try {
       const q = await fetchQuote("0050");
       if (S.mode === "mine") { S.mine.quotes["0050"] = q; persist(); }
+      S.market["0050"] = q; saveMarket();
       S.ui.keyMsg = `連線成功：0050 報價日期 ${q.date}，${priceText(q.price)} 元。${S.mode === "mine" ? "" : "（示範模式不保存報價）"}`;
     } catch (e) { S.ui.keyMsg = e.message; }
     busy = null; renderScreen();
@@ -1307,7 +1410,11 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.sheet)
 
 /* ---------- boot ---------- */
 const hadMode = loadPrefs();
+loadMarket();
 renderScreen();
+// During trading hours, keep whole-market quotes fresh while the page is in front.
+setInterval(() => { if (document.visibilityState === "visible" && S.snapshotOK && CAN_FUGLE && fugleKey() && marketOpen()) refreshMarket({ silent: true }); }, 60000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && CAN_FUGLE && fugleKey() && S.snapshotOK && (!S.marketAt || Date.now() - S.marketAt > 60000)) refreshMarket({ silent: true }); });
 loadCatalog();
 initStore(hadMode);
 </script>
