@@ -106,14 +106,13 @@ struct DiscoverView: View {
         let color = Palette.strategy(strategy)
         return Button { filter.strategies = selected ? [] : [strategy] } label: {
             VStack(spacing: 4) {
-                Text(strategy.emoji).font(.system(size: 38))
-                Text(strategy.rawValue).font(.subheadline.bold()).foregroundStyle(Palette.ink)
-                Text(strategy.tagline).font(.caption2).foregroundStyle(Palette.muted)
-                Text("\(count) 檔").font(.caption2.weight(.bold)).foregroundStyle(color)
+                StrategyArt(strategy: strategy, size: 64)
+                Text(strategy.rawValue).font(.headline).foregroundStyle(Palette.ink).padding(.top, 2)
+                Text(strategy.tagline).font(.caption).foregroundStyle(Palette.muted)
             }
-            .frame(maxWidth: .infinity).padding(.vertical, 12)
-            .background(color.opacity(selected ? 0.2 : 0.09), in: RoundedRectangle(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(color.opacity(selected ? 0.8 : 0), lineWidth: 1.5))
+            .frame(maxWidth: .infinity).padding(.vertical, 14)
+            .background(LinearGradient(colors: [color.opacity(selected ? 0.22 : 0.13), color.opacity(selected ? 0.12 : 0.04)], startPoint: .top, endPoint: .bottom), in: RoundedRectangle(cornerRadius: 20))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(color.opacity(selected ? 0.8 : 0), lineWidth: 1.5))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(strategy.rawValue)，\(strategy.tagline)，\(count) 檔")
@@ -341,7 +340,7 @@ struct FundDetail: View {
         let color = Palette.strategy(strategy)
         return Card {
             HStack(alignment: .top, spacing: 12) {
-                Text(strategy.emoji).font(.system(size: 40)).frame(width: 62, height: 62).background(color.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+                StrategyArt(strategy: strategy, size: 54).frame(width: 64, height: 64).background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 0) {
                         Text("系統分類：").font(.subheadline.bold()).foregroundStyle(Palette.ink)
@@ -352,16 +351,20 @@ struct FundDetail: View {
                     HStack {
                         Text("\(strategy.tagline)・\(fund.managementStyle)").font(.caption).foregroundStyle(Palette.muted)
                         Spacer(minLength: 4)
-                        if let volatility = stats?.volatility {
-                            Text("年化波動 \(decimal(volatility * 100))%").font(.caption2.bold()).foregroundStyle(Palette.orange)
-                                .padding(.horizontal, 8).padding(.vertical, 4).background(Palette.orange.opacity(0.12), in: Capsule())
-                        }
+                        Text("風險：\(fund.riskLevel)").font(.caption2.bold()).foregroundStyle(Palette.orange)
+                            .padding(.horizontal, 8).padding(.vertical, 4).background(Palette.orange.opacity(0.12), in: Capsule())
                     }
                 }
             }
-            Text(strategy.explanation).font(.subheadline).foregroundStyle(Palette.ink.opacity(0.85)).padding(.top, 12)
+            Text(explanation).font(.subheadline).foregroundStyle(Palette.ink.opacity(0.85)).padding(.top, 12)
             Button { basis = true } label: { HStack(spacing: 2) { Text("查看分類依據"); Image(systemName: "chevron.right") }.font(.caption.bold()) }.padding(.top, 8)
         }
+    }
+    private var explanation: String {
+        var text = fund.strategy.explanation
+        if fund.strategy != .unclassified { text += fund.riskSentence }
+        if let volatility = stats?.volatility { text += "近期年化波動 \(decimal(volatility * 100))%。" }
+        return text
     }
     private var quoteStats: some View {
         Card {

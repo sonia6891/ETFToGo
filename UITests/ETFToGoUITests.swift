@@ -66,7 +66,10 @@ final class ETFToGoUITests: XCTestCase {
         XCTAssertFalse(app.buttons["home-add-holding"].exists, "The empty-portfolio prompt disappears once a holding is saved")
         app.terminate(); app.launchArguments = ["--ui-testing", "--tab", "2"]; app.launch()
         XCTAssertTrue(app.staticTexts["0050"].waitForExistence(timeout: 10))
-        app.buttons["券商帳戶"].tap()
-        XCTAssertTrue(app.staticTexts["Test Broker"].waitForExistence(timeout: 5))
+        app.buttons["交易紀錄"].tap()
+        XCTAssertTrue(app.staticTexts["買進"].waitForExistence(timeout: 5), "Saving a new holding is recorded in the trade log")
+        XCTAssertTrue(app.staticTexts["Test Broker"].exists)
+        app.buttons["資產配置"].tap()
+        XCTAssertTrue(app.staticTexts["券商帳戶"].waitForExistence(timeout: 5))
     }
 }

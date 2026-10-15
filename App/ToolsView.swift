@@ -7,12 +7,12 @@ struct ToolsView: View {
     var body: some View {
         Page {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                tile("股息複利", "試算長期領息效果", icon: "chart.bar.fill", color: Palette.blue) { PlanView() }
-                tile("領息目標", "設定並追蹤目標", icon: "target", color: Palette.purple) { GoalView() }
-                tile("定期定額", "試算投入成果", icon: "calendar.badge.clock", color: Palette.orange) { CalculatorView() }
-                tile("三檔比較", "快速比較多檔 ETF", icon: "chart.bar.xaxis", color: Palette.blue) { ComparisonView() }
-                tile("持股透視", "合併成分股曝險", icon: "chart.pie.fill", color: Palette.orange) { ExposureView() }
-                tile("提醒中心", "配息入帳提醒", icon: "bell.badge.fill", color: Palette.red) { ReminderCenterView() }
+                tile("股息複利", "試算長期複利效果", art: "tool-compound") { PlanView() }
+                tile("領息目標", "設定並追蹤目標", art: "tool-goal") { GoalView() }
+                tile("定期定額", "試算投入成果", art: "tool-dca") { CalculatorView() }
+                tile("三檔比較", "快速比較多檔 ETF", art: "tool-compare") { ComparisonView() }
+                tile("持股透視", "合併成分股曝險", art: "tool-exposure") { ExposureView() }
+                tile("提醒中心", "配息入帳提醒", art: "tool-alerts") { ReminderCenterView() }
             }
             ComparisonPreview()
             SectionHeading(title: "連線與資料")
@@ -21,10 +21,10 @@ struct ToolsView: View {
         }
         .navigationTitle("工具").navigationBarTitleDisplayMode(.inline)
     }
-    private func tile<Destination: View>(_ title: String, _ subtitle: String, icon: String, color: Color, @ViewBuilder destination: @escaping () -> Destination) -> some View {
+    private func tile<Destination: View>(_ title: String, _ subtitle: String, art: String, @ViewBuilder destination: @escaping () -> Destination) -> some View {
         NavigationLink { destination() } label: {
             VStack(spacing: 8) {
-                Image(systemName: icon).font(.system(size: 30, weight: .semibold)).foregroundStyle(color.gradient).frame(height: 40)
+                Artwork(name: art, size: 52)
                 Text(title).font(.headline).foregroundStyle(Palette.ink)
                 Text(subtitle).font(.caption).foregroundStyle(Palette.muted).lineLimit(1).minimumScaleFactor(0.8)
             }
@@ -121,7 +121,7 @@ struct ComparisonPreview: View {
         NavigationLink { ComparisonView() } label: {
             Card {
                 HStack {
-                    Image(systemName: "chart.bar.xaxis").foregroundStyle(Palette.blue)
+                    Artwork(name: "tool-compare", size: 24)
                     Text("三檔 ETF 比較").font(.headline).foregroundStyle(Palette.ink)
                     Spacer()
                     HStack(spacing: 2) { Text("完整比較"); Image(systemName: "chevron.right") }.font(.caption).foregroundStyle(Palette.blue)

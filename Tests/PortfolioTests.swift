@@ -37,6 +37,19 @@ final class PortfolioTests: XCTestCase {
         XCTAssertEqual(reopened.data.holdings.count, count)
         XCTAssertTrue(reopened.data.holdings.contains { $0.id == holding.id })
     }
+    @MainActor func testTradeLogRecordsHoldingChanges() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let url = directory.appendingPathComponent("data.json")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = PortfolioStore(url: url)
+        var holding = Portfolio.demo.holdings[0]
+        try store.save(holding); try store.save(holding)
+        holding.shares += 1000; try store.save(holding)
+        try store.remove(holding)
+        XCTAssertEqual(store.data.trades?.map(\.action), [.buy, .adjust, .remove], "Saving unchanged values adds no entry")
+        XCTAssertEqual(store.data.trades?.last?.shares, 3000)
+        XCTAssertEqual(PortfolioStore(url: url).data.trades?.count, 3)
+    }
     @MainActor func testMalformedFileIsNotOverwritten() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let original = Data("invalid data".utf8)

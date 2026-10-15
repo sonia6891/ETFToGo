@@ -108,6 +108,7 @@ struct HomeView: View {
                     Text(shown("\(signed(total)) (\(percentText(percent)))", hidden: hidden)).font(.subheadline.bold()).monospacedDigit()
                     Text("含息報酬").font(.caption).opacity(0.8)
                 }
+                .foregroundStyle(total > 0 ? Palette.heroUp : (total < 0 ? Palette.heroDown : Color.white))
             } else {
                 Text(store.data.holdings.isEmpty ? "新增持有後，這裡會整理你的資產" : "取得全部持有的台幣報價後，即可估算市值").font(.subheadline).opacity(0.85)
             }

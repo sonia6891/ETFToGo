@@ -46,6 +46,26 @@ struct Holding: Identifiable, Codable {
               cost.isFinite, !broker.isEmpty, broker.count <= 120, symbol.count <= 20, name.count <= 120 else { throw StoreError.invalidHolding }
     }
 }
+enum TradeAction: String, Codable, CaseIterable { case buy = "買進", adjust = "調整", remove = "移除", brokerImport = "匯入" }
+/// A change the user made to a holding in this app; not a broker fill report.
+struct Trade: Identifiable, Codable {
+    var id = UUID()
+    var date: Date
+    var action: TradeAction
+    var symbol: String
+    var name: String
+    var shares: Double
+    var unitCost: Double
+    var broker: String
+    var isValid: Bool {
+        !symbol.isEmpty && symbol.count <= 20 && name.count <= 120 && broker.count <= 120
+            && shares.isFinite && shares >= 0 && shares <= 1e10 && unitCost.isFinite && unitCost >= 0 && unitCost <= 1e9
+    }
+    init(id: UUID = UUID(), date: Date = Date(), action: TradeAction, holding: Holding) {
+        self.id = id; self.date = date; self.action = action
+        symbol = holding.symbol; name = holding.name; shares = holding.shares; unitCost = holding.unitCost; broker = holding.broker
+    }
+}
 enum DividendStatus: String, Codable, CaseIterable { case paid = "已入帳", announced = "已公告", estimated = "預估" }
 struct Dividend: Identifiable, Codable {
     var id = UUID()
@@ -86,7 +106,16 @@ struct Portfolio: Codable {
     var components: [String: ComponentSnapshot]? = nil
     var histories: [String: PriceHistory]? = nil
     var fees: [String: FeeRecord]? = nil
+    /// Absent in files written before the trade log existed.
+    var trades: [Trade]? = nil
     var cost: Double { holdings.reduce(0) { $0 + $1.cost } }
+    /// Appends to the trade log, keeping the most recent 5,000 entries.
+    mutating func log(_ action: TradeAction, _ holding: Holding) {
+        var list = trades ?? []
+        list.append(Trade(action: action, holding: holding))
+        if list.count > 5000 { list.removeFirst(list.count - 5000) }
+        trades = list
+    }
     var marketValue: Double? {
         guard !holdings.isEmpty, holdings.allSatisfy({ quotes[$0.symbol]?.isTWD == true }) else { return nil }
         return holdings.reduce(0) { $0 + $1.shares * quotes[$1.symbol]!.price }
@@ -99,7 +128,10 @@ struct Portfolio: Codable {
         guard Set(value.holdings.map(\.id)).count == value.holdings.count,
               Set(value.dividends.map(\.id)).count == value.dividends.count,
               value.dividends.allSatisfy({ !$0.symbol.isEmpty && $0.amount.isFinite && $0.amount >= 0 }),
-              value.quotes.allSatisfy({ $0.key == $0.value.symbol && $0.value.isValid })
+              value.quotes.allSatisfy({ $0.key == $0.value.symbol && $0.value.isValid }),
+              (value.trades?.count ?? 0) <= 50000,
+              Set((value.trades ?? []).map(\.id)).count == (value.trades?.count ?? 0),
+              (value.trades ?? []).allSatisfy(\.isValid)
         else { throw StoreError.unsupportedBackup }
         try value.legacyPlan?.validate()
         for d in (value.legacyDividends ?? [:]).values { try d.validate() }
@@ -165,6 +197,13 @@ struct Portfolio: Codable {
             histories[holding.symbol] = PriceHistory(symbol: holding.symbol, adjusted: true, points: unique, fetchedDay: DataChecks.day(), source: "示範資料")
         }
         value.histories = histories
+        value.trades = value.holdings.enumerated().map { index, holding in
+            Trade(date: day(3 + index * 4, months: -6 + index), action: .buy, holding: holding)
+        }
+        if var top = value.holdings.first {
+            top.shares += 1000
+            value.trades?.append(Trade(date: day(10, months: -1), action: .adjust, holding: top))
+        }
         return value
     }
 }
@@ -221,11 +260,23 @@ enum StoreError: LocalizedError {
     func save(_ holding: Holding) throws {
         try holding.validate()
         var next = data
-        if let i = next.holdings.firstIndex(where: { $0.id == holding.id }) { next.holdings[i] = holding }
-        else { next.holdings.append(holding) }
+        if let i = next.holdings.firstIndex(where: { $0.id == holding.id }) {
+            let old = next.holdings[i]
+            next.holdings[i] = holding
+            if old.symbol != holding.symbol || old.shares != holding.shares || old.unitCost != holding.unitCost || old.broker != holding.broker { next.log(.adjust, holding) }
+        } else {
+            next.holdings.append(holding)
+            next.log(.buy, holding)
+        }
         try commit(next)
     }
-    func remove(_ holding: Holding) throws { var next = data; next.holdings.removeAll { $0.id == holding.id }; try commit(next) }
+    func remove(_ holding: Holding) throws {
+        var next = data
+        guard let stored = next.holdings.first(where: { $0.id == holding.id }) else { return }
+        next.holdings.removeAll { $0.id == holding.id }
+        next.log(.remove, stored)
+        try commit(next)
+    }
     func favorite(_ symbol: String) {
         var next = data
         if next.favorites.contains(symbol) { next.favorites.remove(symbol) } else { next.favorites.insert(symbol) }
@@ -263,6 +314,10 @@ enum StoreError: LocalizedError {
         }
         for item in incoming.dividends {
             if let i = next.dividends.firstIndex(where: { $0.id == item.id }) { next.dividends[i] = item } else { next.dividends.append(item) }
+        }
+        for item in incoming.trades ?? [] {
+            if next.trades == nil { next.trades = [] }
+            if let i = next.trades?.firstIndex(where: { $0.id == item.id }) { next.trades?[i] = item } else { next.trades?.append(item) }
         }
         next.favorites.formUnion(incoming.favorites)
         next.comparison = incoming.comparison ?? next.comparison

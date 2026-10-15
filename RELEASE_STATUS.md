@@ -7,6 +7,7 @@
 - 依「ETF 袋著走」設計稿重做五個分頁、ETF 詳情、配息月曆與工具頁，並新增領息目標、提醒中心（本機通知）、三檔比較、篩選、隱藏金額及報價開高低量。功能與資料串接說明見 README。
 - 此改版在沒有 Xcode 的 Windows 環境撰寫，**只做過 Swift 語法剖析（tree-sitter，0 錯誤），尚未經 Xcode 編譯、單元測試或 UI 測試。** UI 測試已依新分頁名稱（探索、持有）、詳情分頁（持股、走勢、資訊）與按鈕文字（新增配息紀錄）更新。
 - 新增 Theme.swift、DiscoverViews.swift，已同時加入 project.yml 來源資料夾與 ETFToGo.xcodeproj。
+- 2026-10-15 依 Figma 設計稿（https://www.figma.com/design/ivdDhUgFxIzInvJzFZ7KgM）再對齊：Figma AI 插圖放入 Assets.xcassets/Art、上漲綠下跌紅、持有頁「交易紀錄」分頁（新增 `Portfolio.trades`，舊檔沒有此欄位仍可讀取）、詳情風險標示、App 圖示換成白底口袋圖。同樣只做過 tree-sitter 語法剖析（0 錯誤），**尚未編譯或測試**；新增單元測試 `testTradeLogRecordsHoldingChanges`，UI 測試改點「交易紀錄」與「資產配置」。網頁版已同步發佈。
 - 合併前需在 Mac 執行 `xcodegen generate` 及 native-ui workflow，確認編譯、測試與五頁截圖。
 - 2026-10-15 Tuist Runners 檢查：GitHub 連結（etftogo ↔ sonia6891/ETFToGo）與 `tuist-macos` 規格均已設定，工作會送進 Tuist；但 macOS 工作在 Tuist 佇列中未被任何機器認領（[run 38680144589](https://github.com/sonia6891/ETFToGo/actions/runs/38680144589) 排隊 5 小時後取消、[run 38715224691](https://github.com/sonia6891/ETFToGo/actions/runs/38715224691) 仍在排隊）。Linux 測試工作在 Tuist 顯示已認領，但 GitHub 端 12 分鐘仍未取得 runner。sonia6891 是個人帳號，而 Tuist 文件要求連結 GitHub organization，推測與此有關，需向 Tuist 確認。
 

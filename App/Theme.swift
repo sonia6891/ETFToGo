@@ -12,9 +12,12 @@ enum Palette {
     static let orange = Color(red: 1.0, green: 0.58, blue: 0.10)
     static let pink = Color(red: 0.93, green: 0.33, blue: 0.52)
     static let purple = Color(red: 0.49, green: 0.33, blue: 0.96)
-    // Taiwan market convention: rising prices are red, falling prices are green.
-    static let up = red
-    static let down = green
+    // The approved design shows gains in green and losses in red (same as the web preview).
+    static let up = green
+    static let down = red
+    /// Lighter versions for text on the blue hero gradient.
+    static let heroUp = Color(red: 0.77, green: 0.97, blue: 0.83)
+    static let heroDown = Color(red: 1.0, green: 0.82, blue: 0.83)
     static func trend(_ value: Double) -> Color { value > 0 ? up : (value < 0 ? down : muted) }
     static func strategy(_ value: Strategy) -> Color { switch value { case .saving: return pink; case .income: return green; case .risk: return purple; case .unclassified: return muted } }
     static func status(_ value: DividendStatus) -> Color { switch value { case .paid: return green; case .announced: return blue; case .estimated: return orange } }
@@ -31,7 +34,8 @@ func shown(_ text: String, hidden: Bool) -> String { hidden ? "＊＊＊＊" : t
 func monthDay(_ date: Date) -> String { "\(Calendar.current.component(.month, from: date))/\(Calendar.current.component(.day, from: date))" }
 
 extension Strategy {
-    var emoji: String { switch self { case .saving: return "🐷"; case .income: return "🖨️"; case .risk: return "🎰"; case .unclassified: return "🏷️" } }
+    /// Illustration in Assets.xcassets/Art (generated with Figma AI for the design); none for unclassified funds.
+    var artwork: String? { switch self { case .saving: return "cat-saving"; case .income: return "cat-income"; case .risk: return "cat-risk"; case .unclassified: return nil } }
     var tagline: String { switch self { case .saving: return "長期累積"; case .income: return "配息現金流"; case .risk: return "高風險機會"; case .unclassified: return "尚未分類" } }
     var explanation: String {
         switch self {
@@ -41,7 +45,7 @@ extension Strategy {
         case .unclassified: return "尚未符合自動分類規則；新增持有時可自行選擇策略。"
         }
     }
-    static let basis = "依 ETF 名稱自動整理：含「正2／反1／槓桿／反向」為老虎機；含「高股息／優息／高息」為印鈔機；元大台灣50、富邦台50、元大富櫃50 為存錢筒；其餘待分類。分類是整理策略的方式，不是收益保證。"
+    static let basis = "依 ETF 名稱自動整理：含「正2／反1／槓桿／反向」為老虎機；含「高股息／優息／高息」為印鈔機；元大台灣50、富邦台50、元大富櫃50 為存錢筒；其餘待分類。分類是整理策略的方式，不是收益保證。\n\n風險標示依資產類型參考投信基金 RR 風險等級慣例：股票型約 RR4（中高）、槓桿／反向型 RR5（高）、債券型 RR2–RR3（中低～中）。實際等級以各基金公開說明書為準。"
 }
 extension Fund {
     var isActive: Bool { id.hasSuffix("A") || name.contains("主動") || (fundType ?? "").contains("主動") }
@@ -57,6 +61,21 @@ extension Fund {
         return "其他"
     }
     static let assetClasses = ["台股", "海外股票", "債券", "槓桿／反向", "期貨", "其他"]
+    /// Rough risk label by asset type, following the RR convention described in `Strategy.basis`.
+    var riskLevel: String {
+        switch assetClass {
+        case "槓桿／反向", "期貨": return "高"
+        case "債券": return "中"
+        default: return "中高"
+        }
+    }
+    var riskSentence: String {
+        switch riskLevel {
+        case "高": return "槓桿或期貨部位使波動放大，屬高風險。"
+        case "中": return "以債券為主，價格仍受利率影響，屬中度風險。"
+        default: return "股價波動直接反映在淨值，屬中高風險。"
+        }
+    }
 }
 extension Quote {
     var changeAmount: Double? {
@@ -210,7 +229,30 @@ struct StatusPill: View {
         .background(Palette.status(status).opacity(0.12), in: Capsule())
     }
 }
-/// "▲ +1.20 (+0.65%)" in Taiwan market colours; nothing is invented when the quote has no change data.
+/// One of the design's illustrations, scaled to fit a square; decorative, so hidden from VoiceOver.
+struct Artwork: View {
+    let name: String
+    var size: CGFloat = 56
+    var body: some View {
+        Image(name).resizable().interpolation(.high).scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+}
+/// The strategy's illustration, or a tag symbol for unclassified funds.
+struct StrategyArt: View {
+    let strategy: Strategy
+    var size: CGFloat = 56
+    var body: some View {
+        if let name = strategy.artwork {
+            Artwork(name: name, size: size)
+        } else {
+            Image(systemName: "tag.fill").font(.system(size: size * 0.45)).foregroundStyle(Palette.muted)
+                .frame(width: size, height: size).accessibilityHidden(true)
+        }
+    }
+}
+/// "▲ +1.20 (+0.65%)" in the design's colours (gains green, losses red); nothing is invented when the quote has no change data.
 struct QuoteChange: View {
     let quote: Quote?
     var font: Font = .caption
@@ -306,9 +348,13 @@ struct StatTile: View {
     let value: String
     var icon: String? = nil
     var tint: Color = Palette.blue
+    /// An illustration from Assets.xcassets/Art, shown instead of `icon`.
+    var art: String? = nil
     var body: some View {
         HStack(spacing: 10) {
-            if let icon {
+            if let art {
+                Artwork(name: art, size: 40).frame(width: 46, height: 46).background(tint.opacity(0.1), in: Circle())
+            } else if let icon {
                 Image(systemName: icon).font(.headline).foregroundStyle(.white)
                     .frame(width: 36, height: 36).background(tint.gradient, in: Circle())
             }

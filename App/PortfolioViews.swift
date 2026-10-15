@@ -27,7 +27,7 @@ struct HoldingsView: View {
     }
     var body: some View {
         Page {
-            SegmentBar(items: ["持有部位", "券商帳戶", "資產配置"], selection: $section)
+            SegmentBar(items: ["持有部位", "交易紀錄", "資產配置"], selection: $section)
             if searching {
                 HStack {
                     Image(systemName: "magnifyingglass").foregroundStyle(Palette.muted)
@@ -35,8 +35,10 @@ struct HoldingsView: View {
                 }.padding(12).background(.white, in: RoundedRectangle(cornerRadius: 14))
             }
             switch section {
-            case 1: accounts
-            case 2: AllocationContent()
+            case 1: tradeLog
+            case 2:
+                AllocationContent()
+                accounts
             default: positions
             }
             Text("股數以「股」為單位，成本統一填台幣（可包含實際手續費）。未確認幣別或外幣報價不直接加總為台幣市值。").font(.caption).foregroundStyle(Palette.muted)
@@ -142,7 +144,25 @@ struct HoldingsView: View {
             }.padding(.vertical, 10).contentShape(Rectangle())
         }.buttonStyle(.plain)
     }
+    @ViewBuilder private var tradeLog: some View {
+        let text = query.trimmingCharacters(in: .whitespaces)
+        let items = (store.data.trades ?? [])
+            .filter { text.isEmpty || $0.symbol.localizedCaseInsensitiveContains(text) || $0.name.localizedCaseInsensitiveContains(text) || $0.broker.localizedCaseInsensitiveContains(text) }
+            .sorted { $0.date > $1.date }
+        if items.isEmpty {
+            Card { ContentUnavailableView("還沒有交易紀錄", systemImage: "list.bullet.rectangle", description: Text("新增、修改、刪除持有或匯入券商庫存時，會自動記在這裡。")) }
+        } else {
+            Card(padding: 14) {
+                ForEach(items) { trade in
+                    TradeRow(trade: trade)
+                    if trade.id != items.last?.id { Divider() }
+                }
+            }
+        }
+        Text("交易紀錄來自你在 App 內新增、修改、刪除持有與匯入券商庫存的操作，不是券商成交回報。").font(.caption).foregroundStyle(Palette.muted)
+    }
     @ViewBuilder private var accounts: some View {
+        SectionHeading(title: "券商帳戶", subtitle: "依券商整理持有")
         if brokers.isEmpty {
             Card { ContentUnavailableView("還沒有券商帳戶", systemImage: "building.columns", description: Text("新增持有時填入券商，或匯入券商庫存 CSV。")) }
         }
@@ -163,6 +183,35 @@ struct HoldingsView: View {
             }
         }
         NavigationLink { BrokerView() } label: { Card(padding: 12) { ToolRow(title: "匯入券商庫存", subtitle: "所有券商 CSV 欄位對應與預覽", icon: "square.and.arrow.down") } }.buttonStyle(.plain)
+    }
+}
+struct TradeRow: View {
+    let trade: Trade
+    private var tint: Color {
+        switch trade.action { case .buy: return Palette.green; case .adjust: return Palette.blue; case .remove: return Palette.red; case .brokerImport: return Palette.purple }
+    }
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(trade.action.rawValue).font(.caption.bold()).foregroundStyle(tint)
+                .padding(.horizontal, 8).padding(.vertical, 5)
+                .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(trade.symbol).font(.subheadline.bold())
+                    Text(trade.name).font(.subheadline).lineLimit(1)
+                }.foregroundStyle(Palette.ink)
+                HStack(spacing: 6) {
+                    Text(trade.date.formatted(date: .numeric, time: .omitted))
+                    Text(trade.broker).lineLimit(1)
+                }.font(.caption).foregroundStyle(Palette.muted)
+            }
+            Spacer(minLength: 6)
+            VStack(alignment: .trailing, spacing: 3) {
+                Text("\(decimal(trade.shares)) 股").font(.subheadline.bold()).monospacedDigit().foregroundStyle(Palette.ink)
+                Text("@ \(priceText(trade.unitCost))").font(.caption).monospacedDigit().foregroundStyle(Palette.muted)
+            }
+        }
+        .padding(.vertical, 8)
     }
 }
 struct AllocationSlice: Identifiable {
@@ -265,7 +314,7 @@ struct HoldingEditor: View {
                     TextField("持有股數（股）", text: $shares).keyboardType(.decimalPad).accessibilityIdentifier("holding-shares")
                     TextField("每股買入成本（元）", text: $cost).keyboardType(.decimalPad).accessibilityIdentifier("holding-cost")
                     TextField("券商名稱", text: $broker).accessibilityIdentifier("holding-broker")
-                    Picker("策略分類", selection: $strategy) { ForEach(Strategy.allCases) { Text("\($0.emoji) \($0.rawValue)").tag($0) } }
+                    Picker("策略分類", selection: $strategy) { ForEach(Strategy.allCases) { Text($0.rawValue).tag($0) } }
                 } footer: { Text("輸入 1,000 股代表 1 張。策略可以日後調整，不影響持有數量。") }
                 if let s = Double(shares), let c = Double(cost), s > 0, c > 0 { Section { LabeledContent("這筆投入成本", value: "$\(money(s * c))") } }
                 if let error { Section { Text(error).foregroundStyle(.red) } }
@@ -318,8 +367,8 @@ struct DividendsView: View {
         let paid = monthEntries.filter { $0.status == .paid }.reduce(0.0) { $0 + $1.amount }
         let pending = monthEntries.filter { $0.status != .paid }.reduce(0.0) { $0 + $1.amount }
         HStack(spacing: 10) {
-            StatTile(title: "本月已領", value: "$\(money(paid))", icon: "dollarsign.circle.fill", tint: Palette.blue)
-            StatTile(title: "待入帳", value: "$\(money(pending))", icon: "clock.fill", tint: Palette.orange)
+            StatTile(title: "本月已領", value: "$\(money(paid))", tint: Palette.blue, art: "div-paid")
+            StatTile(title: "待入帳", value: "$\(money(pending))", tint: Palette.orange, art: "div-pending")
         }
         Card(padding: 14) {
             HStack {
