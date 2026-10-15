@@ -17,6 +17,8 @@ struct ToolsView: View {
                 NavigationLink { ComparisonView() } label: { toolRow("ETF 比較", "並排查看策略與已取得的報價", icon: "rectangle.split.2x1") }
                 Divider().padding(.vertical, 7)
                 NavigationLink { CalculatorView() } label: { toolRow("複利試算", "每月多存一點，未來有什麼不同", icon: "function") }
+                Divider().padding(.vertical, 7)
+                NavigationLink { PlanView() } label: { toolRow("配息再投入試算", "延續舊版試算設定與現金規劃", icon: "arrow.2.circlepath") }
             }
             SectionHeading(title: "連線與資料")
             Card {
@@ -56,7 +58,11 @@ struct ComparisonView: View {
         HStack(alignment: .top, spacing: 12) { column(left); column(right) }
         OverlapPanel(left: left, right: right)
         Text("策略分類為初步標籤，資料日期與範圍須一起比較。").font(.caption).foregroundStyle(.secondary)
-    }.navigationTitle("ETF 比較").navigationBarTitleDisplayMode(.inline) }
+    }.navigationTitle("ETF 比較").navigationBarTitleDisplayMode(.inline)
+        .onAppear { if let saved = store.data.comparison, saved.count >= 2 { left = saved[0]; right = saved[1] } }
+        .onChange(of: left) { _, _ in saveSelection() }.onChange(of: right) { _, _ in saveSelection() }
+    }
+    private func saveSelection() { var next = store.data; next.comparison = [left, right]; do { try store.commit(next) } catch { store.message = error.localizedDescription } }
     func fundPicker(_ title: String, selection: Binding<String>) -> some View { Picker(title, selection: selection) { ForEach(store.funds) { Text($0.id).tag($0.id) } }.pickerStyle(.menu).frame(maxWidth: .infinity).padding(10).background(.white, in: RoundedRectangle(cornerRadius: 15)) }
     func column(_ symbol: String) -> some View { let fund = store.funds.first { $0.id == symbol } ?? Fund(id: symbol, name: symbol, strategy: .unclassified); return Card { VStack(alignment: .leading, spacing: 18) { Text(symbol).font(.title2.bold()).foregroundStyle(Palette.blue); Text(fund.name).font(.headline).frame(minHeight: 44, alignment: .topLeading); StrategyPill(strategy: fund.strategy); Divider(); Text("已取得報價").font(.caption).foregroundStyle(.secondary); Text(store.data.quotes[symbol].map { decimal($0.price) } ?? "—").font(.title2.bold()); Text(store.data.quotes[symbol]?.date ?? "尚未取得").font(.caption2).foregroundStyle(.secondary) } } }
 }
@@ -97,11 +103,11 @@ struct BackupView: View {
     var body: some View { Form {
         Section("匯出") { Text("包含持有、配息、收藏與已取得報價，不包含行情金鑰。").font(.subheadline).foregroundStyle(.secondary); Button("建立備份檔") { do { exportURL = try store.export() } catch { message = error.localizedDescription } }; if let exportURL { ShareLink("儲存或分享備份", item: exportURL) } }
         Section("匯入") { Button("選擇備份檔") { importing = true }; Text("匯入會合併紀錄；相同識別碼更新，其他現有紀錄保留。支援目前原生版、舊原生版與 PWA 備份。匯入前顯示筆數並保留復原副本；舊版手填參考價保留在備份中，不當成即時報價。").font(.footnote).foregroundStyle(.secondary) }
-        if let preview { Section("預覽") { LabeledContent("持有", value: "\(preview.holdings.count) 筆"); LabeledContent("配息", value: "\(preview.dividends.count) 筆"); LabeledContent("收藏", value: "\(preview.favorites.count) 檔"); LabeledContent("投入成本", value: "$\(money(preview.cost))"); if preview.legacyPlan != nil { Text("包含舊版試算設定，會完整保存於備份。") }; Button("確認合併匯入") { confirmation = true } } }
+        if let preview { Section("預覽") { LabeledContent("持有", value: "\(preview.holdings.count) 筆"); LabeledContent("配息", value: "\(preview.dividends.count) 筆"); LabeledContent("收藏", value: "\(preview.favorites.count) 檔"); LabeledContent("投入成本", value: "$\(money(preview.cost))"); if preview.legacyPlan != nil { Text("包含舊版試算設定，會可在「配息再投入試算」繼續使用。") }; Button("確認合併匯入") { confirmation = true } } }
         if !message.isEmpty { Section { Text(message) } }
     }.navigationTitle("資料備份").navigationBarTitleDisplayMode(.inline)
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
             do { let url = try result.get(); let access = url.startAccessingSecurityScopedResource(); defer { if access { url.stopAccessingSecurityScopedResource() } }; let bytes = try DataChecks.readFile(url); preview = try BackupImport.decode(bytes); pending = bytes } catch { message = error.localizedDescription }
-        }.confirmationDialog("合併這份備份？", isPresented: $confirmation, titleVisibility: .visible) { Button("合併匯入") { do { if let pending { try store.importBackup(pending); message = "匯入完成，匯入前資料已保存於復原副本。"; preview = nil } } catch { message = error.localizedDescription }; pending = nil }; Button("取消", role: .cancel) { pending = nil } }
+        }.confirmationDialog("合併這份備份？", isPresented: $confirmation, titleVisibility: .visible) { Button("合併匯入") { do { if let pending { try store.importBackup(pending); message = "匯入完成，匯入前資料已保存於復原副本。"; preview = nil } } catch { message = error.localizedDescription }; pending = nil }; Button("取消", role: .cancel) { } }
     }
 }

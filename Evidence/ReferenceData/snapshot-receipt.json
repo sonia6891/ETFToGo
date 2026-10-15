@@ -1,0 +1,2128 @@
+{
+  "fetchedDay": "2026-10-15",
+  "activeCodes": 359,
+  "listed": 241,
+  "otc": 118,
+  "annualFeeCoverage": 292,
+  "sourceSHA256": {
+    "fees-2025-annual.html": "9401c0a929c276741bfb07e3412b5c82bc37dda1b5c16838dcb9caa4d346d70c",
+    "listed.json": "0a2806ec0ac86c4d8f9e8e8d44280264cb80bc4df88729f03362b0cd7e1c852f",
+    "tpex-filter-data.json": "150d81fc353aea7f6760f859fa3ecca962f1affcb0b72e25f624878fa5246598",
+    "twse-active.json": "51a228512785d320c53b74a7411b319ee211e2c42b54fad7f02b1f280494bdb5"
+  },
+  "matches": [
+    {
+      "symbol": "0050",
+      "fundID": "98764389",
+      "method": "official fund tax ID",
+      "officialName": "元大台灣卓越50證券投資信託基金",
+      "reportName": "元大台灣卓越50基金"
+    },
+    {
+      "symbol": "0051",
+      "fundID": "48772770",
+      "method": "official fund tax ID",
+      "officialName": "元大台灣中型100證券投資信託基金",
+      "reportName": "元大台灣中型100基金"
+    },
+    {
+      "symbol": "0052",
+      "fundID": "48790067",
+      "method": "official fund tax ID",
+      "officialName": "富邦台灣科技指數證券投資信託基金",
+      "reportName": "富邦台灣科技指數基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "0053",
+      "fundID": "48903196",
+      "method": "official fund tax ID",
+      "officialName": "元大台灣ETF傘型證券投資信託基金之電子科技證券投資信託基金",
+      "reportName": "元大台灣電子科技基金"
+    },
+    {
+      "symbol": "0055",
+      "fundID": "48903175",
+      "method": "official fund tax ID",
+      "officialName": "元大台灣ETF傘型證券投資信託基金之金融證券投資信託基金",
+      "reportName": "元大台灣金融基金"
+    },
+    {
+      "symbol": "0056",
+      "fundID": "48966213",
+      "method": "official fund tax ID",
+      "officialName": "元大台灣高股息證券投資信託基金",
+      "reportName": "元大台灣高股息基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)"
+    },
+    {
+      "symbol": "0057",
+      "fundID": "48975156",
+      "method": "official fund tax ID",
+      "officialName": "富邦台灣ETF傘型證券投資信託基金之富邦台灣摩根指數股票型證券投資信託基金",
+      "reportName": "富邦台灣ETF傘型基金之富邦台灣摩根指數股票型基金"
+    },
+    {
+      "symbol": "0061",
+      "fundID": "25610486",
+      "method": "official fund tax ID",
+      "officialName": "元大標智滬深300證券投資信託基金",
+      "reportName": "元大標智滬深300基金"
+    },
+    {
+      "symbol": "006203",
+      "fundID": "26306553",
+      "method": "official fund tax ID",
+      "officialName": "元大摩臺證券投資信託基金",
+      "reportName": "元大摩臺基金"
+    },
+    {
+      "symbol": "006204",
+      "fundID": "26332314",
+      "method": "official fund tax ID",
+      "officialName": "永豐臺灣加權ETF證券投資信託基金",
+      "reportName": "永豐臺灣加權ETF基金"
+    },
+    {
+      "symbol": "006205",
+      "fundID": "26334740",
+      "method": "official fund tax ID",
+      "officialName": "富邦上証180證券投資信託基金",
+      "reportName": "富邦上証180基金"
+    },
+    {
+      "symbol": "006206",
+      "fundID": "31830488",
+      "method": "official fund tax ID",
+      "officialName": "元大中國傘型證券投資信託基金之上證50證券投資信託基金",
+      "reportName": "元大上證50基金"
+    },
+    {
+      "symbol": "006207",
+      "fundID": "31835478",
+      "method": "official fund tax ID",
+      "officialName": "復華滬深300 A股證券投資信託基金",
+      "reportName": "復華滬深300 A股基金"
+    },
+    {
+      "symbol": "006208",
+      "fundID": "31840182",
+      "method": "official fund tax ID",
+      "officialName": "富邦台灣釆吉50 證券投資信託基金",
+      "reportName": "富邦台灣釆吉50基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00625K",
+      "fundID": "26334740",
+      "method": "official fund tax ID",
+      "officialName": "富邦上証180證券投資信託基金-加掛人民幣ETF受益憑證-國外成份/加掛外幣證券指數股票型基金",
+      "reportName": "富邦上証180基金"
+    },
+    {
+      "symbol": "00631L",
+      "fundID": "38619904",
+      "method": "official fund tax ID",
+      "officialName": "元大ETF傘型證券投資信託基金之台灣50單日正向2倍證券投資信託基金",
+      "reportName": "元大台灣50單日正向2倍基金"
+    },
+    {
+      "symbol": "00632R",
+      "fundID": "38619910",
+      "method": "official fund tax ID",
+      "officialName": "元大ETF傘型證券投資信託基金之台灣50單日反向1倍證券投資信託基金",
+      "reportName": "元大台灣50單日反向1倍基金"
+    },
+    {
+      "symbol": "00633L",
+      "fundID": "38633011",
+      "method": "official fund tax ID",
+      "officialName": "富邦中國ETF傘型證券投資信託基金之富邦上証180單日正向兩倍證券投資信託基金",
+      "reportName": "富邦中國ETF傘型基金之富邦上証180單日正向兩倍基金"
+    },
+    {
+      "symbol": "00634R",
+      "fundID": "38633027",
+      "method": "official fund tax ID",
+      "officialName": "富邦中國ETF傘型證券投資信託基金之富邦上証180單日反向一倍證券投資信託基金",
+      "reportName": "富邦中國ETF傘型基金之富邦上証180單日反向一倍基金"
+    },
+    {
+      "symbol": "00636",
+      "fundID": "42260528",
+      "method": "official fund tax ID",
+      "officialName": "國泰富時中國A50證券投資信託基金",
+      "reportName": "國泰富時中國A50基金"
+    },
+    {
+      "symbol": "00636K",
+      "fundID": "42260528",
+      "method": "official fund tax ID",
+      "officialName": "國泰富時中國A50證券投資信託基金(加掛美元受益憑證)-國外成份/加掛外幣證券指數股票型基金",
+      "reportName": "國泰富時中國A50基金"
+    },
+    {
+      "symbol": "00637L",
+      "fundID": "42300253",
+      "method": "official fund tax ID",
+      "officialName": "元大滬深300傘型證券投資信託基金之滬深300單日正向2倍證券投資信託基金",
+      "reportName": "元大滬深300單日正向2倍基金"
+    },
+    {
+      "symbol": "00638R",
+      "fundID": "42300232",
+      "method": "official fund tax ID",
+      "officialName": "元大滬深300傘型證券投資信託基金之滬深300單日反向1倍證券投資信託基金",
+      "reportName": "元大滬深300單日反向1倍基金"
+    },
+    {
+      "symbol": "00639",
+      "fundID": "42302273",
+      "method": "official fund tax ID",
+      "officialName": "富邦深証100證券投資信託基金",
+      "reportName": "富邦深証100基金"
+    },
+    {
+      "symbol": "00640L",
+      "fundID": "42319561",
+      "method": "official fund tax ID",
+      "officialName": "富邦日本ETF傘型證券投資信託基金之富邦日本東証單日正向兩倍證券投資信託基金",
+      "reportName": "富邦日本ETF傘型基金之富邦日本東証單日正向兩倍基金(本基金採匯率避險)"
+    },
+    {
+      "symbol": "00641R",
+      "fundID": "42319582",
+      "method": "official fund tax ID",
+      "officialName": "富邦日本ETF傘型證券投資信託基金之富邦日本東証單日反向一倍證券投資信託基金",
+      "reportName": "富邦日本ETF傘型基金之富邦日本東証單日反向一倍基金(本基金採匯率避險)"
+    },
+    {
+      "symbol": "00643",
+      "fundID": "42323777",
+      "method": "official fund tax ID",
+      "officialName": "群益深証中小１００證券投資信託基金",
+      "reportName": "群益深証中小100基金"
+    },
+    {
+      "symbol": "00643K",
+      "fundID": "42323777",
+      "method": "official fund tax ID",
+      "officialName": "群益深証中小１００證券投資信託基金加掛—人民幣ETF受益憑證-國外成份/加掛外幣證券指數股票型基金",
+      "reportName": "群益深証中小100基金"
+    },
+    {
+      "symbol": "00645",
+      "fundID": "42328908",
+      "method": "official fund tax ID",
+      "officialName": "富邦日本東証證券投資信託基金",
+      "reportName": "富邦日本東証基金(本基金採匯率避險)"
+    },
+    {
+      "symbol": "00646",
+      "fundID": "42333613",
+      "method": "official fund tax ID",
+      "officialName": "元大標普500傘型證券投資信託基金之標普500證券投資信託基金",
+      "reportName": "元大標普500基金"
+    },
+    {
+      "symbol": "00647L",
+      "fundID": "42333579",
+      "method": "official fund tax ID",
+      "officialName": "元大標普500傘型證券投資信託基金之標普500單日正向2倍證券投資信託基金",
+      "reportName": "元大標普500單日正向2倍基金"
+    },
+    {
+      "symbol": "00648R",
+      "fundID": "42333563",
+      "method": "official fund tax ID",
+      "officialName": "元大標普500傘型證券投資信託基金之標普500單日反向1倍證券投資信託基金",
+      "reportName": "元大標普500單日反向1倍基金"
+    },
+    {
+      "symbol": "00650L",
+      "fundID": "42329863",
+      "method": "official fund tax ID",
+      "officialName": "復華香港ETF傘型證券投資信託基金之復華恒生單日正向二倍證券投資信託基金",
+      "reportName": "復華恒生單日正向二倍基金"
+    },
+    {
+      "symbol": "00651R",
+      "fundID": "42329879",
+      "method": "official fund tax ID",
+      "officialName": "復華香港ETF傘型證券投資信託基金之復華恒生單日反向一倍證券投資信託基金",
+      "reportName": "復華恒生單日反向一倍基金"
+    },
+    {
+      "symbol": "00652",
+      "fundID": "42376963",
+      "method": "official fund tax ID",
+      "officialName": "富邦印度ETF傘型證券投資信託基金之富邦印度NIFTY證券投資信託基金",
+      "reportName": "富邦印度ETF傘型基金之富邦印度NIFTY基金"
+    },
+    {
+      "symbol": "00653L",
+      "fundID": "42376990",
+      "method": "official fund tax ID",
+      "officialName": "富邦印度ETF傘型證券投資信託基金之富邦印度NIFTY單日正向兩倍證券投資信託基金",
+      "reportName": "富邦印度ETF傘型基金之富邦印度NIFTY單日正向兩倍基金"
+    },
+    {
+      "symbol": "00654R",
+      "fundID": "42376984",
+      "method": "official fund tax ID",
+      "officialName": "富邦印度ETF傘型證券投資信託基金之富邦印度NIFTY單日反向一倍證券投資信託基金",
+      "reportName": "富邦印度ETF傘型基金之富邦印度NIFTY單日反向一倍基金"
+    },
+    {
+      "symbol": "00655L",
+      "fundID": "42385148",
+      "method": "official fund tax ID",
+      "officialName": "國泰A50傘型證券投資信託基金之富時中國A50單日正向2倍證券投資信託基金",
+      "reportName": "國泰A50傘型基金之富時中國A50單日正向2倍基金"
+    },
+    {
+      "symbol": "00656R",
+      "fundID": "42385127",
+      "method": "official fund tax ID",
+      "officialName": "國泰A50傘型證券投資信託基金之富時中國A50單日反向1倍證券投資信託基金",
+      "reportName": "國泰A50傘型基金之富時中國A50單日反向1倍基金"
+    },
+    {
+      "symbol": "00657",
+      "fundID": "42389475",
+      "method": "official fund tax ID",
+      "officialName": "國泰日本ETF傘型證券投資信託基金之日經225證券投資信託基金",
+      "reportName": "國泰日本ETF傘型基金之日經225基金"
+    },
+    {
+      "symbol": "00657K",
+      "fundID": "42389475",
+      "method": "official fund tax ID",
+      "officialName": "國泰日本ETF傘型證券投資信託基金之日經225證券投資信託基金(加掛美元受益憑證)-國外成份/加掛外幣證券指數股票型基金",
+      "reportName": "國泰日本ETF傘型基金之日經225基金"
+    },
+    {
+      "symbol": "00660",
+      "fundID": "42398684",
+      "method": "official fund tax ID",
+      "officialName": "元大已開發國家傘型證券投資信託基金之元大歐洲50證券投資信託基金",
+      "reportName": "元大歐洲50基金"
+    },
+    {
+      "symbol": "00661",
+      "fundID": "42398663",
+      "method": "official fund tax ID",
+      "officialName": "元大已開發國家傘型證券投資信託基金之元大日經225證券投資信託基金",
+      "reportName": "元大日經225基金"
+    },
+    {
+      "symbol": "00662",
+      "fundID": "42399305",
+      "method": "official fund tax ID",
+      "officialName": "富邦NASDAQ-100證券投資信託基金",
+      "reportName": "富邦NASDAQ-100基金"
+    },
+    {
+      "symbol": "00663L",
+      "fundID": "42404264",
+      "method": "official fund tax ID",
+      "officialName": "國泰臺指ETF傘型證券投資信託基金之臺灣加權指數單日正向2倍證券投資信託基金",
+      "reportName": "國泰臺指ETF傘型基金之臺灣加權指數單日正向2倍基金"
+    },
+    {
+      "symbol": "00664R",
+      "fundID": "42404258",
+      "method": "official fund tax ID",
+      "officialName": "國泰臺指ETF傘型證券投資信託基金之臺灣加權指數單日反向1倍證券投資信託基金",
+      "reportName": "國泰臺指ETF傘型基金之臺灣加權指數單日反向1倍基金"
+    },
+    {
+      "symbol": "00665L",
+      "fundID": "42404573",
+      "method": "official fund tax ID",
+      "officialName": "富邦恒生國企ETF傘型證券投資信託基金之富邦恒生國企單日正向兩倍證券投資信託基金",
+      "reportName": "富邦恒生國企ETF傘型基金之富邦恒生國企單日正向兩倍基金"
+    },
+    {
+      "symbol": "00666R",
+      "fundID": "42404567",
+      "method": "official fund tax ID",
+      "officialName": "富邦恒生國企ETF傘型證券投資信託基金之富邦恒生國企單日反向一倍證券投資信託基金",
+      "reportName": "富邦恒生國企ETF傘型基金之富邦恒生國企單日反向一倍基金"
+    },
+    {
+      "symbol": "00668",
+      "fundID": "42443225",
+      "method": "official fund tax ID",
+      "officialName": "國泰美國ETF傘型證券投資信託基金之道瓊工業平均指數證券投資信託基金",
+      "reportName": "國泰美國ETF傘型基金之道瓊工業平均指數基金"
+    },
+    {
+      "symbol": "00668K",
+      "fundID": "42443225",
+      "method": "official fund tax ID",
+      "officialName": "國泰道瓊工業平均指數證券投資信託基金(加掛美元受益憑證)-國外成份/加掛外幣證券指數股票型基金",
+      "reportName": "國泰美國ETF傘型基金之道瓊工業平均指數基金"
+    },
+    {
+      "symbol": "00669R",
+      "fundID": "42443203",
+      "method": "official fund tax ID",
+      "officialName": "國泰美國ETF傘型證券投資信託基金之道瓊工業平均指數單日反向1倍證券投資信託基金",
+      "reportName": "國泰美國ETF傘型基金之道瓊工業平均指數單日反向1倍基金"
+    },
+    {
+      "symbol": "00670L",
+      "fundID": "42441710",
+      "method": "official fund tax ID",
+      "officialName": "富邦NASDAQ-100 ETF 傘型證券投資信託基金之富邦NASDAQ-100單日正向兩倍證券投資信託基金",
+      "reportName": "富邦NASDAQ-100 ETF傘型基金之富邦NASDAQ-100單日正向兩倍基金(本基金採匯率避險)"
+    },
+    {
+      "symbol": "00671R",
+      "fundID": "42441704",
+      "method": "official fund tax ID",
+      "officialName": "富邦NASDAQ-100 ETF傘型證券投資信託基金之富邦NASDAQ-100 單日反向一倍證券投資信託基金",
+      "reportName": "富邦NASDAQ-100 ETF傘型基金之富邦NASDAQ-100單日反向一倍基金(本基金採匯率避險)"
+    },
+    {
+      "symbol": "00675L",
+      "fundID": "42450837",
+      "method": "official fund tax ID",
+      "officialName": "富邦臺灣加權ETF傘型證券投資信託基金之富邦臺灣加權單日正向兩倍證券投資信託基金",
+      "reportName": "富邦臺灣加權ETF傘型基金之富邦臺灣加權單日正向兩倍基金"
+    },
+    {
+      "symbol": "00676R",
+      "fundID": "42450843",
+      "method": "official fund tax ID",
+      "officialName": "富邦臺灣加權ETF傘型證券投資信託基金之富邦臺灣加權單日反向一倍證券投資信託基金",
+      "reportName": "富邦臺灣加權ETF傘型基金之富邦臺灣加權單日反向一倍基金"
+    },
+    {
+      "symbol": "00678",
+      "fundID": "42465424",
+      "method": "official fund tax ID",
+      "officialName": "群益那斯達克生技證券投資信託基金",
+      "reportName": "群益那斯達克生技基金"
+    },
+    {
+      "symbol": "00680L",
+      "fundID": "42461567",
+      "method": "official fund tax ID",
+      "officialName": "元大美國政府20年期(以上)債券ETF傘型證券投資信託基金之元大美國政府20年期(以上)債券單日正向2倍證券投資信託基金",
+      "reportName": "元大美國政府20年期(以上)債券單日正向2倍基金"
+    },
+    {
+      "symbol": "00681R",
+      "fundID": "42461588",
+      "method": "official fund tax ID",
+      "officialName": "元大美國政府20年期(以上)債券ETF傘型證券投資信託基金之元大美國政府20年期(以上)債券單日反向1倍證券投資信託基金",
+      "reportName": "元大美國政府20年期(以上)債券單日反向1倍基金"
+    },
+    {
+      "symbol": "00685L",
+      "fundID": "42481276",
+      "method": "official fund tax ID",
+      "officialName": "群益臺灣加權指數ETF傘型證券投資信託基金之群益臺灣加權指數單日正向2倍證券投資信託基金",
+      "reportName": "群益臺灣加權單日正向2倍基金"
+    },
+    {
+      "symbol": "00686R",
+      "fundID": "42481260",
+      "method": "official fund tax ID",
+      "officialName": "群益臺灣加權指數ETF傘型證券投資信託基金之群益臺灣加權指數單日反向1倍證券投資信託基金",
+      "reportName": "群益臺灣加權單日反向1倍基金"
+    },
+    {
+      "symbol": "00688L",
+      "fundID": "42482747",
+      "method": "official fund tax ID",
+      "officialName": "國泰美國債券ETF傘型證券投資信託基金之20年期(以上)美國公債指數單日正向2倍證券投資信託基金",
+      "reportName": "國泰美國債券ETF傘型基金之20年期(以上)美國公債指數單日正向2倍基金"
+    },
+    {
+      "symbol": "00689R",
+      "fundID": "42482731",
+      "method": "official fund tax ID",
+      "officialName": "國泰美國債券ETF傘型證券投資信託基金之20年期(以上)美國公債指數單日反向1倍證券投資信託基金",
+      "reportName": "國泰美國債券ETF傘型基金之20年期(以上)美國公債指數單日反向1倍基金"
+    },
+    {
+      "symbol": "00690",
+      "fundID": "42482107",
+      "method": "official fund tax ID",
+      "officialName": "兆豐臺灣藍籌30ETF傘型證券投資信託基金之兆豐臺灣藍籌30 ETF證券投資信託基金",
+      "reportName": "兆豐臺灣藍籌30ETF基金"
+    },
+    {
+      "symbol": "00692",
+      "fundID": "42482423",
+      "method": "official fund tax ID",
+      "officialName": "富邦臺灣公司治理100證券投資信託基金",
+      "reportName": "富邦臺灣公司治理100基金"
+    },
+    {
+      "symbol": "00700",
+      "fundID": "42464918",
+      "method": "official fund tax ID",
+      "officialName": "富邦恒生國企ETF證券投資信託基金",
+      "reportName": "富邦恒生國企ETF基金"
+    },
+    {
+      "symbol": "00701",
+      "fundID": "42530591",
+      "method": "official fund tax ID",
+      "officialName": "國泰低波動ETF傘型證券投資信託基金之臺灣低波動股利精選30證券投資信託基金",
+      "reportName": "國泰低波動ETF傘型基金之臺灣低波動股利精選30基金(本基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00702",
+      "fundID": "42530608",
+      "method": "official fund tax ID",
+      "officialName": "國泰低波動ETF傘型證券投資信託基金之美國標普500低波動高股息證券投資信託基金",
+      "reportName": "國泰低波動ETF傘型基金之美國標普500低波動高股息基金(本基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00703",
+      "fundID": "42528997",
+      "method": "official fund tax ID",
+      "officialName": "台新MSCI新興市場國家傘型ETF證券投資信託基金之台新MSCI中國證券投資信託基金",
+      "reportName": "台新MSCI中國基金"
+    },
+    {
+      "symbol": "00709",
+      "fundID": "42529243",
+      "method": "official fund tax ID",
+      "officialName": "富邦富時歐洲ETF證券投資信託基金",
+      "reportName": "富邦富時歐洲ETF基金"
+    },
+    {
+      "symbol": "00710B",
+      "fundID": "42529932",
+      "method": "official fund tax ID",
+      "officialName": "復華全球收益ETF傘型證券投資信託基金之復華1至5年期非投資等級債券證券投資信託基金",
+      "reportName": "復華1至5年期非投資等級債券基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00711B",
+      "fundID": "42529953",
+      "method": "official fund tax ID",
+      "officialName": "復華全球收益ETF傘型證券投資信託基金之復華新興市場10年期以上債券證券投資信託基金",
+      "reportName": "復華新興市場10年期以上債券基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00712",
+      "fundID": "42529948",
+      "method": "official fund tax ID",
+      "officialName": "復華全球收益ETF傘型證券投資信託基金之復華富時不動產證券化證券投資信託基金",
+      "reportName": "復華富時不動產證券化基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00713",
+      "fundID": "42540916",
+      "method": "official fund tax ID",
+      "officialName": "元大台灣高股息低波動ETF證券投資信託基金",
+      "reportName": "元大台灣高股息低波動ETF基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)"
+    },
+    {
+      "symbol": "00714",
+      "fundID": "42543131",
+      "method": "official fund tax ID",
+      "officialName": "群益道瓊美國地產ETF證券投資信託基金",
+      "reportName": "群益道瓊美國地產ETF基金"
+    },
+    {
+      "symbol": "00717",
+      "fundID": "42546448",
+      "method": "official fund tax ID",
+      "officialName": "富邦標普美國特別股ETF證券投資信託基金",
+      "reportName": "富邦標普美國特別股ETF基金"
+    },
+    {
+      "symbol": "00728",
+      "fundID": "72949242",
+      "method": "official fund tax ID",
+      "officialName": "第一金臺灣工業菁英30ETF傘型證券投資信託基金之第一金臺灣工業菁英30 ETF證券投資信託基金",
+      "reportName": "第一金臺灣工業菁英30 ETF基金(本基金配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00730",
+      "fundID": "72949931",
+      "method": "official fund tax ID",
+      "officialName": "富邦道瓊臺灣優質高息30ETF證券投資信託基金",
+      "reportName": "富邦道瓊臺灣優質高息30ETF基金(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00731",
+      "fundID": "72957164",
+      "method": "official fund tax ID",
+      "officialName": "復華富時台灣高股息低波動證券投資信託基金",
+      "reportName": "復華富時台灣高股息低波動基金(基金之配息來源可能為收益平準金且本基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00733",
+      "fundID": "72960132",
+      "method": "official fund tax ID",
+      "officialName": "富邦臺灣中小A級動能50 ETF證券投資信託基金",
+      "reportName": "富邦臺灣中小A級動能50ETF基金"
+    },
+    {
+      "symbol": "00735",
+      "fundID": "72962758",
+      "method": "official fund tax ID",
+      "officialName": "國泰趨勢ETF傘型證券投資信託基金之臺韓科技證券投資信託基金",
+      "reportName": "國泰趨勢ETF傘型基金之臺韓科技基金"
+    },
+    {
+      "symbol": "00736",
+      "fundID": "72962770",
+      "method": "official fund tax ID",
+      "officialName": "國泰趨勢ETF傘型證券投資信託基金之富時新興市場證券投資信託基金",
+      "reportName": "國泰趨勢ETF傘型基金之富時新興市場基金"
+    },
+    {
+      "symbol": "00737",
+      "fundID": "72962743",
+      "method": "official fund tax ID",
+      "officialName": "國泰趨勢ETF傘型證券投資信託基金之納斯達克全球人工智慧及機器人證券投資信託基金",
+      "reportName": "國泰趨勢ETF傘型基金之納斯達克全球人工智慧及機器人基金"
+    },
+    {
+      "symbol": "00739",
+      "fundID": "72963026",
+      "method": "official fund tax ID",
+      "officialName": "元大MSCI中國A股國際通ETF證券投資信託基金",
+      "reportName": "元大MSCI中國A股國際通ETF基金"
+    },
+    {
+      "symbol": "00752",
+      "fundID": "73680588",
+      "method": "official fund tax ID",
+      "officialName": "中國信託中國外資自由投資50不含A及B股傘型ETF證券投資信託基金之中國信託MSCI中國外資自由50不含A及B股ETF證券投資信託基金",
+      "reportName": "中國信託MSCI中國外資自由投資50不含A及B股ETF基金"
+    },
+    {
+      "symbol": "00753L",
+      "fundID": "73680567",
+      "method": "official fund tax ID",
+      "officialName": "中國信託中國外資自由投資50不含A及B股傘型ETF證券投資信託基金之中國信託MSCI中國外資自由投資50不含A及B股單日正向2倍ETF證券投資信託基金",
+      "reportName": "中國信託MSCI中國外資自由投資50不含A及B股單日正向2倍ETF基金"
+    },
+    {
+      "symbol": "00757",
+      "fundID": "73692389",
+      "method": "official fund tax ID",
+      "officialName": "統一NYSE FANG+ ETF證券投資信託基金",
+      "reportName": "統一NYSE FANG+ ETF基金"
+    },
+    {
+      "symbol": "00762",
+      "fundID": "73694555",
+      "method": "official fund tax ID",
+      "officialName": "元大全球人工智慧ETF證券投資信託基金",
+      "reportName": "元大全球人工智慧ETF基金"
+    },
+    {
+      "symbol": "00770",
+      "fundID": "74702435",
+      "method": "official fund tax ID",
+      "officialName": "國泰標普北美科技ETF證券投資信託基金",
+      "reportName": "國泰標普北美科技ETF基金"
+    },
+    {
+      "symbol": "00771",
+      "fundID": "74705236",
+      "method": "official fund tax ID",
+      "officialName": "元大標普美國高息特別股ETF證券投資信託基金",
+      "reportName": "元大標普美國高息特別股ETF基金(本基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00775B",
+      "fundID": "74708894",
+      "method": "official fund tax ID",
+      "officialName": "台新全方位收益ETF傘型證券投資信託基金之台新富時15年以上特選產業美元投資等級債券ETF證券投資信託基金",
+      "reportName": "新光全方位收益ETF傘型基金之新光富時15年以上特選產業美元投資等級債券ETF基金"
+    },
+    {
+      "symbol": "00783",
+      "fundID": "74721518",
+      "method": "official fund tax ID",
+      "officialName": "富邦多元收益ⅡETF傘型證券投資信託基金之富邦中國中証中小500ETF證券投資信託基金",
+      "reportName": "富邦多元收益ⅡETF傘型基金之富邦中國中証中小500ETF基金"
+    },
+    {
+      "symbol": "00830",
+      "fundID": "75968002",
+      "method": "official fund tax ID",
+      "officialName": "國泰大三元ETF傘型證券投資信託基金之美國費城半導體證券投資信託基金",
+      "reportName": "國泰美國費城半導體基金"
+    },
+    {
+      "symbol": "00850",
+      "fundID": "76322163",
+      "method": "official fund tax ID",
+      "officialName": "元大臺灣ESG永續ETF證券投資信託基金",
+      "reportName": "元大臺灣ESG永續ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00851",
+      "fundID": "76321684",
+      "method": "official fund tax ID",
+      "officialName": "台新SG全球AI機器人精選ETF證券投資信託基金",
+      "reportName": "台新SG全球AI機器人精選ETF基金"
+    },
+    {
+      "symbol": "00852L",
+      "fundID": "76325112",
+      "method": "official fund tax ID",
+      "officialName": "國泰道瓊工業平均指數單日正向2倍證券投資信託基金",
+      "reportName": "國泰道瓊工業平均指數單日正向2倍基金"
+    },
+    {
+      "symbol": "00861",
+      "fundID": "76347684",
+      "method": "official fund tax ID",
+      "officialName": "元大全球未來通訊ETF證券投資信託基金",
+      "reportName": "元大全球未來通訊ETF基金"
+    },
+    {
+      "symbol": "00865B",
+      "fundID": "76355987",
+      "method": "official fund tax ID",
+      "officialName": "國泰美國收益傘型證券投資信託基金之美國短期公債ETF證券投資信託基金",
+      "reportName": "國泰美國收益傘型基金之美國短期公債ETF基金"
+    },
+    {
+      "symbol": "00875",
+      "fundID": "77060531",
+      "method": "official fund tax ID",
+      "officialName": "國泰網路資安ETF證券投資信託基金",
+      "reportName": "國泰網路資安ETF基金"
+    },
+    {
+      "symbol": "00876",
+      "fundID": "77549343",
+      "method": "official fund tax ID",
+      "officialName": "元大全球5G關鍵科技ETF證券投資信託基金(原名:元大全球未來關鍵科技ETF證券投資信託基金)",
+      "reportName": "元大全球5G關鍵科技ETF基金"
+    },
+    {
+      "symbol": "00878",
+      "fundID": "88090913",
+      "method": "official fund tax ID",
+      "officialName": "國泰台灣高股息傘型證券投資信託基金之台灣ESG永續高股息ETF證券投資信託基金",
+      "reportName": "國泰台灣高股息傘型基金之台灣ESG永續高股息ETF基金(基金之配息來源可能為收益平準金且本基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00881",
+      "fundID": "88114133",
+      "method": "official fund tax ID",
+      "officialName": "國泰台灣科技龍頭ETF證券投資信託基金",
+      "reportName": "國泰台灣科技龍頭ETF基金"
+    },
+    {
+      "symbol": "00882",
+      "fundID": "88134187",
+      "method": "official fund tax ID",
+      "officialName": "中國信託全球收益ETF傘型證券投資信託基金之中國信託恒生中國高股息ETF證券投資信託基金",
+      "reportName": "中國信託恒生中國高股息ETF基金(本子基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00885",
+      "fundID": "88173189",
+      "method": "official fund tax ID",
+      "officialName": "富邦富時越南ETF證券投資信託基金",
+      "reportName": "富邦富時越南ETF基金"
+    },
+    {
+      "symbol": "00891",
+      "fundID": "88182265",
+      "method": "official fund tax ID",
+      "officialName": "中國信託臺灣ESG永續關鍵半導體ETF證券投資信託基金",
+      "reportName": "中國信託臺灣ESG永續關鍵半導體ETF基金"
+    },
+    {
+      "symbol": "00892",
+      "fundID": "88183736",
+      "method": "official fund tax ID",
+      "officialName": "富邦台灣核心半導體ETF證券投資信託基金",
+      "reportName": "富邦台灣核心半導體ETF基金"
+    },
+    {
+      "symbol": "00893",
+      "fundID": "88185256",
+      "method": "official fund tax ID",
+      "officialName": "國泰全球智能電動車ETF證券投資信託基金",
+      "reportName": "國泰全球智能電動車ETF基金"
+    },
+    {
+      "symbol": "00894",
+      "fundID": "88195183",
+      "method": "official fund tax ID",
+      "officialName": "中國信託特選小資高價30ETF證券投資信託基金",
+      "reportName": "中國信託特選小資高價30ETF基金"
+    },
+    {
+      "symbol": "00895",
+      "fundID": "88194950",
+      "method": "official fund tax ID",
+      "officialName": "富邦未來車ETF證券投資信託基金",
+      "reportName": "富邦未來車ETF基金"
+    },
+    {
+      "symbol": "00896",
+      "fundID": "88231049",
+      "method": "official fund tax ID",
+      "officialName": "中國信託臺灣綠能及電動車ETF證券投資信託基金",
+      "reportName": "中國信託臺灣綠能及電動車ETF基金(本基金非屬環境、社會及治理相關主題基金)"
+    },
+    {
+      "symbol": "00897",
+      "fundID": "88234242",
+      "method": "official fund tax ID",
+      "officialName": "富邦基因免疫生技ETF證券投資信託基金",
+      "reportName": "富邦基因免疫生技ETF基金"
+    },
+    {
+      "symbol": "00898",
+      "fundID": "88237803",
+      "method": "official fund tax ID",
+      "officialName": "國泰全球基因免疫與醫療革命ETF證券投資信託基金",
+      "reportName": "國泰全球基因免疫與醫療革命ETF基金"
+    },
+    {
+      "symbol": "00899",
+      "fundID": "88251656",
+      "method": "official fund tax ID",
+      "officialName": "富蘭克林華美全球潔淨能源ETF證券投資信託基金",
+      "reportName": "富蘭克林華美全球潔淨能源ETF基金"
+    },
+    {
+      "symbol": "00900",
+      "fundID": "88254540",
+      "method": "official fund tax ID",
+      "officialName": "富邦特選台灣高股息30 ETF證券投資信託基金",
+      "reportName": "富邦特選台灣高股息30ETF基金(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00901",
+      "fundID": "88255098",
+      "method": "official fund tax ID",
+      "officialName": "永豐台灣智能車供應鏈ETF證券投資信託基金",
+      "reportName": "永豐台灣智能車供應鏈ETF基金"
+    },
+    {
+      "symbol": "00902",
+      "fundID": "88261134",
+      "method": "official fund tax ID",
+      "officialName": "中國信託電池及儲能科技ETF證券投資信託基金",
+      "reportName": "中國信託電池及儲能科技ETF基金"
+    },
+    {
+      "symbol": "00903",
+      "fundID": "88261140",
+      "method": "official fund tax ID",
+      "officialName": "富邦元宇宙ETF證券投資信託基金",
+      "reportName": "富邦元宇宙ETF基金"
+    },
+    {
+      "symbol": "00904",
+      "fundID": "88265048",
+      "method": "official fund tax ID",
+      "officialName": "台新臺灣全市場半導體精選30ETF證券投資信託基金",
+      "reportName": "新光臺灣全市場半導體精選30ETF基金"
+    },
+    {
+      "symbol": "00905",
+      "fundID": "88266320",
+      "method": "official fund tax ID",
+      "officialName": "富蘭克林華美臺灣Smart ETF證券投資信託基金",
+      "reportName": "富蘭克林華美臺灣Smart ETF基金"
+    },
+    {
+      "symbol": "00907",
+      "fundID": "88313702",
+      "method": "official fund tax ID",
+      "officialName": "永豐台灣優選入息存股ETF證券投資信託基金",
+      "reportName": "永豐台灣優選入息存股ETF基金"
+    },
+    {
+      "symbol": "00908",
+      "fundID": "88313560",
+      "method": "official fund tax ID",
+      "officialName": "富邦全球入息不動產與基礎建設ETF證券投資信託基金",
+      "reportName": "富邦全球入息不動產與基礎建設ETF基金"
+    },
+    {
+      "symbol": "00909",
+      "fundID": "88317046",
+      "method": "official fund tax ID",
+      "officialName": "國泰全球數位支付服務ETF證券投資信託基金",
+      "reportName": "國泰全球數位支付服務ETF基金"
+    },
+    {
+      "symbol": "00910",
+      "fundID": "88316551",
+      "method": "official fund tax ID",
+      "officialName": "第一金太空衛星ETF證券投資信託基金",
+      "reportName": "第一金太空衛星ETF基金"
+    },
+    {
+      "symbol": "00911",
+      "fundID": "88317812",
+      "method": "official fund tax ID",
+      "officialName": "兆豐洲際半導體ETF證券投資信託基金",
+      "reportName": "兆豐洲際半導體ETF基金"
+    },
+    {
+      "symbol": "00912",
+      "fundID": "88319403",
+      "method": "official fund tax ID",
+      "officialName": "中國信託臺灣智慧50ETF證券投資信託基金",
+      "reportName": "中國信託臺灣智慧50ETF基金"
+    },
+    {
+      "symbol": "00913",
+      "fundID": "88321560",
+      "method": "official fund tax ID",
+      "officialName": "兆豐特選台灣晶圓製造 ETF證券投資信託基金",
+      "reportName": "兆豐特選台灣晶圓製造ETF基金"
+    },
+    {
+      "symbol": "00915",
+      "fundID": "88324665",
+      "method": "official fund tax ID",
+      "officialName": "凱基台灣優選高股息30ETF證券投資信託基金",
+      "reportName": "凱基台灣優選高股息30 ETF基金(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00916",
+      "fundID": "88325405",
+      "method": "official fund tax ID",
+      "officialName": "國泰全球品牌50ETF證券投資信託基金",
+      "reportName": "國泰全球品牌50ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00917",
+      "fundID": "88326299",
+      "method": "official fund tax ID",
+      "officialName": "中國信託特選金融及數據ETF證券投資信託基金",
+      "reportName": "中國信託特選金融及數據ETF基金"
+    },
+    {
+      "symbol": "00918",
+      "fundID": "88329556",
+      "method": "official fund tax ID",
+      "officialName": "大華銀台灣優選股利高填息30ETF證券投資信託基金",
+      "reportName": "大華銀台灣優選股利高填息30ETF基金(本基金並無保證收益及配息且配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00919",
+      "fundID": "88330879",
+      "method": "official fund tax ID",
+      "officialName": "群益台灣精選高息ETF證券投資信託基金",
+      "reportName": "群益台灣精選高息ETF基金(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00920",
+      "fundID": "88332996",
+      "method": "official fund tax ID",
+      "officialName": "富邦全球ESG綠色電力ETF證券投資信託基金",
+      "reportName": "富邦全球ESG綠色電力ETF基金"
+    },
+    {
+      "symbol": "00921",
+      "fundID": "88351249",
+      "method": "official fund tax ID",
+      "officialName": "兆豐台灣產業龍頭存股等權重ETF證券投資信託基金",
+      "reportName": "兆豐台灣產業龍頭存股等權重ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00922",
+      "fundID": "88385923",
+      "method": "official fund tax ID",
+      "officialName": "國泰台灣領袖 50 ETF 證券投資信託基金",
+      "reportName": "國泰台灣領袖 50 ETF 基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00923",
+      "fundID": "88385901",
+      "method": "official fund tax ID",
+      "officialName": "群益台灣ESG低碳50ETF證券投資信託基金",
+      "reportName": "群益台灣ESG低碳50ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00924",
+      "fundID": "88391777",
+      "method": "official fund tax ID",
+      "officialName": "復華美國標普500成長ETF證券投資信託基金",
+      "reportName": "復華美國標普500成長ETF基金"
+    },
+    {
+      "symbol": "00926",
+      "fundID": "88396230",
+      "method": "official fund tax ID",
+      "officialName": "凱基全球菁英55 ETF證券投資信託基金",
+      "reportName": "凱基全球菁英55 ETF基金"
+    },
+    {
+      "symbol": "00927",
+      "fundID": "88397435",
+      "method": "official fund tax ID",
+      "officialName": "群益台灣半導體收益ETF證券投資信託基金",
+      "reportName": "群益台灣半導體收益ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00929",
+      "fundID": "88399314",
+      "method": "official fund tax ID",
+      "officialName": "復華台灣科技優息ETF證券投資信託基金",
+      "reportName": "復華台灣科技優息ETF基金(基金之配息來源可能為收益平準金且本基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00930",
+      "fundID": "93104629",
+      "method": "official fund tax ID",
+      "officialName": "永豐台灣ESG低碳高息40ETF證券投資信託基金",
+      "reportName": "永豐台灣ESG低碳高息40ETF基金"
+    },
+    {
+      "symbol": "00932",
+      "fundID": "93111473",
+      "method": "official fund tax ID",
+      "officialName": "兆豐台灣ESG永續高股息等權重ETF證券投資信託基金",
+      "reportName": "兆豐台灣ESG永續高股息等權重 ETF 基金(基金之配息來源可能為收益平準金且本基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00934",
+      "fundID": "93150242",
+      "method": "official fund tax ID",
+      "officialName": "中國信託臺灣優選成長高股息ETF證券投資信託基金",
+      "reportName": "中國信託臺灣優選成長高股息ETF基金(基金之配息來源可能為收益平準金 且 基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00935",
+      "fundID": "93151376",
+      "method": "official fund tax ID",
+      "officialName": "野村臺灣創新科技50 ETF證券投資信託基金",
+      "reportName": "野村臺灣創新科技50ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00936",
+      "fundID": "93150593",
+      "method": "official fund tax ID",
+      "officialName": "台新臺灣永續高息中小型ETF證券投資信託基金",
+      "reportName": "台新臺灣永續高息中小型ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00938",
+      "fundID": "93159187",
+      "method": "official fund tax ID",
+      "officialName": "凱基台灣優選30 ETF證券投資信託基金",
+      "reportName": "凱基台灣優選30 ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00939",
+      "fundID": "93168221",
+      "method": "official fund tax ID",
+      "officialName": "統一台灣高息動能ETF證券投資信託基金",
+      "reportName": "統一台灣高息動能ETF基金(本基金並無保證收益及配息，配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00940",
+      "fundID": "93176257",
+      "method": "official fund tax ID",
+      "officialName": "元大臺灣價值高息ETF證券投資信託基金",
+      "reportName": "元大臺灣價值高息ETF基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)"
+    },
+    {
+      "symbol": "00941",
+      "fundID": "93176279",
+      "method": "official fund tax ID",
+      "officialName": "中國信託上游半導體ETF證券投資信託基金",
+      "reportName": "中國信託上游半導體ETF基金"
+    },
+    {
+      "symbol": "00943",
+      "fundID": "93211796",
+      "method": "official fund tax ID",
+      "officialName": "兆豐台灣電子成長高息等權重ETF證券投資信託基金",
+      "reportName": "兆豐台灣電子成長高息等權重ETF基金(基金之配息來源可能為收益平準金且本基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00944",
+      "fundID": "93212660",
+      "method": "official fund tax ID",
+      "officialName": "野村臺灣趨勢動能高股息ETF證券投資信託基金",
+      "reportName": "野村臺灣趨勢動能高股息ETF基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)"
+    },
+    {
+      "symbol": "00945B",
+      "fundID": "93213801",
+      "method": "official fund tax ID",
+      "officialName": "凱基美國優選收益非投資等級債券ETF證券投資信託基金",
+      "reportName": "凱基美國優選收益非投資等級債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00946",
+      "fundID": "93215250",
+      "method": "official fund tax ID",
+      "officialName": "群益台灣科技高息成長ETF證券投資信託基金",
+      "reportName": "群益台灣科技高息成長ETF基金(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00947",
+      "fundID": "93216764",
+      "method": "official fund tax ID",
+      "officialName": "台新臺灣IC設計動能ETF證券投資信託基金",
+      "reportName": "台新臺灣IC設計動能ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00949",
+      "fundID": "93220253",
+      "method": "official fund tax ID",
+      "officialName": "復華日本護城河優勢龍頭企業ETF證券投資信託基金",
+      "reportName": "復華日本護城河優勢龍頭企業ETF基金"
+    },
+    {
+      "symbol": "00951",
+      "fundID": "00508426",
+      "method": "official fund tax ID",
+      "officialName": "台新日本半導體ETF證券投資信託基金",
+      "reportName": "台新日本半導體ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00952",
+      "fundID": "00512110",
+      "method": "official fund tax ID",
+      "officialName": "凱基優選台灣AI 50 ETF證券投資信託基金",
+      "reportName": "凱基優選台灣 AI 50 ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00953B",
+      "fundID": "00512532",
+      "method": "official fund tax ID",
+      "officialName": "群益優選收益非投資等級債券ETF證券投資信託基金",
+      "reportName": "群益優選收益非投資等級債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00954",
+      "fundID": "00512651",
+      "method": "official fund tax ID",
+      "officialName": "中國信託日本ETF傘型證券投資信託基金之中國信託日本半導體ETF證券投資信託基金",
+      "reportName": "中國信託日本半導體ETF基金"
+    },
+    {
+      "symbol": "00956",
+      "fundID": "00512630",
+      "method": "official fund tax ID",
+      "officialName": "中國信託日本ETF傘型證券投資信託基金之中國信託日經高股息50ETF證券投資信託基金",
+      "reportName": "中國信託日經高股息50 ETF基金(本子基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00960",
+      "fundID": "00516397",
+      "method": "official fund tax ID",
+      "officialName": "野村全球航運龍頭息收ETF證券投資信託基金",
+      "reportName": "野村全球航運龍頭息收ETF基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)"
+    },
+    {
+      "symbol": "00961",
+      "fundID": "00516729",
+      "method": "official fund tax ID",
+      "officialName": "富蘭克林華美臺灣ESG永續高息ETF證券投資信託基金",
+      "reportName": "富蘭克林華美臺灣ESG永續高息ETF基金"
+    },
+    {
+      "symbol": "00962",
+      "fundID": "00526070",
+      "method": "official fund tax ID",
+      "officialName": "台新臺灣AI優息動能ETF證券投資信託基金",
+      "reportName": "台新臺灣AI優息動能ETF基金"
+    },
+    {
+      "symbol": "00963",
+      "fundID": "00527303",
+      "method": "official fund tax ID",
+      "officialName": "中國信託優息ETF傘型證券投資信託基金之中國信託全球高股息ETF證券投資信託基金",
+      "reportName": "中國信託全球高股息ETF基金(本子基金之配息來源可能為收益平準金且本子基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00964",
+      "fundID": "00527296",
+      "method": "official fund tax ID",
+      "officialName": "中國信託優息ETF傘型證券投資信託基金之中國信託亞太高股息ETF證券投資信託基金",
+      "reportName": "中國信託亞太高股息ETF基金(本子基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00965",
+      "fundID": "00527578",
+      "method": "official fund tax ID",
+      "officialName": "元大全球航太與防衛科技ETF證券投資信託基金",
+      "reportName": "元大全球航太與防衛科技ETF基金"
+    },
+    {
+      "symbol": "00971",
+      "fundID": "00534206",
+      "method": "official fund tax ID",
+      "officialName": "野村美日ETF傘型證券投資信託基金之美國創新研發龍頭ETF證券投資信託基金",
+      "reportName": "野村美日ETF傘型基金之美國創新研發龍頭ETF基金"
+    },
+    {
+      "symbol": "00972",
+      "fundID": "00534233",
+      "method": "official fund tax ID",
+      "officialName": "野村美日ETF傘型證券投資信託基金之日本價值動能高息ETF證券投資信託基金",
+      "reportName": "野村美日ETF傘型基金之日本價值動能高息ETF基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)"
+    },
+    {
+      "symbol": "009800",
+      "fundID": "00568922",
+      "method": "official fund tax ID",
+      "officialName": "中國信託美國傘型證券投資信託基金之中國信託NASDAQ 100 ETF證券投資信託基金",
+      "reportName": "中國信託NASDAQ 100 ETF基金"
+    },
+    {
+      "symbol": "009801",
+      "fundID": "00568937",
+      "method": "official fund tax ID",
+      "officialName": "中國信託美國傘型證券投資信託基金之中國信託美國創新科技ETF證券投資信託基金",
+      "reportName": "中國信託美國創新科技ETF基金"
+    },
+    {
+      "symbol": "009802",
+      "fundID": "00572496",
+      "method": "official fund tax ID",
+      "officialName": "富邦台灣旗艦動能50 ETF證券投資信託基金",
+      "reportName": "富邦台灣旗艦動能50ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "009803",
+      "fundID": "00572524",
+      "method": "official fund tax ID",
+      "officialName": "玉山臺灣市值動能50 ETF證券投資信託基金",
+      "reportName": "PGIM保德信臺灣市值動能50 ETF 基金(本基金之配息可能為收益平準金)"
+    },
+    {
+      "symbol": "009804",
+      "fundID": "00572518",
+      "method": "official fund tax ID",
+      "officialName": "聯邦台灣精彩50ETF證券投資信託基金",
+      "reportName": "聯邦台灣精彩50ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "009805",
+      "fundID": "00582311",
+      "method": "official fund tax ID",
+      "officialName": "台新美國電力基建息收ETF證券投資信託基金",
+      "reportName": "新光美國電力基建息收ETF基金"
+    },
+    {
+      "symbol": "009808",
+      "fundID": "00583873",
+      "method": "official fund tax ID",
+      "officialName": "華南永昌台灣優選50ETF證券投資信託基金",
+      "reportName": "華南永昌台灣優選50ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "009809",
+      "fundID": "00579505",
+      "method": "official fund tax ID",
+      "officialName": "富邦台灣淨零轉型ESG 50 ETF證券投資信託基金",
+      "reportName": "富邦台灣淨零轉型ESG50 ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00980A",
+      "fundID": "00579499",
+      "method": "official fund tax ID",
+      "officialName": "野村臺灣智慧優選主動式ETF證券投資信託基金",
+      "reportName": "野村臺灣智慧優選主動式ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "009810",
+      "fundID": "00597996",
+      "method": "official fund tax ID",
+      "officialName": "玉山全球跨國藍籌100 ETF證券投資信託基金",
+      "reportName": "PGIM保德信全球跨國藍籌100ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "009811",
+      "fundID": "00599299",
+      "method": "official fund tax ID",
+      "officialName": "統一美國50ETF證券投資信託基金",
+      "reportName": "統一美國50ETF 基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "009812",
+      "fundID": "00608902",
+      "method": "official fund tax ID",
+      "officialName": "野村日本東證ETF證券投資信託基金",
+      "reportName": "野村日本東證ETF基金"
+    },
+    {
+      "symbol": "009813",
+      "fundID": "00608950",
+      "method": "official fund tax ID",
+      "officialName": "貝萊德iShares 安碩標普500卓越50 ETF 證券投資信託基金",
+      "reportName": "貝萊德iShares安碩標普500卓越50 ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00981A",
+      "fundID": "00583395",
+      "method": "official fund tax ID",
+      "officialName": "統一台股增長主動式ETF證券投資信託基金",
+      "reportName": "統一台股增長主動式ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00981T",
+      "fundID": "00609521",
+      "method": "official fund tax ID",
+      "officialName": "凱基雙核收息債股平衡ETF證券投資信託基金",
+      "reportName": "凱基雙核收息債股平衡ETF基金(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00982A",
+      "fundID": "00584520",
+      "method": "official fund tax ID",
+      "officialName": "群益台灣精選強棒主動式ETF證券投資信託基金",
+      "reportName": "群益台灣精選強棒主動式ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00982D",
+      "fundID": "00609114",
+      "method": "official fund tax ID",
+      "officialName": "富邦優選收益傘型證券投資信託基金之富邦環球動態入息投資級債主動式ETF證券投資信託基金",
+      "reportName": "富邦優選收益傘型基金之富邦環球動態入息投資級債主動式ETF基金(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00982T",
+      "fundID": "00608234",
+      "method": "official fund tax ID",
+      "officialName": "兆豐台美動能股債平衡ETF證券投資信託基金",
+      "reportName": "兆豐台美動能股債平衡ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00983A",
+      "fundID": "00586267",
+      "method": "official fund tax ID",
+      "officialName": "中國信託ARK創新主動式ETF證券投資信託基金",
+      "reportName": "中國信託ARK創新主動式ETF基金"
+    },
+    {
+      "symbol": "00983D",
+      "fundID": "00609120",
+      "method": "official fund tax ID",
+      "officialName": "富邦優選收益傘型證券投資信託基金之富邦環球複合優選收益債主動式ETF證券投資信託基金",
+      "reportName": "富邦優選收益傘型基金之富邦環球複合優選收益債主動式ETF基金(本基金有一定比重得投資於非投資等級之高風險債券且基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00984A",
+      "fundID": "00599087",
+      "method": "official fund tax ID",
+      "officialName": "安聯台灣高息成長主動式ETF證券投資信託基金",
+      "reportName": "安聯台灣高息成長主動式ETF基金(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00985A",
+      "fundID": "00586576",
+      "method": "official fund tax ID",
+      "officialName": "野村臺灣增強50主動式ETF證券投資信託基金",
+      "reportName": "野村臺灣增強50主動式ETF基金"
+    },
+    {
+      "symbol": "00985B",
+      "fundID": "00584541",
+      "method": "official fund tax ID",
+      "officialName": "群益0-5年期ESG投資等級公司債ETF證券投資信託基金",
+      "reportName": "群益0-5年期ESG投資等級公司債ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00986A",
+      "fundID": "00602169",
+      "method": "official fund tax ID",
+      "officialName": "台新全球龍頭成長主動式ETF證券投資信託基金",
+      "reportName": "台新全球龍頭成長主動式ETF基金"
+    },
+    {
+      "symbol": "00987A",
+      "fundID": "00607592",
+      "method": "official fund tax ID",
+      "officialName": "台新臺灣優勢成長主動式ETF證券投資信託基金",
+      "reportName": "台新臺灣優勢成長主動式ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00988A",
+      "fundID": "00608038",
+      "method": "official fund tax ID",
+      "officialName": "統一全球創新主動式ETF證券投資信託基金",
+      "reportName": "統一全球創新主動式ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00989A",
+      "fundID": "00610034",
+      "method": "official fund tax ID",
+      "officialName": "摩根大美國領先科技主動式ETF證券投資信託基金",
+      "reportName": "摩根大美國領先科技主動式ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00990A",
+      "fundID": "00643865",
+      "method": "official fund tax ID",
+      "officialName": "元大全球AI新經濟主動式ETF證券投資信託基金",
+      "reportName": "元大全球AI新經濟主動式ETF基金"
+    },
+    {
+      "symbol": "00991A",
+      "fundID": "00649777",
+      "method": "official fund tax ID",
+      "officialName": "復華台灣未來50主動式ETF證券投資信託基金",
+      "reportName": "復華台灣未來50主動式ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00992A",
+      "fundID": "00650252",
+      "method": "official fund tax ID",
+      "officialName": "群益台灣科技創新主動式ETF證券投資信託基金",
+      "reportName": "群益台灣科技創新主動式ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00994A",
+      "fundID": "00650540",
+      "method": "official fund tax ID",
+      "officialName": "第一金台股趨勢優選主動式ETF證券投資信託基金",
+      "reportName": "第一金台股趨勢優選主動式ETF基金(本基金配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00679B",
+      "fundID": "42461573",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大美國政府20年期(以上)債券ETF傘型證券投資信託基金之元大美國政府20年期(以上)債券證券投資信託基金 （本基金之配息來源可能為收益平準金）",
+      "reportName": "元大美國政府20年期(以上)債券基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00694B",
+      "fundID": "42519239",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "富邦美國政府債券ETF傘型證券投資信託基金之富邦美國政府債券1-3年期證券投資信託基金",
+      "reportName": "富邦美國政府債券ETF傘型基金之富邦美國政府債券1-3年期基金"
+    },
+    {
+      "symbol": "00695B",
+      "fundID": "42519245",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "富邦美國政府債券ETF傘型證券投資信託基金之富邦美國政府債券7-10年期證券投資信託基金",
+      "reportName": "富邦美國政府債券ETF傘型基金之富邦美國政府債券7-10年期基金"
+    },
+    {
+      "symbol": "00696B",
+      "fundID": "42519250",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "富邦美國政府債券ETF傘型證券投資信託基金之富邦美國政府債券20年期以上證券投資信託基金",
+      "reportName": "富邦美國政府債券ETF傘型基金之富邦美國政府債券20年期以上基金"
+    },
+    {
+      "symbol": "00697B",
+      "fundID": "42469744",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大美國政府7至10年期債券ETF傘型證券投資信託基金之元大美國政府7至10年期債券證券投資信託基金",
+      "reportName": "元大美國政府7至10年期債券基金"
+    },
+    {
+      "symbol": "00719B",
+      "fundID": "42552659",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大多元債券ETF傘型證券投資信託基金之元大美國政府1至3年期債券ETF證券投資信託基金",
+      "reportName": "元大美國政府1至3年期債券ETF基金"
+    },
+    {
+      "symbol": "00720B",
+      "fundID": "42552623",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大多元債券ETF傘型證券投資信託基金之元大20年期以上BBB級美元公司債券ETF證券投資信託基金（本基金之配息來源可能為收益平準金）",
+      "reportName": "元大20年期以上BBB級美元公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00722B",
+      "fundID": "42553637",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "群益產業型投資等級公司債ETF傘型證券投資信託基金之群益15年期以上電信業公司債ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "群益15年期以上電信業公司債ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00723B",
+      "fundID": "42553643",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "群益產業型投資等級公司債ETF傘型證券投資信託基金之群益15年期以上科技業公司債ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "群益15年期以上科技業公司債ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00724B",
+      "fundID": "42553664",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "群益產業型投資等級公司債ETF傘型證券投資信託基金之群益10年期以上金融債ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "群益10年期以上金融債ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00725B",
+      "fundID": "72939309",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "國泰息收ETF傘型證券投資信託基金之10年期(以上)BBB美元息收公司債券證券投資信託基金(基金之配息來源可能為收益平準金且並無保證收益及配息)",
+      "reportName": "國泰息收ETF傘型基金之10年期(以上)BBB美元息收公司債券基金(基金之配息來源可能為收益平準金且本基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00726B",
+      "fundID": "72939321",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "國泰息收ETF傘型證券投資信託基金之新興市場5年期(以上)美元息收投資等級債券證券投資信託基金(基金之配息來源可能為收益平準金且並無保證收益及配息)",
+      "reportName": "國泰息收ETF傘型基金之新興市場5年期(以上)美元息收投資等級債券基金(基金之配息來源可能為收益平準金且本基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00727B",
+      "fundID": "72939315",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "國泰息收ETF傘型證券投資信託基金之優選1-5年美元非投資等級債券證券投資信託基金(本基金並無保證收益及配息)",
+      "reportName": "國泰息收ETF傘型基金之優選1-5年美元非投資等級債券基金(本基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00734B",
+      "fundID": "72959748",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "台新摩根大通新興市場投資等級美元債券 ETF證券投資信託基金",
+      "reportName": "台新摩根大通新興市場投資等級美元債券ETF基金"
+    },
+    {
+      "symbol": "00740B",
+      "fundID": "72963546",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "富邦全方位入息ETF傘型證券投資信託基金之富邦彭博10年期(以上)BBB美元息收公司債券ETF證券投資信託基金 (本基金之配息來源可能為收益平準金且基金並無保證收益及配息)",
+      "reportName": "富邦全方位入息ETF傘型基金之富邦彭博10年期(以上)BBB美元息收公司債券ETF基金(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00741B",
+      "fundID": "72963525",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "富邦全方位入息ETF傘型證券投資信託基金之富邦彭博優選1-5年非投資等級債券ETF證券投資信託基金 (本基金之配息來源可能為收益平準金且基金並無保證收益及配息)",
+      "reportName": "富邦全方位入息ETF傘型基金之富邦彭博優選1-5年非投資等級債券ETF基金(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00746B",
+      "fundID": "73626500",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "富邦多元收益ETF傘型證券投資信託基金之富邦彭博9-35年A級美元息收公司債券ETF證券投資信託基金 (本基金無保證收益及配息)",
+      "reportName": "富邦多元收益ETF傘型基金之富邦彭博9-35年A級美元息收公司債券ETF基金"
+    },
+    {
+      "symbol": "00749B",
+      "fundID": "73658930",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "凱基全球息收ETF傘型證券投資信託基金之凱基10年期以上新興市場BBB美元主權債及類主權債券ETF證券投資信託基金 (基金之配息來源可能為收益平準金)",
+      "reportName": "凱基全球息收ETF傘型基金之凱基10年期以上新興市場BBB美元主權債及類主權債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00750B",
+      "fundID": "73658988",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "凱基全球息收ETF傘型證券投資信託基金之凱基10年期以上科技業公司債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "凱基全球息收ETF傘型基金之凱基10年期以上科技業公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00751B",
+      "fundID": "73656187",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大20年期以上AAA至A級美元公司債券ETF證券投資信託基金（本基金之配息來源可能為收益平準金）",
+      "reportName": "元大20年期以上AAA至A級美元公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00754B",
+      "fundID": "73682050",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "群益投資等級債券ETF傘型證券投資信託基金之群益15年期以上高評等公司債ETF證券投資信託基金",
+      "reportName": "群益15年期以上高評等公司債ETF 基金"
+    },
+    {
+      "symbol": "00755B",
+      "fundID": "73682045",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "群益投資等級債券ETF傘型證券投資信託基金之群益15年期以上公用事業公司債ETF證券投資信託基金",
+      "reportName": "群益15年期以上公用事業公司債ETF 基金"
+    },
+    {
+      "symbol": "00756B",
+      "fundID": "73682158",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "群益投資等級債券ETF傘型證券投資信託基金之群益15年期以上新興市場主權債ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "群益15年期以上新興市場主權債ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00758B",
+      "fundID": "73688977",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "復華特選債券傘型證券投資信託基金之復華15年期以上能源業債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "復華15年期以上能源業債券ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00759B",
+      "fundID": "73688934",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "復華特選債券傘型證券投資信託基金之復華15年期以上製藥業債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "復華15年期以上製藥業債券ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00760B",
+      "fundID": "73689048",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "復華特選債券傘型證券投資信託基金之復華新興市場企業債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "復華新興市場企業債券ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00761B",
+      "fundID": "73701726",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "國泰10年期以上A等級美元公司債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "國泰10年期以上A等級美元公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00764B",
+      "fundID": "73709430",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "群益多元收益傘型證券投資信託基金之群益25年期以上美國政府債券ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "群益25年期以上美國政府債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00768B",
+      "fundID": "74424708",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "復華多元資產傘型證券投資信託基金之復華美國20年期以上公債ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "復華美國20年期以上公債ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00772B",
+      "fundID": "74707446",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託多元收益債券ETF傘型證券投資信託基金之中國信託10年期以上高評級美元公司債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "中國信託10年期以上高評級美元公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00773B",
+      "fundID": "74707494",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託多元收益債券ETF傘型證券投資信託基金之中國信託10年期以上優先順位金融債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "中國信託10年期以上優先順位金融債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00777B",
+      "fundID": "74712291",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "凱基多元收益ETF傘型證券投資信託基金之凱基15年期以上AAA至A級美元公司債券ETF證券投資信託基金 (基金之配息來源可能為收益平準金)",
+      "reportName": "凱基多元收益ETF傘型基金之凱基15年期以上AAA至A級美元公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00778B",
+      "fundID": "74712308",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "凱基多元收益ETF傘型證券投資信託基金之凱基20年期以上美元金融債券ETF證券投資信託基金 (基金之配息來源可能為收益平準金)",
+      "reportName": "凱基多元收益ETF傘型基金之凱基20年期以上美元金融債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00779B",
+      "fundID": "74712314",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "凱基多元收益ETF傘型證券投資信託基金之凱基25年期以上美國公債ETF證券投資信託基金 (基金之配息來源可能為收益平準金)",
+      "reportName": "凱基多元收益ETF傘型基金之凱基25年期以上美國公債ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00780B",
+      "fundID": "74719647",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "國泰旗艦產業ETF傘型證券投資信託基金之7-10年A等級金融產業債券證券投資信託基金",
+      "reportName": "國泰旗艦產業ETF傘型基金之7-10年A等級金融產業債券基金"
+    },
+    {
+      "symbol": "00781B",
+      "fundID": "74719597",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "國泰旗艦產業ETF傘型證券投資信託基金之15年期以上A等級科技產業債券證券投資信託基金",
+      "reportName": "國泰旗艦產業ETF傘型基金之15年期以上A等級科技產業債券基金"
+    },
+    {
+      "symbol": "00782B",
+      "fundID": "74719490",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "國泰旗艦產業ETF傘型證券投資信託基金之15年期以上A等級公用事業產業債券證券投資信託基金",
+      "reportName": "國泰旗艦產業ETF傘型基金之15年期以上A等級公用事業產業債券基金"
+    },
+    {
+      "symbol": "00785B",
+      "fundID": "74721600",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "富邦多元收益ⅡETF傘型證券投資信託基金之富邦全球金融業10年以上美元投等債券ETF證券投資信託基金",
+      "reportName": "富邦多元收益ⅡETF傘型基金之富邦全球金融業10年以上美元投等債券ETF基金"
+    },
+    {
+      "symbol": "00786B",
+      "fundID": "74722571",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大產業債券ETF傘型證券投資信託基金之元大10年期以上美元投資級銀行債券ETF證券投資信託基金",
+      "reportName": "元大10年期以上美元投資級銀行債券ETF基金"
+    },
+    {
+      "symbol": "00787B",
+      "fundID": "74722592",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大產業債券ETF傘型證券投資信託基金之元大10年期以上美元投資級醫療保健債券ETF證券投資信託基金",
+      "reportName": "元大10年期以上美元投資級醫療保健債券ETF基金"
+    },
+    {
+      "symbol": "00788B",
+      "fundID": "74722657",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大產業債券ETF傘型證券投資信託基金之元大10年期以上美元投資級公共事業電能債券ETF證券投資信託基金",
+      "reportName": "元大10年期以上美元投資級公共事業電能債券ETF基金"
+    },
+    {
+      "symbol": "00789B",
+      "fundID": "74726062",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "復華精選美元債傘型證券投資信託基金之復華20年期以上A3級以上公司債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "復華20年期以上A3級以上公司債券ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00791B",
+      "fundID": "74726020",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "復華精選美元債傘型證券投資信託基金之復華1至5年期美元特選信用債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "復華1至5年期美元特選信用債券ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00792B",
+      "fundID": "75955772",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "群益特選債券ETF傘型證券投資信託基金之群益15年期以上A級美元公司債ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "群益15年期以上A級美元公司債ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00795B",
+      "fundID": "75959067",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託投資等級債券ETF傘型證券投資信託基金之中國信託美國政府20年期以上債券ETF證券投資信託基金",
+      "reportName": "中國信託美國政府20年期以上債券ETF基金"
+    },
+    {
+      "symbol": "00834B",
+      "fundID": "75970725",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "第一金優債收息ETF傘型證券投資信託基金之第一金彭博美國 10 年期以上金融債券指數ETF證券投資信託基金",
+      "reportName": "第一金彭博美國10年期以上金融債券指數ETF基金"
+    },
+    {
+      "symbol": "00836B",
+      "fundID": "75981027",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "永豐全球息收債券ETF傘型證券投資信託基金之永豐10年期以上美元A級公司債券ETF證券投資信託基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)",
+      "reportName": "永豐10年期以上美元A級公司債券ETF基金"
+    },
+    {
+      "symbol": "00840B",
+      "fundID": "75984663",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "凱基精選美元債券ETF傘型證券投資信託基金之凱基15年期以上美元投資等級精選公司債券ETF證券投資信託基金 (基金之配息來源可能為收益平準金)",
+      "reportName": "凱基精選美元債券ETF傘型基金之凱基15年期以上美元投資等級精選公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00841B",
+      "fundID": "75984798",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "凱基精選美元債券ETF傘型證券投資信託基金之凱基20年期以上AAA至AA級大型美元公司債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "凱基精選美元債券ETF傘型基金之凱基20年期以上AAA至AA級大型美元公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00842B",
+      "fundID": "76301054",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "台新息收傘型證券投資信託基金之台新美元銀行債券 15 年期以上 ETF 證券投資信託基金",
+      "reportName": "台新息收傘型基金之台新美元銀行債券15年期以上ETF基金"
+    },
+    {
+      "symbol": "00845B",
+      "fundID": "76311692",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "富邦多元收益ⅢETF傘型證券投資信託基金之富邦中國以外新興市場美元5年以上投資等級債券ETF證券投資信託基金",
+      "reportName": "富邦多元收益ⅢETF傘型基金之富邦中國以外新興市場美元5年以上投資等級債券ETF基金"
+    },
+    {
+      "symbol": "00848B",
+      "fundID": "76318219",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託多元入息債券ETF傘型證券投資信託基金之中國信託新興亞洲(不含中國)美元精選綜合債券 ETF 證券投資信託基金",
+      "reportName": "中國信託新興亞洲(不含中國)美元精選綜合債券ETF基金(本子基金有一定比重投資於非投資等級之高風險債券且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00849B",
+      "fundID": "76317990",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託多元入息債券ETF傘型證券投資信託基金之中國信託新興市場 0-5 年期美元政府債券 ETF 證券投資信託基金",
+      "reportName": "中國信託新興市場0-5年期美元政府債券ETF基金(本子基金有 一定 比重投資於非投資等級之高風險債券 且基金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00853B",
+      "fundID": "76331254",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "統一彭博10年期以上Aa至A級美元優質公司債券ETF證券投資信託基金（基金之配息來源可能為收益平準金）",
+      "reportName": "統一彭博10年期以上Aa至A級美元優質公司債券ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00856B",
+      "fundID": "76340768",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "永豐美國息收ETF傘型證券投資信託基金之永豐1至3年期美國公債ETF證券投資信託基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)",
+      "reportName": "永豐1至3年期美國公債ETF基金"
+    },
+    {
+      "symbol": "00857B",
+      "fundID": "76340774",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "永豐美國息收ETF傘型證券投資信託基金之永豐20年期以上美國公債ETF證券投資信託基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)",
+      "reportName": "永豐20年期以上美國公債ETF基金"
+    },
+    {
+      "symbol": "00858",
+      "fundID": "76340789",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "永豐美國息收ETF傘型證券投資信託基金之永豐美國大型500股票ETF證券投資信託基金(本子基金並無保證收益及配息)",
+      "reportName": "永豐美國大型500股票ETF基金"
+    },
+    {
+      "symbol": "00859B",
+      "fundID": "76344856",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "群益全方位收益傘型證券投資信託基金之群益0-1年期美國政府債券ETF證券投資信託基金",
+      "reportName": "群益0-1年期美國政府債券ETF基金"
+    },
+    {
+      "symbol": "00860B",
+      "fundID": "76344618",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "群益全方位收益傘型證券投資信託基金之群益1-5年期投資等級公司債ETF證券投資信託基金",
+      "reportName": "群益1-5年期投資等級公司債ETF基金"
+    },
+    {
+      "symbol": "00862B",
+      "fundID": "76348749",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託優選收益債券ETF傘型證券投資信託基金之中國信託20年期以上BBB 級美元公司債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "中國信託20年期以上BBB級美元公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00863B",
+      "fundID": "76348733",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託優選收益債券ETF傘型證券投資信託基金之中國信託10年期以上電信業美元公司債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "中國信託10年期以上電信業美元公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00864B",
+      "fundID": "76348728",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託優選收益債券ETF傘型證券投資信託基金之中國信託美國政府0至1年期債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "中國信託美國政府0至1年期債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00870B",
+      "fundID": "76737557",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大新興債ETF傘型證券投資信託基金之元大15年期以上新興市場主權債ETF證券投資信託基金（本基金之配息來源可能為收益平準金）",
+      "reportName": "元大15年期以上新興市場主權債ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00877",
+      "fundID": "78744463",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "復華中國5G通信ETF證券投資信託基金",
+      "reportName": "復華中國5G通信ETF基金"
+    },
+    {
+      "symbol": "00884B",
+      "fundID": "88134166",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託全球收益ETF傘型證券投資信託基金之中國信託15年期以上新興市場美元主權低碳債券ETF證券投資信託基金(本基金非屬環境、社會及治理相關主題基金)",
+      "reportName": "中國信託15年期以上新興市場美元主權低碳債券ETF基金(本基金非屬環境、社會及治理相關主題基金)"
+    },
+    {
+      "symbol": "00886",
+      "fundID": "88172098",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "永豐全球優質ETF傘型證券投資信託基金之永豐美國科技ETF證券投資信託基金",
+      "reportName": "永豐美國科技ETF基金"
+    },
+    {
+      "symbol": "00887",
+      "fundID": "88171696",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "永豐全球優質ETF傘型證券投資信託基金之永豐中國科技50大ETF證券投資信託基金",
+      "reportName": "永豐中國科技50大ETF基金"
+    },
+    {
+      "symbol": "00888",
+      "fundID": "88171719",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "永豐全球優質ETF傘型證券投資信託基金之永豐台灣ESG永續優質ETF證券投資信託基金(本子基金之配息來源可能為收益平準金)",
+      "reportName": "永豐台灣ESG永續優質ETF基金"
+    },
+    {
+      "symbol": "00890B",
+      "fundID": "88176480",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "凱基環球傘型證券投資信託基金之凱基15年期以上美元BBB級ESG永續公司債券ETF證券投資信託基金 (基金之配息來源可能為收益平準金)",
+      "reportName": "凱基環球傘型基金之凱基 15 年期以上美元 BBB 級 ESG 永續公司債券 ETF 基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00928",
+      "fundID": "88398743",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託上櫃 ESG 30 ETF 證券投資信託基金",
+      "reportName": "中國信託上櫃ESG 30 ETF基金"
+    },
+    {
+      "symbol": "00931B",
+      "fundID": "93106366",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "統一彭博美國20年期以上公債ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "統一彭博美國20年期以上公債ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00933B",
+      "fundID": "93149246",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "國泰10年以上投資級金融債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "國泰10年以上投資級金融債券ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00937B",
+      "fundID": "93155485",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "群益ESG20年期以上BBB投資等級公司債ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "群益ESG 20年期以上BBB投資等級公司債ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00942B",
+      "fundID": "93210760",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "台新美國20年期以上A級公司債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "台新美國20年期以上A級公司債券ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00948B",
+      "fundID": "93218545",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託投資級債券傘型證券投資信託基金之中國信託15年期以上已開發市場投資級優化收益ESG美元公司債券ETF證券投資信託基金(基金之配息來源可能為收益平準金且基金並無保證收益及配息)",
+      "reportName": "中國信託15年期以上已開發市場投資級優化收益ESG美元公司債券ETF基金(本子基金之配息來源可能為收益平準金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00950B",
+      "fundID": "00505048",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "凱基全球10年期以上美元A級公司債券 ETF證券投資信託基金 (基金之配息來源可能為收益平準金)",
+      "reportName": "凱基全球10年期以上美元A級公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00955",
+      "fundID": "00512646",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託日本ETF傘型證券投資信託基金之中國信託日本商社及批發ETF證券投資信託基金",
+      "reportName": "中國信託日本商社及批發ETF基金"
+    },
+    {
+      "symbol": "00957B",
+      "fundID": "00512527",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "兆豐美國企業優選投資級公司債ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "兆豐美國企業優選投資級公司債ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00958B",
+      "fundID": "00513624",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "永豐15年期以上ESG投資等級美元銀行債ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "永豐15年期以上ESG投資等級美元銀行債ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00959B",
+      "fundID": "00515073",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "大華銀15年期以上BBB投資等級美國公司債券ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "大華銀15年期以上BBB投資等級美國公司債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00966B",
+      "fundID": "00531566",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "統一全球15年以上BBB優選ESG公司債ETF證券投資信託基金（基金之配息來源可能為收益平準金）",
+      "reportName": "統一全球15年以上BBB優選ESG公司債ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00967B",
+      "fundID": "00532452",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大優質債券ETF傘型證券投資信託基金之元大優息10年期以上美國政府債券ETF證券投資信託基金（本基金之配息來源可能為收益平準金且並無保證收益及配息）",
+      "reportName": "元大優息10年期以上美國政府債券ETF基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)"
+    },
+    {
+      "symbol": "00968B",
+      "fundID": "00532523",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大優質債券ETF傘型證券投資信託基金之元大優息10年期以上已開發市場投資級美元公司債券ETF證券投資信託基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)",
+      "reportName": "元大優息10年期以上已開發市場投資級美元公司債券ETF基金(本基金之配息來源可能為收益平準金且並無保證收益及配息)"
+    },
+    {
+      "symbol": "00969B",
+      "fundID": "00532495",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "元大優質債券ETF傘型證券投資信託基金之元大零息超長期美國政府債券ETF證券投資信託基金",
+      "reportName": "元大零息超長期美國政府債券ETF基金"
+    },
+    {
+      "symbol": "009806",
+      "fundID": "00583509",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "台新全球傘型證券投資信託基金之台新標普500 ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "台新全球傘型基金之台新標普500 ETF基金(基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00980B",
+      "fundID": "00569302",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "台新10年期以上特選全球BBB美元投資等級公司債券ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "台新10年期以上特選全球BBB美元投資等級公司債券ETF基金"
+    },
+    {
+      "symbol": "00980D",
+      "fundID": "00600606",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "聯博投資等級債入息主動式ETF證券投資信託基金(本基金有一定比重得投資於非投資等級之高風險債券，配息來源可能為收益平準金且並無保證收益及配息)",
+      "reportName": "聯博投資等級債入息主動式ETF基金(本基金有一定比重得投資於非投資等級之高風險債券，配息來源可能為收益平準金且並無保證收益及配息)"
+    },
+    {
+      "symbol": "00980T",
+      "fundID": "00584649",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "凱基美國Top股債平衡ETF證券投資信託基金",
+      "reportName": "凱基美國Top股債平衡ETF基金"
+    },
+    {
+      "symbol": "009814",
+      "fundID": "00647813",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "富邦美國傘型證券投資信託基金之富邦標普500 ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "富邦美國傘型基金之富邦標普500 ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00981B",
+      "fundID": "00568520",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "第一金美元優選收益非投資等級債券ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "第一金美元優選收益非投資等級債券ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00981D",
+      "fundID": "00606159",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "中國信託價值策略非投資等級債券主動式ETF證券投資信託基金(基金之配息來源可能為收益平準金)",
+      "reportName": "中國信託價值策略非投資等級債券主動式ETF基金(本子基金之配息來源可能為收益平準金並無保證收益及配息)"
+    },
+    {
+      "symbol": "00982B",
+      "fundID": "00579456",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "富蘭克林華美20年期以上BBB投資級美元公司債ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "富蘭克林華美20年期以上BBB投資級美元公司債ETF基金(本基金之配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00983B",
+      "fundID": "00580860",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "大華銀優化票息20年期以上美國政府債券ETF證券投資信託基金(本基金並無保證收益及配息且配息來源可能為收益平準金)",
+      "reportName": "大華銀優化票息20年期以上美國政府債券ETF基金(本基金並無保證收益及配息且配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00984B",
+      "fundID": "00580854",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "大華銀優化收益15年期以上A級美國公司債券ETF證券投資信託基金(本基金並無保證收益及配息且配息來源可能為收益平準金)",
+      "reportName": "大華銀優化收益15年期以上A級美國公司債券ETF基金(本基金並無保證收益及配息且配息來源可能為收益平準金)"
+    },
+    {
+      "symbol": "00986B",
+      "fundID": "00600887",
+      "method": "unique exact normalized official child fund name",
+      "officialName": "富蘭克林華美10年期以上投資級美元金融債ETF證券投資信託基金(本基金之配息來源可能為收益平準金)",
+      "reportName": "富蘭克林華美10年期以上投資級美元金融債ETF基金(本基金之配息來源可能為收益平準金)"
+    }
+  ],
+  "missing": [
+    "00400A",
+    "00401A",
+    "00402A",
+    "00403A",
+    "00404A",
+    "00405A",
+    "00406A",
+    "00407A",
+    "00408A",
+    "00409A",
+    "00410A",
+    "00412A",
+    "00635U",
+    "00642U",
+    "00673R",
+    "00674R",
+    "00682U",
+    "00683L",
+    "00684R",
+    "00693U",
+    "00706L",
+    "00707R",
+    "00708L",
+    "00715L",
+    "00738U",
+    "00763U",
+    "009816",
+    "009817",
+    "009818",
+    "009819",
+    "009820",
+    "009821",
+    "009824",
+    "009826",
+    "009827",
+    "009828",
+    "009829",
+    "00984D",
+    "00991B",
+    "00993A",
+    "00995A",
+    "00996A",
+    "00997A",
+    "00999A",
+    "00411A",
+    "006201",
+    "00687B",
+    "00687C",
+    "00799B",
+    "00844B",
+    "00846B",
+    "00867B",
+    "00970B",
+    "009807",
+    "009815",
+    "009822",
+    "009823",
+    "009825",
+    "00985D",
+    "00986D",
+    "00987B",
+    "00987D",
+    "00988B",
+    "00989B",
+    "00990B",
+    "00992B",
+    "00998A"
+  ]
+}

@@ -40,15 +40,23 @@ final class RestoredFeaturesTests: XCTestCase {
     func testBundledCatalogCoversBothMarketsAndNoDuplicateCodes() throws {
         let catalog = try XCTUnwrap(CatalogSnapshot.bundled())
         try catalog.validate()
-        XCTAssertGreaterThan(catalog.funds.filter { $0.market == "TWSE" }.count, 250)
+        XCTAssertGreaterThan(catalog.funds.filter { $0.market == "TWSE" }.count, 200)
         XCTAssertGreaterThan(catalog.funds.filter { $0.market == "TPEx" }.count, 100)
         XCTAssertTrue(catalog.funds.contains { $0.id == "00679B" && $0.market == "TPEx" })
         XCTAssertEqual(Set(catalog.funds.map(\.id)).count, catalog.funds.count)
     }
     func testCatalogRejectsMissingMarketAndDuplicates() {
-        let row = #"[{"基金代號":"0050","基金簡稱":"元大台灣50","出表日期":"1151014","上市日期":"0920630"}]"#
-        XCTAssertThrowsError(try CatalogAPI.decode(listed: Data(row.utf8), otc: Data(#"{"suggestions":[]}"#.utf8)))
-        XCTAssertThrowsError(try CatalogAPI.decode(listed: Data(row.utf8), otc: Data(#"{"suggestions":["0050 重複代碼"]}"#.utf8)))
+        let rows = Data(#"[{"基金代號":"0050","基金簡稱":"元大台灣50","出表日期":"1151014","上市日期":"0920630"}]"#.utf8)
+        let active = Data(#"{"status":"success","data":[{"stockNo":"0050","stockName":"元大台灣50","listingDate":"2003.06.30"}]}"#.utf8)
+        XCTAssertThrowsError(try CatalogAPI.decode(listed:rows,otc:Data(#"{"status":"success","data":[]}"#.utf8),active:active))
+        XCTAssertThrowsError(try CatalogAPI.decode(listed:rows,otc:active,active:active))
+    }
+    func testCatalogExcludesHistoricalAndFutureListings() throws {
+        let rows = Data(#"[{"基金代號":"0054","出表日期":"1151014"}]"#.utf8)
+        let active = Data(#"{"status":"success","data":[{"stockNo":"0050","stockName":"元大台灣50","listingDate":"2003.06.30"},{"stockNo":"00415A","stockName":"尚未掛牌","listingDate":"2026.10.20"}]}"#.utf8)
+        let otc = Data(#"{"status":"success","data":[{"stockNo":"00679B","stockName":"元大美債20年","listingDate":"20170117"}]}"#.utf8)
+        let result = try CatalogAPI.decode(listed:rows,otc:otc,active:active,today:"2026-10-15")
+        XCTAssertEqual(result.funds.map(\.id),["0050","00679B"])
     }
     func snapshot(_ symbol: String, _ values: [(String, Double)]) -> ComponentSnapshot {
         ComponentSnapshot(symbol: symbol, date: "2026-10-01", components: values.map { FundComponent(symbol: $0.0, name: $0.0, weight: $0.1) }, source: "test")
@@ -114,4 +122,33 @@ final class RestoredFeaturesTests: XCTestCase {
         let bytes = Data(#"{"schema":1,"holdings":[],"dividends":[],"favorites":[],"quotes":{}}"#.utf8)
         let value=try Portfolio.decodeBackup(bytes); XCTAssertNil(value.components); XCTAssertTrue(value.holdings.isEmpty)
     }
+    func testPlanReinvestmentDoesNotCountDividendsTwice() throws {
+        var plan = LegacyPlan(principal:100000,monthly:0,years:1,totalReturn:0.06,distributionRate:0.04,frequency:4,reinvest:1,deductionRate:0)
+        let full = try XCTUnwrap(PlanMath.project(plan).last)
+        XCTAssertEqual(full.total,106000,accuracy:0.001)
+        XCTAssertEqual(full.cash,0)
+        plan.totalReturn=0; plan.reinvest=0
+        let cash = try XCTUnwrap(PlanMath.project(plan).last)
+        XCTAssertEqual(cash.total,100000,accuracy:0.001)
+        XCTAssertEqual(cash.cash,100000 * (1-pow(0.99,4)),accuracy:0.001)
+        plan.deductionRate=0.1
+        XCTAssertLessThan(try XCTUnwrap(PlanMath.project(plan).last).total,100000)
+    }
+    func testCSVAcceptsBOMBeforeQuotedHeader() throws {
+        let table=try CSVTable.parse(Data("\u{feff}\"code\",shares,cost\n0050,1000,50000".utf8))
+        XCTAssertEqual(table.headers[0],"code")
+        XCTAssertEqual(table.rows.count,1)
+    }
+
+    func testAnnualFeeSnapshotUsesReportedTotalsAndCorrectYear() throws {
+        let catalog = try XCTUnwrap(AnnualFeeCatalog.bundled)
+        XCTAssertGreaterThan(catalog.records.count,280)
+        let fee = try XCTUnwrap(catalog.records["0050"])
+        XCTAssertEqual(fee.year,2025); XCTAssertEqual(fee.fundID,"98764389")
+        XCTAssertEqual(fee.total,0.22,accuracy:0.00001)
+        XCTAssertEqual(fee.management,0.11,accuracy:0.00001)
+        XCTAssertNotNil(catalog.records["00679B"])
+        XCTAssertNil(catalog.records["00415A"])
+    }
+
 }

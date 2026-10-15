@@ -40,6 +40,8 @@ jobs:
           xcodebuild build-for-testing -project ETFToGo.xcodeproj -scheme ETFToGo -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO 2>&1 | tee build/compile.log
           python3 -c "import plistlib; from pathlib import Path; p=plistlib.loads(Path('build/DerivedData/Build/Products/Debug-iphonesimulator/ETFToGo.app/Info.plist').read_bytes()); assert p['UIDeviceFamily']==[1], p['UIDeviceFamily']; print('Verified iPhone-only simulator app')"
       - name: Capture all five real SwiftUI screens
+        timeout-minutes: 3
+        continue-on-error: true
         env:
           DEVICE: ${{ steps.device.outputs.udid }}
         run: |
@@ -52,6 +54,7 @@ jobs:
             xcrun simctl io "$DEVICE" screenshot "build/screens/screen-$TAB.png"
           done
       - name: Publish screenshots immediately for inspection
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ETFToGo-screens
@@ -63,6 +66,12 @@ jobs:
         run: |
           set -euo pipefail
           xcodebuild test-without-building -project ETFToGo.xcodeproj -scheme ETFToGo -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath build/DerivedData -resultBundlePath build/Tests.xcresult -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO 2>&1 | tee build/tests.log
+      - name: Export UI test screenshots
+        if: always()
+        run: |
+          if [ -d build/Tests.xcresult ]; then
+            xcrun xcresulttool export attachments --path build/Tests.xcresult --output-path build/test-attachments
+          fi
       - name: Save verifiable build artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -71,6 +80,7 @@ jobs:
           retention-days: 14
           path: |
             build/screens/
+            build/test-attachments/
             build/*.log
             build/Tests.xcresult/
             ETFToGo.xcodeproj/

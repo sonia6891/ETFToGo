@@ -67,36 +67,42 @@ struct CatalogSnapshot: Codable {
 }
 enum CatalogAPI {
     static let listedURL = "https://openapi.twse.com.tw/v1/opendata/t187ap47_L"
-    static let otcURL = "https://info.tpex.org.tw/api/etf?lang=zh-tw"
+    static let otcURL = "https://info.tpex.org.tw/api/etfFilter"
     static func strategy(_ name: String) -> Strategy {
         if name.contains("正2") || name.contains("反1") || name.contains("槓桿") || name.contains("反向") { return .risk }
         if name.contains("高股息") || name.contains("優息") || name.contains("高息") { return .income }
         if ["元大台灣50", "富邦台50", "元大富櫃50"].contains(name) { return .saving }
         return .unclassified
     }
-    static func decode(listed: Data, otc: Data, today: String = DataChecks.day()) throws -> CatalogSnapshot {
+    struct Listing: Decodable { var stockNo: String; var stockName: String; var listingDate: String }
+    struct MarketList: Decodable { var status: String; var data: [Listing] }
+    static let activeURL = "https://www.twse.com.tw/zh/ETFortune/ajaxProductsResult"
+    static func decode(listed: Data, otc: Data, active: Data, today: String = DataChecks.day()) throws -> CatalogSnapshot {
         let rows = try JSONDecoder().decode([[String: String]].self, from: listed)
-        struct OTC: Decodable { var suggestions: [String] }
-        let suggestions = try JSONDecoder().decode(OTC.self, from: otc).suggestions
-        guard !rows.isEmpty, !suggestions.isEmpty else { throw AppDataError("上市或上櫃來源缺資料，保留原名單。") }
-        var funds: [Fund] = []; var dates: [String] = []
+        let listedActive = try JSONDecoder().decode(MarketList.self, from: active)
+        let otcActive = try JSONDecoder().decode(MarketList.self, from: otc)
+        guard !rows.isEmpty, listedActive.status == "success", otcActive.status == "success", !listedActive.data.isEmpty, !otcActive.data.isEmpty else { throw AppDataError("上市或上櫃來源缺資料，保留原名單。") }
+        var details: [String: [String: String]] = [:]; var dates: [String] = []
         for row in rows {
-            guard let code = row["基金代號"], let name = row["基金簡稱"], let day = DataChecks.rocDay(row["出表日期"] ?? ""), let listing = DataChecks.rocDay(row["上市日期"] ?? ""), day <= today else { throw AppDataError("上市名單欄位或日期改變，未覆寫。") }
-            if listing > today { continue }
-            funds.append(Fund(id: code, name: name, strategy: strategy(name), market: "TWSE", fullName: row["基金中文名稱"], fundType: row["基金類型"], listingDate: listing))
-            dates.append(day)
+            guard let code = row["基金代號"], let day = DataChecks.rocDay(row["出表日期"] ?? ""), day <= today, details[code] == nil else { throw AppDataError("上市基本資料欄位或日期改變，未覆寫。") }
+            details[code] = row; dates.append(day)
         }
-        for item in suggestions {
-            let parts = item.split(separator: " ", maxSplits: 1)
-            guard parts.count == 2 else { throw AppDataError("上櫃名單欄位改變，未覆寫。") }
-            let name = String(parts[1]); funds.append(Fund(id: String(parts[0]), name: name, strategy: strategy(name), market: "TPEx"))
+        var funds: [Fund] = []
+        for (market, records) in [("TWSE", listedActive.data), ("TPEx", otcActive.data)] {
+            for item in records {
+                guard let date = DataChecks.rocDay(item.listingDate) else { throw AppDataError("掛牌日期格式改變，未覆寫。") }
+                if date > today { continue }
+                let row = market == "TWSE" ? details[item.stockNo] : nil
+                funds.append(Fund(id: item.stockNo, name: item.stockName, strategy: strategy(item.stockName), market: market, fullName: row?["基金中文名稱"], fundType: row?["基金類型"], listingDate: date))
+            }
         }
-        let value = CatalogSnapshot(funds: funds.sorted { $0.id < $1.id }, listedDate: dates.max() ?? today, fetchedDay: today, sources: [listedURL, otcURL])
+        let value = CatalogSnapshot(funds: funds.sorted { $0.id < $1.id }, listedDate: dates.max() ?? today, fetchedDay: today, sources: [listedURL, activeURL, otcURL])
         try value.validate(); return value
     }
     static func fetch() async throws -> CatalogSnapshot {
         async let listed = PublicHTTP.get(URL(string: listedURL)!)
         async let otc = PublicHTTP.get(URL(string: otcURL)!)
-        return try await decode(listed: listed, otc: otc)
+        async let active = PublicHTTP.get(URL(string: activeURL)!)
+        return try await decode(listed: listed, otc: otc, active: active)
     }
 }

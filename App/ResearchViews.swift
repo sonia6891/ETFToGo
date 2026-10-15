@@ -92,6 +92,22 @@ struct FeesView: View {
     @State private var editing = false
     var body: some View { Page {
         Card {
+            Text("已公布的年度實際費用").font(.title2.bold()).accessibilityIdentifier("annual-fee-heading")
+            if let catalog = AnnualFeeCatalog.bundled, let fee = catalog.records[fund.id] {
+                LabeledContent("\(fee.year) 年總費用率", value: "\(decimal(fee.total))%").font(.headline).padding(.vertical, 16)
+                feeLine("經理費", fee.management); feeLine("保管費", fee.custody)
+                feeLine("交易手續費", fee.commission); feeLine("交易稅", fee.tax)
+                feeLine("申購／買回交易費（扣抵）", fee.subscriptionOffset)
+                feeLine("保證費", fee.guarantee); feeLine("其他費用", fee.other)
+                Text("統計截至 \(fee.year)/12/31；取得日 \(catalog.fetchedDay)。來源：投信投顧公會，各投信申報。基金統編 \(fee.fundID)。").font(.caption).foregroundStyle(.secondary).padding(.top, 12)
+                Text("全年累計實際比率，並非現行契約費率；當年新成立基金可能未涵蓋完整一年。總費用率使用原始公布值，各項四捨五入後可能不完全相加一致。交易費用扣抵申購／買回交易費，不能全部相加。").font(.caption).foregroundStyle(.secondary).padding(.top, 10)
+                Link("查看公會月／季／年報表", destination: URL(string: catalog.sourceURL)!).padding(.top, 12)
+            } else {
+                Text("這檔尚未配對到已核對的年度費用資料。新掛牌、主動式、期貨型或更名基金可能缺值；不顯示為 0%。").foregroundStyle(.secondary).padding(.top, 14)
+                Link("查看公會費用報表", destination: URL(string: "https://www.sitca.org.tw/ROC/Industry/IN2211.aspx?pid=IN2222_01")!).padding(.top, 12)
+            }
+        }
+        Card {
             Text("費用率與級距").font(.title2.bold())
             if let fee = store.data.fees?[fund.id] {
                 Text("經理費").font(.headline).padding(.top, 18); Text(fee.management).padding(.top, 5)
@@ -107,6 +123,7 @@ struct FeesView: View {
         Card { Text("三種費用不能混用").font(.headline); Text("經理費與保管費可能依基金規模分級距；年度總費用率還包含其他實際支出。不要把兩項契約費率相加，當成完整年度總費用率。").font(.subheadline).padding(.top, 12) }
         Link("前往官方 ETF 資料專區", destination: URL(string: fund.market == "TPEx" ? "https://info.tpex.org.tw/ETF/zh/" : "https://www.twse.com.tw/zh/ETFortune/etfInfo/\(fund.id)")!)
     }.navigationTitle("\(fund.id) 費用資料").navigationBarTitleDisplayMode(.inline).sheet(isPresented: $editing) { FeeEditor(symbol: fund.id) } }
+    private func feeLine(_ title: String, _ value: Double) -> some View { LabeledContent(title, value: "\(decimal(value))%").font(.subheadline).padding(.vertical, 6) }
 }
 struct FeeEditor: View {
     @EnvironmentObject var store: PortfolioStore

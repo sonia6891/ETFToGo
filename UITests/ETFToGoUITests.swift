@@ -17,20 +17,35 @@ final class ETFToGoUITests: XCTestCase {
         XCTAssertTrue(app.textFields["broker-import-name"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["選擇庫存 CSV"].exists)
     }
+    private func capture(_ app: XCUIApplication, _ name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+    }
+    func testAnnualFeesAndHistoryNavigation() {
+        let app=XCUIApplication(); app.launchArguments=["--ui-testing","--reset","--tab","1"]; app.launch()
+        let search=app.textFields["fund-search"]; XCTAssertTrue(search.waitForExistence(timeout:10))
+        search.tap(); search.typeText("0050\n"); app.staticTexts["元大台灣50"].tap(); app.swipeUp()
+        app.buttons["費用率與級距"].tap()
+        XCTAssertTrue(app.staticTexts["annual-fee-heading"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.staticTexts["0.22%"].exists); capture(app,"annual-fees-0050")
+        app.navigationBars.buttons.element(boundBy:0).tap()
+        app.buttons["歷史績效"].tap()
+        XCTAssertTrue(app.buttons["更新歷史績效"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.staticTexts["尚無歷史資料"].exists); capture(app,"history-empty-state")
+    }
     func testAllTabsAndSearch() {
         let app = XCUIApplication(); app.launchArguments = ["--demo"]; app.launch()
-        XCTAssertTrue(app.buttons["home-add-holding"].waitForExistence(timeout: 10))
-        app.tabBars.buttons["找 ETF"].tap()
+        XCTAssertTrue(app.buttons["home-add-holding"].waitForExistence(timeout: 10)); capture(app,"screen-0")
+        app.tabBars.buttons["找 ETF"].tap(); capture(app,"screen-1")
         let search = app.textFields["fund-search"]
         XCTAssertTrue(search.waitForExistence(timeout: 5))
         search.tap(); search.typeText("0050\n")
         XCTAssertTrue(app.staticTexts["元大台灣50"].exists)
         XCTAssertFalse(app.staticTexts["國泰永續高股息"].exists)
         app.tabBars.buttons["我的持有"].tap()
-        XCTAssertTrue(app.buttons["add-holding"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["add-holding"].waitForExistence(timeout: 5)); capture(app,"screen-2")
         app.tabBars.buttons["配息"].tap()
-        XCTAssertTrue(app.buttons["記錄一筆配息"].waitForExistence(timeout: 5))
-        app.tabBars.buttons["工具"].tap()
+        XCTAssertTrue(app.buttons["記錄一筆配息"].waitForExistence(timeout: 5)); capture(app,"screen-3")
+        app.tabBars.buttons["工具"].tap(); capture(app,"screen-4"); app.swipeUp()
         XCTAssertTrue(app.staticTexts["富果行情連線"].waitForExistence(timeout: 5))
     }
     func testHoldingSurvivesRelaunch() {

@@ -249,10 +249,10 @@ enum StoreError: LocalizedError {
             guard !key.isEmpty else { throw StoreError.missingKey }
             let targets = Array(Set(symbols ?? data.holdings.map(\.symbol))).sorted()
             guard !targets.isEmpty else { message = "請先新增持有，或到單檔 ETF 頁面更新報價。"; return }
-            var next = data
+            var fetched: [String: Quote] = [:]
             for symbol in targets {
                 let quote = try await Fugle.quote(symbol: symbol, key: key)
-                next.quotes[symbol] = quote
+                fetched[symbol] = quote
                 if symbol != targets.last { try await Task.sleep(nanoseconds: 2_100_000_000) }
             }
             try commit(next)
