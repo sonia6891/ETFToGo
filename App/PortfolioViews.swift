@@ -19,9 +19,9 @@ struct HoldingsView: View {
                             HStack { Text(holding.name).font(.headline); Spacer(); Image(systemName: "ellipsis").foregroundStyle(.secondary) }
                             HStack { Text(holding.symbol).font(.caption).foregroundStyle(.secondary); Spacer(); StrategyPill(strategy: holding.strategy) }.padding(.bottom, 8)
                             HStack(alignment: .top) {
-                                metric("持有股數", decimal(holding.shares)); Spacer(); metric("每股成本", decimal(holding.unitCost)); Spacer(); metric("目前市值", store.data.quotes[holding.symbol].map { money($0.price * holding.shares) } ?? "尚無報價")
+                                metric("持有股數", decimal(holding.shares)); Spacer(); metric("每股成本", decimal(holding.unitCost)); Spacer(); metric("目前市值", store.data.quotes[holding.symbol].flatMap { $0.isTWD ? money($0.price * holding.shares) : nil } ?? "尚無報價")
                             }
-                            if let quote = store.data.quotes[holding.symbol] {
+                            if let quote = store.data.quotes[holding.symbol], quote.isTWD {
                                 let profit = quote.price * holding.shares - holding.cost
                                 Divider().padding(.vertical, 9)
                                 HStack { Text("未實現損益").font(.caption).foregroundStyle(.secondary); Spacer(); Text("\(profit >= 0 ? "+" : "")\(money(profit))").font(.subheadline.bold()).foregroundStyle(profit >= 0 ? Palette.red : Palette.green) }
@@ -30,7 +30,7 @@ struct HoldingsView: View {
                     }.buttonStyle(.plain)
                 } }
             }
-            Text("股數以「股」為單位。點選任一持有可編輯或刪除；成本不含手續費。").font(.caption).foregroundStyle(.secondary)
+            Text("股數以「股」為單位，成本統一填台幣（可包含實際手續費）。未確認幣別或外幣報價不直接加總為台幣市值。").font(.caption).foregroundStyle(.secondary)
         }.navigationTitle("我的持有").sheet(isPresented: $add) { HoldingEditor() }.sheet(item: $editing) { HoldingEditor(existing: $0) }
     }
     private func metric(_ title: String, _ value: String) -> some View { VStack(alignment: .leading, spacing: 7) { Text(title).font(.caption).foregroundStyle(.secondary); Text(value).font(.subheadline.bold()).foregroundStyle(Palette.ink) } }
@@ -53,7 +53,7 @@ struct HoldingEditor: View {
         NavigationStack {
             Form {
                 Section { Text("1  選擇 ETF").font(.headline).foregroundStyle(Palette.blue)
-                    if existing == nil { Picker("快速選擇", selection: $selectedFund) { Text("手動輸入").tag(""); ForEach(Fund.starters) { Text("\($0.id) \($0.name)").tag($0.id) } }.onChange(of: selectedFund) { _, value in if let item = Fund.starters.first(where: { $0.id == value }) { symbol = item.id; name = item.name; strategy = item.strategy } } }
+                    if existing == nil { Picker("快速選擇", selection: $selectedFund) { Text("手動輸入").tag(""); ForEach(store.funds) { Text("\($0.id) \($0.name)").tag($0.id) } }.onChange(of: selectedFund) { _, value in if let item = store.funds.first(where: { $0.id == value }) { symbol = item.id; name = item.name; strategy = item.strategy } } }
                     TextField("ETF 代碼", text: $symbol).textInputAutocapitalization(.characters).autocorrectionDisabled().accessibilityIdentifier("holding-symbol")
                     TextField("ETF 名稱", text: $name).accessibilityIdentifier("holding-name")
                 }
@@ -73,7 +73,7 @@ struct HoldingEditor: View {
         }
     }
     func save() {
-        let h = Holding(id: existing?.id ?? UUID(), symbol: symbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(), name: name.trimmingCharacters(in: .whitespacesAndNewlines), shares: Double(shares.replacingOccurrences(of: ",", with: "")) ?? 0, unitCost: Double(cost.replacingOccurrences(of: ",", with: "")) ?? 0, broker: broker.trimmingCharacters(in: .whitespacesAndNewlines), strategy: strategy)
+        let h = Holding(id: existing?.id ?? UUID(), symbol: symbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(), name: name.trimmingCharacters(in: .whitespacesAndNewlines), shares: Double(shares.replacingOccurrences(of: ",", with: "")) ?? 0, unitCost: Double(cost.replacingOccurrences(of: ",", with: "")) ?? 0, broker: broker.trimmingCharacters(in: .whitespacesAndNewlines), strategy: strategy, sourceAccount: existing?.sourceAccount)
         do { try store.save(h); dismiss() } catch { self.error = error.localizedDescription }
     }
 }
@@ -99,7 +99,7 @@ struct DividendsView: View {
                 Card {
                     HStack(alignment: .top, spacing: 14) {
                         VStack(spacing: 3) { Text(String(Calendar.current.component(.day, from: item.date))).font(.title2.bold()).lineLimit(1); Text(item.date.formatted(.dateTime.month(.abbreviated).locale(Locale(identifier: "zh_Hant_TW")))).font(.caption2) }.foregroundStyle(Palette.blue).frame(width: 48).padding(.vertical, 10).background(Palette.blue.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
-                        VStack(alignment: .leading, spacing: 8) { Text(Fund.starters.first(where: { $0.id == item.symbol })?.name ?? item.symbol).font(.headline); Text("\(item.symbol) · \(item.status.rawValue)").font(.caption).foregroundStyle(.secondary); Text("$\(money(item.amount))").font(.title3.bold()).foregroundStyle(item.status == .paid ? Palette.green : Palette.ink) }
+                        VStack(alignment: .leading, spacing: 8) { Text(store.funds.first(where: { $0.id == item.symbol })?.name ?? item.symbol).font(.headline); Text("\(item.symbol) · \(item.status.rawValue)").font(.caption).foregroundStyle(.secondary); Text("$\(money(item.amount))").font(.title3.bold()).foregroundStyle(item.status == .paid ? Palette.green : Palette.ink) }
                         Spacer(); Image(systemName: item.status == .paid ? "checkmark.circle.fill" : "clock").foregroundStyle(item.status == .paid ? Palette.green : Palette.blue)
                     }
                 }.contextMenu { Button("刪除紀錄", role: .destructive) { deleting = item } }

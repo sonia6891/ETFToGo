@@ -48,6 +48,7 @@ struct RootView: View {
             NavigationStack { ToolsView() }.tabItem { Label("工具", systemImage: "slider.horizontal.3") }.tag(4)
         }
         .tint(Palette.blue)
+        .task { if !ProcessInfo.processInfo.arguments.contains("--ui-testing") { await store.refreshCatalog() } }
         .onAppear {
             let args = ProcessInfo.processInfo.arguments
             if let i = args.firstIndex(of: "--tab"), args.indices.contains(i + 1), let value = Int(args[i + 1]) { tab = value }
@@ -128,7 +129,7 @@ struct DiscoverView: View {
     @State private var filter = "全部"
     @State private var favoritesOnly = false
     @FocusState private var searchFocused: Bool
-    var funds: [Fund] { Fund.starters.filter { (query.isEmpty || $0.id.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query)) && (filter == "全部" || $0.strategy.rawValue == filter) && (!favoritesOnly || store.data.favorites.contains($0.id)) } }
+    var funds: [Fund] { store.funds.filter { (query.isEmpty || $0.id.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query)) && (filter == "全部" || $0.strategy.rawValue == filter) && (!favoritesOnly || store.data.favorites.contains($0.id)) } }
     var body: some View {
         Page {
             Text("找到適合你的累積方式").font(.subheadline).foregroundStyle(.secondary)
@@ -143,7 +144,8 @@ struct DiscoverView: View {
                     if fund.id != funds.last?.id { Divider() }
                 }
             }
-            Text("介面開發版目前內建 6 檔，完整上市 ETF 名單待接回原工程。持有可手動輸入其他代碼。").font(.caption).foregroundStyle(.secondary)
+            Text(store.isDemo ? "示範清單；正式模式使用上市與上櫃名單。" : "上市 \(store.funds.filter { $0.market == "TWSE" }.count) · 上櫃 \(store.funds.filter { $0.market == "TPEx" }.count) 個代碼。外幣級別分開計數，代碼數不等於獨立基金數。" ).font(.caption).foregroundStyle(.secondary)
+        if let catalog = store.catalog, !store.isDemo { Text("上市資料日 \(catalog.listedDate) · 上櫃取得日 \(catalog.fetchedDay)").font(.caption).foregroundStyle(.secondary) }; if let message = store.catalogMessage { Text(message).font(.caption).foregroundStyle(.secondary) }; Button(store.catalogRefreshing ? "更新中…" : "更新上市櫃名單") { Task { await store.refreshCatalog() } }.disabled(store.catalogRefreshing || store.isDemo)
         }.navigationTitle("找 ETF").navigationDestination(for: Fund.self) { FundDetail(fund: $0) }
             .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("完成搜尋") { searchFocused = false } } }
     }
@@ -159,6 +161,13 @@ struct FundDetail: View {
             Card { Text("最近取得的報價").font(.subheadline).foregroundStyle(.secondary); Text(store.data.quotes[fund.id].map { "$\(decimal($0.price))" } ?? "尚未連線").font(.largeTitle.bold()).padding(.vertical, 8); Text(store.data.quotes[fund.id].map { "報價日期：\($0.date)" } ?? "接上你的富果行情後即可更新。").font(.caption).foregroundStyle(.secondary); Button("更新這檔報價") { Task { await store.refresh(symbols: [fund.id]) } }.buttonStyle(.bordered).disabled(store.refreshing).padding(.top, 10) }
             Button { add = true } label: { Label("新增到我的持有", systemImage: "plus").frame(maxWidth: .infinity).padding(10) }.buttonStyle(.borderedProminent)
             Card { Label("策略怎麼看", systemImage: "info.circle").font(.headline); Text("\(fund.strategy.rawValue)是整理持有的方式，不是收益保證。配息可能來自收益或本金；槓桿策略需注意每日重設及波動風險。").font(.subheadline).foregroundStyle(.secondary).padding(.top, 8) }
+        Card {
+                NavigationLink("成分股與權重") { ComponentsView(symbol: fund.id) }.padding(.vertical, 10)
+                Divider()
+                NavigationLink("歷史績效") { HistoryView(symbol: fund.id) }.padding(.vertical, 10)
+                Divider()
+                NavigationLink("費用率與級距") { FeesView(fund: fund) }.padding(.vertical, 10)
+            }
         }.navigationTitle(fund.id).navigationBarTitleDisplayMode(.inline).toolbar { Button { store.favorite(fund.id) } label: { Image(systemName: store.data.favorites.contains(fund.id) ? "star.fill" : "star") }.accessibilityLabel("切換收藏") }.sheet(isPresented: $add) { HoldingEditor(fund: fund) }
     }
 }
