@@ -38,6 +38,7 @@ jobs:
           set -euo pipefail
           mkdir -p build/screens
           xcodebuild build-for-testing -project ETFToGo.xcodeproj -scheme ETFToGo -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO 2>&1 | tee build/compile.log
+          python3 -c "import plistlib; from pathlib import Path; p=plistlib.loads(Path('build/DerivedData/Build/Products/Debug-iphonesimulator/ETFToGo.app/Info.plist').read_bytes()); assert p['UIDeviceFamily']==[1], p['UIDeviceFamily']; print('Verified iPhone-only simulator app')"
       - name: Capture all five real SwiftUI screens
         env:
           DEVICE: ${{ steps.device.outputs.udid }}

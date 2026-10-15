@@ -265,7 +265,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.ETFToGoUITests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = ETFToGo;
 			};
 			name = Release;
@@ -409,7 +409,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.ETFToGoUITests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = ETFToGo;
 			};
 			name = Debug;
@@ -430,7 +430,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.etftogo.uireview;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -450,7 +450,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.etftogo.uireview;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -466,7 +466,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.ETFToGoTests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ETFToGo.app/ETFToGo";
 			};
 			name = Release;
@@ -483,7 +483,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tw.sonia.ETFToGoTests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ETFToGo.app/ETFToGo";
 			};
 			name = Debug;
