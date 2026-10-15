@@ -1,0 +1,18 @@
+{
+  "readOnly": true,
+  "teamConfigured": true,
+  "checkedAt": "2026-10-15T01:22:37.894Z",
+  "appsStatus": 200,
+  "etfApps": [],
+  "appsHasMore": false,
+  "bundleIDsStatus": 200,
+  "etfBundleIDs": [],
+  "bundleIDsHasMore": false,
+  "profiles": [],
+  "distributionCertificate": {
+    "parseable": true,
+    "validFrom": "Sep 30 03:48:22 2026 GMT",
+    "validTo": "Sep 30 03:48:21 2027 GMT",
+    "fingerprint256": "79:4D:96:A9:28:0C:BA:0F:34:FC:76:E0:0E:33:DB:7A:88:77:89:E4:D1:58:1C:26:D6:02:2B:EC:DE:62:E2:AE"
+  }
+}

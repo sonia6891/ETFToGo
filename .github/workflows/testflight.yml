@@ -62,7 +62,7 @@ jobs:
           printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/etf-signing/AuthKey.p8"
           security cms -D -i "$RUNNER_TEMP/etf-signing/profile.mobileprovision" > "$RUNNER_TEMP/etf-signing/profile.plist"
           python3 - <<'PY'
-          import datetime, os, pathlib, plistlib, shutil
+          import datetime, os, pathlib, plistlib, shutil, uuid
           folder = pathlib.Path(os.environ['RUNNER_TEMP']) / 'etf-signing'
           p = plistlib.loads((folder / 'profile.plist').read_bytes())
           team, bundle = os.environ['APPLE_TEAM_ID'], os.environ['ETF_BUNDLE_ID']
@@ -71,15 +71,17 @@ jobs:
           assert p['ExpirationDate'] > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None), 'Profile expired'
           assert not p.get('ProvisionedDevices') and not p.get('ProvisionsAllDevices'), 'App Store profile required'
           assert not p['Entitlements'].get('get-task-allow', False), 'Distribution profile required'
-          uuid = p['UUID']
-          target = pathlib.Path.home() / 'Library/Developer/Xcode/UserData/Provisioning Profiles'
-          target.mkdir(parents=True, exist_ok=True)
-          shutil.copyfile(folder / 'profile.mobileprovision', target / (uuid + '.mobileprovision'))
+          profile_uuid = p['UUID']; uuid.UUID(profile_uuid)
+          for directory in ['Library/Developer/Xcode/UserData/Provisioning Profiles', 'Library/MobileDevice/Provisioning Profiles']:
+              target = pathlib.Path.home() / directory
+              target.mkdir(parents=True, exist_ok=True)
+              shutil.copyfile(folder / 'profile.mobileprovision', target / (profile_uuid + '.mobileprovision'))
           with open(os.environ['GITHUB_ENV'], 'a') as f:
-              f.write('PROFILE_UUID=' + uuid + '\n')
+              f.write('PROFILE_UUID=' + profile_uuid + '\n')
+              f.write('PROFILE_NAME=' + p['Name'] + '\n')
           export = dict(method='app-store-connect', destination='upload', teamID=team,
                         signingStyle='manual', signingCertificate='Apple Distribution',
-                        provisioningProfiles={bundle:uuid}, manageAppVersionAndBuildNumber=False,
+                        provisioningProfiles={bundle:p['Name']}, manageAppVersionAndBuildNumber=False,
                         uploadSymbols=True, stripSwiftSymbols=True)
           (folder / 'ExportOptions.plist').write_bytes(plistlib.dumps(export))
           PY
@@ -100,7 +102,7 @@ jobs:
             -destination 'generic/platform=iOS' -archivePath build/ETFToGo.xcarchive \
             CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" PRODUCT_BUNDLE_IDENTIFIER="$ETF_BUNDLE_ID" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
             2>&1 | tee build/archive.log
       - name: Upload archive to App Store Connect
         run: |
@@ -122,5 +124,5 @@ jobs:
         if: always()
         run: |
           security delete-keychain "$RUNNER_TEMP/etf-signing/build.keychain-db" || true
-          if [[ -n "${PROFILE_UUID:-}" ]]; then rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$PROFILE_UUID.mobileprovision"; fi
+          if [[ -n "${PROFILE_UUID:-}" ]]; then rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$PROFILE_UUID.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"; fi
           rm -rf "$RUNNER_TEMP/etf-signing"

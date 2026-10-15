@@ -8,7 +8,7 @@
 
 使用 Xcode 26.6，安裝官方 Homebrew 套件 `xcodegen`。先將 App/Assets.xcassets/Pocket.imageset/pocket.png 用 macOS sips 等比輸出為 App/Assets.xcassets/AppIcon.appiconset/AppIcon.png 的 1024 × 1024 PNG，再於本目錄執行 `xcodegen generate`，以 Xcode 開啟 ETFToGo.xcodeproj。GitHub 的手動 native-ui workflow 會執行這些步驟、編譯、跑測試與擷取五張 iPhone 模擬器畫面。最終以 CI 實際結果為準。
 
-開發用 Bundle ID 為 `tw.sonia.etftogo.uireview`，尚未在 Apple 註冊，不能當作已核准的正式 Bundle ID。iOS 17 起，SwiftUI，無 WebView。
+本機預覽用 Bundle ID 為 `tw.sonia.etftogo.uireview`。正式 Bundle ID 已沿用原工程的 `com.sonia.etftogo` 並向 Apple 註冊；封存時以建置設定覆蓋為正式 ID。iOS 17 起，SwiftUI，無 WebView。交付資料夾已包含產生的 Xcode 專案與 App Icon，可直接開啟 ETFToGo.xcodeproj。
 
 ## 資料與限制
 
@@ -24,9 +24,13 @@
 
 驗收 UI、補接正式資料與原版功能、確認 Apple Developer Team 和正式 Bundle ID、建立 ETF 專用 provisioning profile 與 App Store Connect App、簽署 archive、上傳並確認 TestFlight 處理與測試者可用狀態。
 
-`native-ui.yml` 只做模擬器。`testflight.yml` 已準備手動簽署、archive 與 App Store Connect 上傳步驟；缺任何必要設定時會在前置檢查中停止。簽署與上傳尚未成功執行，不能把設定檔視為發佈證據。也尚未建立可安裝的 TestFlight build。
+`native-ui.yml` 做模擬器驗證。`testflight.yml` 提供此倉庫專用的手動發佈流程，缺設定會在前置檢查停止。
 
-請在私人倉庫的 Settings → Secrets and variables → Actions 設定，勿在對話貼出密鑰：
+已使用既有 Apple 簽署環境的獨立分支完成正式簽署、archive 和 IPA 匯出：版本 **0.2.0 (2.2)**、**Xcode 26.6 / iOS 26.5 SDK**、正式 Bundle ID **com.sonia.etftogo**。成功紀錄：[signed archive run 38665723372](https://github.com/sonia6891/meow-work-app/actions/runs/38665723372)。來源固定為 ETFToGo commit `b4d340a506324318969c8c550ee8e95ef259e0fd`；既有 App 的主分支未變更，秘密仍留在原本的 GitHub 簽署環境。
+
+**尚未上傳，也沒有可安裝的 TestFlight build。** Apple API 已確認 ETF App 記錄不存在，上傳步驟因此跳過；必須先在 App Store Connect 網站登入並建立記錄。參見 `RELEASE_STATUS.md`。IPA 是 App Store distribution 檔，不能當成一般 iPhone 點開即可安裝的檔案。
+
+若日後要把簽署流程獨立搬到此私人倉庫，在 Settings → Secrets and variables → Actions 設定以下項目；現有獨立簽署分支已可使用，毋須為本次重建憑證或在對話貼出密鑰：
 
 - Variable `ETF_BUNDLE_ID`：在 Apple 註冊、且 App Store Connect App 使用的正式識別碼。
 - Secrets `APPLE_TEAM_ID`、`APPLE_ASC_KEY_ID`、`APPLE_ASC_ISSUER_ID`、`APPLE_ASC_KEY_P8`。

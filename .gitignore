@@ -8,3 +8,5 @@ xcuserdata/
 *.p12
 *.mobileprovision
 *.ipa
+Evidence/*.log
+Screens/

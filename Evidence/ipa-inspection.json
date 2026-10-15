@@ -1,0 +1,16 @@
+{
+  "CFBundleIdentifier": "com.sonia.etftogo",
+  "CFBundleDisplayName": "ETF 袋著走",
+  "CFBundleShortVersionString": "0.2.0",
+  "CFBundleVersion": "2.2",
+  "MinimumOSVersion": "17.0",
+  "DTPlatformName": "iphoneos",
+  "DTSDKName": "iphoneos26.5",
+  "DTXcode": "2660",
+  "DTXcodeBuild": "17F113",
+  "cpuType": "0x100000c",
+  "sizeBytes": 1311013,
+  "sha256": "1bc8250e10a6b2eb7439370352ba298a4d7402ebf11ae45687d2f36a86ecf185",
+  "hasEmbeddedProfile": true,
+  "hasAppIcon": true
+}
