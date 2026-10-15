@@ -6,7 +6,7 @@
 
 ## 建置
 
-安裝官方 Homebrew 套件 `xcodegen`。先將 Pocket.imageset/pocket.png 用 macOS sips 等比輸出為 AppIcon.appiconset/AppIcon.png 的 1024 × 1024 PNG，再於本目錄執行 `xcodegen generate`，以 Xcode 開啟 ETFToGo.xcodeproj。GitHub 的手動 native-ui workflow 會執行這些步驟、編譯、跑測試與擷取五張 iPhone 模擬器畫面。最終以 CI 實際結果為準。
+使用 Xcode 26.6，安裝官方 Homebrew 套件 `xcodegen`。先將 App/Assets.xcassets/Pocket.imageset/pocket.png 用 macOS sips 等比輸出為 App/Assets.xcassets/AppIcon.appiconset/AppIcon.png 的 1024 × 1024 PNG，再於本目錄執行 `xcodegen generate`，以 Xcode 開啟 ETFToGo.xcodeproj。GitHub 的手動 native-ui workflow 會執行這些步驟、編譯、跑測試與擷取五張 iPhone 模擬器畫面。最終以 CI 實際結果為準。
 
 開發用 Bundle ID 為 `tw.sonia.etftogo.uireview`，尚未在 Apple 註冊，不能當作已核准的正式 Bundle ID。iOS 17 起，SwiftUI，無 WebView。
 
@@ -22,6 +22,21 @@
 
 ## 尚待發佈工作
 
-驗收 UI、補接正式資料與原版功能、確認 Apple Developer Team 和正式 Bundle ID、建立 ETF 專用 provisioning profile 與 App Store Connect App、簽署 archive、上傳並確認 TestFlight 處理與測試者可用狀態。現在的 workflow 只做模擬器，沒有上傳功能，也不會修改其他 App。
+驗收 UI、補接正式資料與原版功能、確認 Apple Developer Team 和正式 Bundle ID、建立 ETF 專用 provisioning profile 與 App Store Connect App、簽署 archive、上傳並確認 TestFlight 處理與測試者可用狀態。
+
+`native-ui.yml` 只做模擬器。`testflight.yml` 已準備手動簽署、archive 與 App Store Connect 上傳步驟；缺任何必要設定時會在前置檢查中停止。簽署與上傳尚未成功執行，不能把設定檔視為發佈證據。也尚未建立可安裝的 TestFlight build。
+
+請在私人倉庫的 Settings → Secrets and variables → Actions 設定，勿在對話貼出密鑰：
+
+- Variable `ETF_BUNDLE_ID`：在 Apple 註冊、且 App Store Connect App 使用的正式識別碼。
+- Secrets `APPLE_TEAM_ID`、`APPLE_ASC_KEY_ID`、`APPLE_ASC_ISSUER_ID`、`APPLE_ASC_KEY_P8`。
+- Secrets `APPLE_DISTRIBUTION_P12_BASE64`、`APPLE_DISTRIBUTION_P12_PASSWORD`。
+- Secret `APPLE_PROFILE_ETF_BASE64`：對應正式 ETF Bundle ID 的 App Store distribution profile，不能沿用其他 App 的 profile。
+
+上傳成功後仍需查驗 Apple 處理結果、出口合規問題、測試群組與邀請；外部測試可能需要 Beta App Review。
+
+## 已找回的較早原始碼
+
+倉庫另外收到 `releases/v1.7.2/` 歷史來源，其中 `ios/` 是較早的原生 0.1.0 工程，含較完整的 ETF 名單、舊備份相容與成分股等功能。目前尚未移植到本 UI 審閱版，不能宣稱功能已完整保留。歷史來源原樣保留；它不是本次編譯的 App，也不是先前缺失的 Native UI V2。
 
 富果來源：https://developer.fugle.tw/docs/data/http-api/intraday/quote/

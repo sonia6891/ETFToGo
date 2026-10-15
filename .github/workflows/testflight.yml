@@ -1,0 +1,126 @@
+name: Sign and upload native ETF app
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: etftogo-testflight
+  cancel-in-progress: false
+jobs:
+  prerequisites:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require ETF-specific release configuration
+        env:
+          ETF_BUNDLE_ID: ${{ vars.ETF_BUNDLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ASC_KEY_ID: ${{ secrets.APPLE_ASC_KEY_ID }}
+          APPLE_ASC_ISSUER_ID: ${{ secrets.APPLE_ASC_ISSUER_ID }}
+          APPLE_ASC_KEY_P8: ${{ secrets.APPLE_ASC_KEY_P8 }}
+          APPLE_DISTRIBUTION_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          APPLE_DISTRIBUTION_P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          APPLE_PROFILE_ETF_BASE64: ${{ secrets.APPLE_PROFILE_ETF_BASE64 }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in ETF_BUNDLE_ID APPLE_TEAM_ID APPLE_ASC_KEY_ID APPLE_ASC_ISSUER_ID APPLE_ASC_KEY_P8 APPLE_DISTRIBUTION_P12_BASE64 APPLE_DISTRIBUTION_P12_PASSWORD APPLE_PROFILE_ETF_BASE64; do
+            if [[ -z "${!name}" ]]; then echo "::error::Missing $name"; missing=1; fi
+          done
+          [[ "$missing" == 0 ]]
+          [[ "$ETF_BUNDLE_ID" != "tw.sonia.etftogo.uireview" ]]
+  upload:
+    needs: prerequisites
+    runs-on: macos-26
+    timeout-minutes: 40
+    env:
+      ETF_BUNDLE_ID: ${{ vars.ETF_BUNDLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_ASC_KEY_ID: ${{ secrets.APPLE_ASC_KEY_ID }}
+      APPLE_ASC_ISSUER_ID: ${{ secrets.APPLE_ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate release project
+        run: |
+          set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+          xcodebuild -version
+          brew install xcodegen
+          sips -z 1024 1024 App/Assets.xcassets/Pocket.imageset/pocket.png --out App/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+          xcodegen generate
+      - name: Install and validate temporary signing material
+        env:
+          P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_P12_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.APPLE_PROFILE_ETF_BASE64 }}
+          ASC_KEY_P8: ${{ secrets.APPLE_ASC_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/etf-signing"
+          printf '%s' "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/etf-signing/certificate.p12"
+          printf '%s' "$PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/etf-signing/profile.mobileprovision"
+          printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/etf-signing/AuthKey.p8"
+          security cms -D -i "$RUNNER_TEMP/etf-signing/profile.mobileprovision" > "$RUNNER_TEMP/etf-signing/profile.plist"
+          python3 - <<'PY'
+          import datetime, os, pathlib, plistlib, shutil
+          folder = pathlib.Path(os.environ['RUNNER_TEMP']) / 'etf-signing'
+          p = plistlib.loads((folder / 'profile.plist').read_bytes())
+          team, bundle = os.environ['APPLE_TEAM_ID'], os.environ['ETF_BUNDLE_ID']
+          assert team in p['TeamIdentifier'], 'Profile belongs to a different Apple team'
+          assert p['Entitlements']['application-identifier'] == team + '.' + bundle, 'Profile does not match ETF Bundle ID'
+          assert p['ExpirationDate'] > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None), 'Profile expired'
+          assert not p.get('ProvisionedDevices') and not p.get('ProvisionsAllDevices'), 'App Store profile required'
+          assert not p['Entitlements'].get('get-task-allow', False), 'Distribution profile required'
+          uuid = p['UUID']
+          target = pathlib.Path.home() / 'Library/Developer/Xcode/UserData/Provisioning Profiles'
+          target.mkdir(parents=True, exist_ok=True)
+          shutil.copyfile(folder / 'profile.mobileprovision', target / (uuid + '.mobileprovision'))
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write('PROFILE_UUID=' + uuid + '\n')
+          export = dict(method='app-store-connect', destination='upload', teamID=team,
+                        signingStyle='manual', signingCertificate='Apple Distribution',
+                        provisioningProfiles={bundle:uuid}, manageAppVersionAndBuildNumber=False,
+                        uploadSymbols=True, stripSwiftSymbols=True)
+          (folder / 'ExportOptions.plist').write_bytes(plistlib.dumps(export))
+          PY
+          KEYCHAIN="$RUNNER_TEMP/etf-signing/build.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/etf-signing/certificate.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN"
+      - name: Archive signed iPhone app
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          xcodebuild archive -project ETFToGo.xcodeproj -scheme ETFToGo -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/ETFToGo.xcarchive \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" PRODUCT_BUNDLE_IDENTIFIER="$ETF_BUNDLE_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            2>&1 | tee build/archive.log
+      - name: Upload archive to App Store Connect
+        run: |
+          set -euo pipefail
+          xcodebuild -exportArchive -archivePath build/ETFToGo.xcarchive \
+            -exportPath build/export -exportOptionsPlist "$RUNNER_TEMP/etf-signing/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/etf-signing/AuthKey.p8" \
+            -authenticationKeyID "$APPLE_ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$APPLE_ASC_ISSUER_ID" 2>&1 | tee build/upload.log
+          echo 'Upload command completed. App Store Connect processing and tester availability still require verification.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ETFToGo-release-logs
+          path: build/*.log
+          retention-days: 14
+      - name: Remove temporary signing material
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/etf-signing/build.keychain-db" || true
+          if [[ -n "${PROFILE_UUID:-}" ]]; then rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$PROFILE_UUID.mobileprovision"; fi
+          rm -rf "$RUNNER_TEMP/etf-signing"
