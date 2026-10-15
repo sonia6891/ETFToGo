@@ -49,6 +49,12 @@ jobs:
             sleep 4
             xcrun simctl io "$DEVICE" screenshot "build/screens/screen-$TAB.png"
           done
+      - name: Publish screenshots immediately for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: ETFToGo-screens
+          path: build/screens/
+          retention-days: 14
       - name: Verify calculations, persistence, search and editing
         env:
           DEVICE: ${{ steps.device.outputs.udid }}

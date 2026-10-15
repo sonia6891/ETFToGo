@@ -7,7 +7,7 @@ final class ETFToGoUITests: XCTestCase {
         app.tabBars.buttons["找 ETF"].tap()
         let search = app.textFields["fund-search"]
         XCTAssertTrue(search.waitForExistence(timeout: 5))
-        search.tap(); search.typeText("0050")
+        search.tap(); search.typeText("0050\n")
         XCTAssertTrue(app.staticTexts["元大台灣50"].exists)
         XCTAssertFalse(app.staticTexts["國泰永續高股息"].exists)
         app.tabBars.buttons["我的持有"].tap()
