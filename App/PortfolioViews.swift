@@ -98,7 +98,7 @@ struct DividendsView: View {
             ForEach(entries) { item in
                 Card {
                     HStack(alignment: .top, spacing: 14) {
-                        VStack(spacing: 3) { Text(item.date.formatted(.dateTime.day().locale(Locale(identifier: "zh_Hant_TW")))).font(.title2.bold()); Text(item.date.formatted(.dateTime.month(.abbreviated).locale(Locale(identifier: "zh_Hant_TW")))).font(.caption2) }.foregroundStyle(Palette.blue).frame(width: 48).padding(.vertical, 10).background(Palette.blue.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+                        VStack(spacing: 3) { Text(String(Calendar.current.component(.day, from: item.date))).font(.title2.bold()).lineLimit(1); Text(item.date.formatted(.dateTime.month(.abbreviated).locale(Locale(identifier: "zh_Hant_TW")))).font(.caption2) }.foregroundStyle(Palette.blue).frame(width: 48).padding(.vertical, 10).background(Palette.blue.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
                         VStack(alignment: .leading, spacing: 8) { Text(Fund.starters.first(where: { $0.id == item.symbol })?.name ?? item.symbol).font(.headline); Text("\(item.symbol) · \(item.status.rawValue)").font(.caption).foregroundStyle(.secondary); Text("$\(money(item.amount))").font(.title3.bold()).foregroundStyle(item.status == .paid ? Palette.green : Palette.ink) }
                         Spacer(); Image(systemName: item.status == .paid ? "checkmark.circle.fill" : "clock").foregroundStyle(item.status == .paid ? Palette.green : Palette.blue)
                     }
