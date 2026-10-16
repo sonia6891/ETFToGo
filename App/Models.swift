@@ -124,6 +124,9 @@ struct Quote: Codable {
     var low: Double? = nil
     /// Trading volume in lots (張), as reported by Fugle intraday quotes.
     var volume: Double? = nil
+    /// `ExchangeLive.source` for keyless exchange quotes; nil for Fugle and older saved quotes.
+    var source: String? = nil
+    var isExchangeLive: Bool { source == ExchangeLive.source }
     var isTWD: Bool { currency == "TWD" || (currency == nil && Fund.starters.contains { $0.id == symbol }) }
     var isValid: Bool {
         price.isFinite && price > 0 && [change, changePercent].allSatisfy { $0?.isFinite ?? true }
@@ -287,7 +290,7 @@ enum StoreError: LocalizedError {
     @Published private(set) var official = OfficialDividends.bundled()
     @Published var officialRefreshing = false
     @Published var officialMessage: String?
-    /// Live 加權 / 櫃買 index quotes from the viewer's key, keyed "taiex" and "tpex".
+    /// Live 加權 / 櫃買 index quotes (the viewer's Fugle key, else the exchange), keyed "taiex" and "tpex".
     @Published var indices: [String: Quote] = [:]
     var funds: [Fund] { isDemo ? Fund.starters : (catalog?.funds ?? []) }
     let isDemo: Bool
@@ -488,14 +491,19 @@ enum StoreError: LocalizedError {
         message = nil
         do {
             let key = try SecureKey.read()
-            guard !key.isEmpty else { throw StoreError.missingKey }
             let targets = Array(Set(symbols ?? data.holdings.map(\.symbol))).sorted()
             guard !targets.isEmpty else { message = "請先新增持有，或到單檔 ETF 頁面更新報價。"; return }
             var fetched: [String: Quote] = [:]
-            for symbol in targets {
-                let quote = try await Fugle.quote(symbol: symbol, key: key)
-                fetched[symbol] = quote
-                if symbol != targets.last { try await Task.sleep(nanoseconds: 2_100_000_000) }
+            if key.isEmpty {
+                // No Fugle key: the exchange's own live prices, all codes in one or two requests.
+                fetched = try await ExchangeLive.quotes(targets, markets: markets(targets))
+                guard !fetched.isEmpty else { throw AppDataError("證交所目前沒有這些代號的成交資料，保留上次報價。") }
+            } else {
+                for symbol in targets {
+                    let quote = try await Fugle.quote(symbol: symbol, key: key)
+                    fetched[symbol] = quote
+                    if symbol != targets.last { try await Task.sleep(nanoseconds: 2_100_000_000) }
+                }
             }
             // The user may have edited holdings while the requests were running.
             var next = data

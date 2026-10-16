@@ -411,6 +411,7 @@ struct FundDetail: View {
             }
         }
         .safeAreaInset(edge: .bottom) { actionBar }
+        .task { await store.refreshLive([fund.id]) }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -440,9 +441,10 @@ struct FundDetail: View {
         }
     }
     private var updatedText: String {
-        guard let quote else { return "更新時間 --/-- --:--・連接富果行情後即可更新" }
+        guard let quote else { return "更新時間 --/-- --:--・按「更新報價」取得" }
         if store.isDemo { return "示範報價，非即時市場資訊" }
-        return "報價日期 \(quote.date) · 取得於 \(quote.fetchedAt.formatted(date: .abbreviated, time: .shortened))"
+        let source = quote.isExchangeLive ? "證交所即時 · " : ""
+        return "\(source)報價日期 \(quote.date) · 取得於 \(quote.fetchedAt.formatted(date: .abbreviated, time: .shortened))"
     }
     private var overview: some View {
         let strategy = fund.strategy, color = Palette.strategy(strategy)

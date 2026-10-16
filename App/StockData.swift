@@ -13,7 +13,8 @@ struct StockInfo: Identifiable, Hashable {
 }
 
 /// Taiwan stocks, last closes, both market indices and company figures, bundled from the exchanges' open data
-/// by WebPreview/build_stocks.py (the same file the web app uses). Live prices still come from the viewer's Fugle key.
+/// by WebPreview/build_stocks.py (the same file the web app uses). Live prices come from the viewer's Fugle key,
+/// else from the exchange (ExchangeLive).
 final class StockSnapshot {
     struct IndexDay { let date: String; let close: Double }
     struct MarketIndex {
@@ -158,10 +159,13 @@ extension PortfolioStore {
         return value
     }
     var summary: PortfolioSummary { PortfolioSummary(effectiveData) }
-    /// Live index quotes with the viewer's key: IX0001 (加權) and IX0043 (櫃買).
+    /// Live index quotes with the viewer's key: IX0001 (加權) and IX0043 (櫃買); without one, from the exchange.
     func refreshIndices() async {
         guard !isDemo else { return }
-        guard let key = try? SecureKey.read(), !key.isEmpty else { return }
+        guard let key = try? SecureKey.read(), !key.isEmpty else {
+            if let fresh = try? await ExchangeLive.indices() { indices.merge(fresh) { _, new in new } }
+            return
+        }
         for (name, symbol) in [("taiex", "IX0001"), ("tpex", "IX0043")] {
             do {
                 let bytes = try await PublicHTTP.get(URL(string: "https://api.fugle.tw/marketdata/v1.0/stock/intraday/quote/\(symbol)")!, key: key)

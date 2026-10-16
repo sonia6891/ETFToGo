@@ -136,4 +136,24 @@ final class PortfolioTests: XCTestCase {
         XCTAssertThrowsError(try Fugle.decode(bytes, expectedSymbol: "00878"))
         XCTAssertThrowsError(try Fugle.decode(Data(#"{"symbol":"0050","date":"2026-10-15"}"#.utf8), expectedSymbol: "0050"))
     }
+    func testExchangeLiveQuotes() throws {
+        // Shape of mis.twse.com.tw getStockInfo.jsp on 2026-10-16: an index, a share with a trade in the current
+        // tick, one without (last trade under "trade"), one with no trade today, and an unknown code.
+        let bytes = Data(#"""
+        {"rtcode":"0000","rtmessage":"OK","msgArray":[
+         {"c":"t00","ex":"tse","d":"20261016","z":"47268.85","y":"46969.87","o":"46995.03","h":"47520.60","l":"46995.03"},
+         {"c":"0050","ex":"tse","d":"20261016","z":"109.3000","y":"108.9000","o":"109.4500","h":"109.7000","l":"108.9000","v":"85139","trade":{"t":"12:04:04","v":13,"z":"109.3000"}},
+         {"c":"6488","ex":"otc","d":"20261016","z":"-","y":"923.0000","o":"936.0000","h":"936.0000","l":"890.0000","v":"11007","trade":{"t":"12:03:40","v":2,"z":"905.0000"}},
+         {"c":"00679B","ex":"otc","d":"20261016","z":"-","y":"25.5600","o":"-","h":"-","l":"-","v":"0"},
+         {"tv":"-","s":"-","c":"","z":"-"}]}
+        """#.utf8)
+        let quotes = try ExchangeLive.decode(bytes)
+        XCTAssertEqual(Set(quotes.keys), ["t00", "0050", "6488"])
+        let etf = try XCTUnwrap(quotes["0050"])
+        XCTAssertEqual(etf.price, 109.3); XCTAssertEqual(etf.change ?? 0, 0.4, accuracy: 0.0001); XCTAssertEqual(etf.changePercent ?? 0, 0.37, accuracy: 0.001)
+        XCTAssertEqual(etf.date, "2026-10-16"); XCTAssertEqual(etf.volume, 85139); XCTAssertTrue(etf.isTWD); XCTAssertTrue(etf.isExchangeLive)
+        XCTAssertEqual(quotes["6488"]?.price, 905, "Without a trade in the current tick, the last trade is used")
+        XCTAssertEqual(quotes["t00"]?.change ?? 0, 298.98, accuracy: 0.001)
+        XCTAssertThrowsError(try ExchangeLive.decode(Data(#"{"rtcode":"5001","msgArray":[]}"#.utf8)))
+    }
 }

@@ -317,9 +317,8 @@ struct SourcesView: View {
         let latestQuote = store.data.quotes.values.map(\.fetchedAt).max()
         Page {
             Card(padding: 12) {
-                row("chart.bar.fill", Palette.blue, "市場報價（台股）", status: hasKey ? ("已連線", Palette.green) : ("未連線", Palette.muted), lines: ["資料來源：富果行情 API（你的金鑰）", "最後更新：\(latestQuote.map { $0.formatted(date: .numeric, time: .shortened) } ?? "—")"]) {
-                    if hasKey { Button(store.refreshing ? "更新中…" : "立即更新") { Task { await store.refresh() } }.disabled(store.refreshing || store.isDemo) }
-                    else { NavigationLink("連線設定", value: AppRoute.connection) }
+                row("chart.bar.fill", Palette.blue, "市場報價（台股）", status: hasKey ? ("已連線", Palette.green) : ("免金鑰", Palette.green), lines: [hasKey ? "資料來源：富果行情 API（你的金鑰）" : "資料來源：證交所基本市況報導（約 5 秒延遲）", "最後更新：\(latestQuote.map { $0.formatted(date: .numeric, time: .shortened) } ?? "—")"]) {
+                    Button(store.refreshing ? "更新中…" : "立即更新") { Task { await store.refresh() } }.disabled(store.refreshing || store.isDemo)
                 }
                 Divider()
                 row("bag.fill", Palette.orange, "我的持有", status: store.isDemo ? ("示範資料", Palette.orange) : ("已儲存", Palette.green), lines: ["資料來源：手動輸入・交易紀錄・CSV 匯入", "最後異動：\(lastTrade.map { ymdText($0.date) } ?? "—")"]) {
@@ -340,7 +339,7 @@ struct SourcesView: View {
             Text("你自己的配息紀錄仍以券商入帳為準；官方資料用來帶入每單位金額與日期、推算配息頻率。上櫃 ETF 只有近期除權息預告，沒有歷史紀錄與發放日。").font(.caption).foregroundStyle(Palette.muted)
         }
         .navigationTitle("資料來源狀態").navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { Task { await store.refreshOfficial(); if hasKey { await store.refresh() } } } label: { Image(systemName: "arrow.clockwise") }.accessibilityLabel("全部更新") } }
+        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { Task { await store.refreshOfficial(); if !store.isDemo, !store.data.holdings.isEmpty { await store.refresh() } } } label: { Image(systemName: "arrow.clockwise") }.accessibilityLabel("全部更新") } }
         .onAppear { hasKey = !((try? SecureKey.read()) ?? "").isEmpty }
     }
     private func row<Action: View>(_ icon: String, _ color: Color, _ title: String, status: (String, Color), lines: [String], @ViewBuilder action: () -> Action) -> some View {
@@ -379,7 +378,7 @@ struct AboutView: View {
             Card {
                 Text("資料來源").font(.headline).foregroundStyle(Palette.ink)
                 LabeledContent("ETF 名單", value: "證交所、櫃買中心").padding(.top, 8)
-                LabeledContent("即時報價", value: "富果行情 API")
+                LabeledContent("即時報價", value: "證交所（免金鑰）・富果行情 API")
                 LabeledContent("配息公告", value: "證交所、櫃買中心")
                 LabeledContent("年度費用", value: "投信投顧公會")
             }.font(.subheadline)

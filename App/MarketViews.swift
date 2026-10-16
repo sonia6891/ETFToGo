@@ -127,7 +127,7 @@ struct IndexCard: View {
                 Text("— (—)").font(.caption).foregroundStyle(Palette.muted)
             }
             if days.count >= 2 { ValueChart(points: Array(days), height: 56, tint: tint).padding(.top, 6) } else { Color.clear.frame(height: 56) }
-            Text(caption(live: live != nil, snapshot: snapshot)).font(.caption2).foregroundStyle(Palette.muted).lineLimit(1).minimumScaleFactor(0.8)
+            Text(caption(live: live, snapshot: snapshot)).font(.caption2).foregroundStyle(Palette.muted).lineLimit(1).minimumScaleFactor(0.8)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -140,8 +140,8 @@ struct IndexCard: View {
         let tail = percent.map { " (" + percentText($0) + ")" } ?? ""
         return arrow + " " + priceText(abs(change)) + tail
     }
-    private func caption(live: Bool, snapshot: StockSnapshot.MarketIndex?) -> String {
-        if live { return "富果即時" }
+    private func caption(live: Quote?, snapshot: StockSnapshot.MarketIndex?) -> String {
+        if let live { return (live.isExchangeLive ? "證交所即時・" : "富果即時・") + live.fetchedAt.formatted(date: .omitted, time: .shortened) }
         guard let snapshot else { return "走勢待取得" }
         let day = String(snapshot.date.suffix(5)).replacingOccurrences(of: "-", with: "/")
         return "近 \(min(snapshot.history.count, 22)) 個交易日・\(day) 收盤"
@@ -153,14 +153,15 @@ struct TintedIconLabel: LabelStyle {
         HStack(spacing: 6) { configuration.icon.foregroundStyle(tint); configuration.title }
     }
 }
-/// Where prices come from and whether the viewer's Fugle key is connected.
+/// Where prices come from: the viewer's Fugle key, else the exchange's live prices, else the bundled closes.
 struct SourceCard: View {
     @EnvironmentObject var store: PortfolioStore
     @State private var hasKey = false
     @State private var busy = false
     var body: some View {
         let day: String? = store.stockSnapshot?.closeDate["twse"]?.replacingOccurrences(of: "-", with: "/")
-        let source: String = hasKey ? "富果行情 API" : (day.map { "證交所・櫃買中心收盤（\($0)）" } ?? "待設定")
+        let connected = hasKey || store.indices["taiex"] != nil
+        let source: String = hasKey ? "富果行情 API" : (connected ? "證交所即時（免金鑰）" : (day.map { "證交所・櫃買中心收盤（\($0)）" } ?? "待設定"))
         let updated: String = store.indices["taiex"]?.fetchedAt.formatted(date: .omitted, time: .shortened) ?? "—"
         HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
@@ -169,12 +170,8 @@ struct SourceCard: View {
             }.font(.caption).foregroundStyle(Palette.muted)
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 6) {
-                HStack(spacing: 5) { Circle().fill(hasKey ? Palette.green : Palette.pink).frame(width: 8, height: 8); Text(hasKey ? "已連線" : "未連線").font(.caption.bold()) }.foregroundStyle(hasKey ? Palette.green : Palette.pink)
-                if hasKey {
-                    Button(busy ? "更新中…" : "即時更新") { Task { busy = true; await store.refreshIndices(); await store.refresh(symbols: Array(store.data.favorites) + store.data.holdings.map(\.symbol)); busy = false } }.font(.caption.bold()).disabled(busy || store.isDemo)
-                } else {
-                    NavigationLink(value: AppRoute.connection) { Label("即時更新（待授權）", systemImage: "arrow.clockwise").font(.caption.bold()) }
-                }
+                HStack(spacing: 5) { Circle().fill(connected ? Palette.green : Palette.pink).frame(width: 8, height: 8); Text(connected ? "已連線" : "未連線").font(.caption.bold()) }.foregroundStyle(connected ? Palette.green : Palette.pink)
+                Button(busy ? "更新中…" : "即時更新") { Task { busy = true; await store.refreshIndices(); await store.refresh(symbols: Array(store.data.favorites) + store.data.holdings.map(\.symbol)); busy = false } }.font(.caption.bold()).disabled(busy || store.isDemo)
             }
         }
         .padding(14)
@@ -242,6 +239,7 @@ struct StockDetailView: View {
             }
         }
         .safeAreaInset(edge: .bottom) { actionBar }
+        .task { await store.refreshLive([symbol]) }
         .navigationTitle("個股詳情").navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -254,8 +252,8 @@ struct StockDetailView: View {
         var live = false
         if let quote, quote.date != "示範資料", let own = store.data.quotes[symbol], own.fetchedAt == quote.fetchedAt { live = quote.fetchedAt.timeIntervalSinceNow > -86400 }
         let exchange: String = store.stock(symbol)?.market == "TPEx" ? "櫃買中心收盤" : "證交所收盤"
-        let source: String = quote == nil ? "待設定" : (store.isDemo ? "示範資料" : (live ? "富果行情" : exchange))
-        let updated: String = quote.map { store.isDemo ? "—" : $0.date.replacingOccurrences(of: "-", with: "/") } ?? "—"
+        let source: String = quote == nil ? "待設定" : (store.isDemo ? "示範資料" : (live ? (quote?.isExchangeLive == true ? "證交所即時" : "富果行情") : exchange))
+        let updated: String = quote.map { store.isDemo ? "—" : $0.date.replacingOccurrences(of: "-", with: "/") + (live ? " " + $0.fetchedAt.formatted(date: .omitted, time: .shortened) : "") } ?? "—"
         return VStack(alignment: .leading, spacing: 5) {
             Label("即時／延遲依資料來源", systemImage: "clock").font(.caption2)
             HStack(spacing: 5) { Circle().fill(live ? Palette.green : Palette.pink).frame(width: 8, height: 8); Text(live ? "已連線" : "未連線").font(.caption.bold()) }.foregroundStyle(live ? Palette.green : Palette.pink)
@@ -300,7 +298,7 @@ struct StockDetailView: View {
                 }.font(.subheadline)
             }
             if let quote, quote.date != "示範資料", store.data.quotes[symbol] == nil { Text("收盤價・資料日 \(quote.date.replacingOccurrences(of: "-", with: "/"))（證交所／櫃買中心公開資料，非即時）").font(.caption).foregroundStyle(Palette.muted) }
-            Button(store.refreshing ? "更新中…" : "用富果更新報價") { Task { await store.refresh(symbols: [symbol]) } }.font(.caption.bold()).disabled(store.refreshing || store.isDemo)
+            Button(store.refreshing ? "更新中…" : "更新報價") { Task { await store.refresh(symbols: [symbol]) } }.font(.caption.bold()).disabled(store.refreshing || store.isDemo)
         }
     }
     private func stat(_ title: String, _ value: String?) -> some View {
@@ -470,7 +468,7 @@ struct StockDiscoverContent: View {
                 if items.count > visible.count { Button("顯示全部 \(items.count) 檔") { showAll = true }.font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.top, 10) }
             }
             if let snapshot = store.stockSnapshot {
-                Text("上市 \(all.filter { $0.market == "TWSE" }.count) · 上櫃 \(all.filter { $0.market == "TPEx" }.count) 家公司（\(snapshot.fetchedDay) 公開資料）。沒有富果金鑰時顯示 \(snapshot.closeDate["twse"] ?? "") 收盤價。").font(.caption).foregroundStyle(Palette.muted)
+                Text("上市 \(all.filter { $0.market == "TWSE" }.count) · 上櫃 \(all.filter { $0.market == "TPEx" }.count) 家公司（\(snapshot.fetchedDay) 公開資料）。沒有富果金鑰時，持有、自選與看過的個股用證交所即時價，其餘顯示 \(snapshot.closeDate["twse"] ?? "") 收盤價。").font(.caption).foregroundStyle(Palette.muted)
             }
         }
     }

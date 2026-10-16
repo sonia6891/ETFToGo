@@ -99,7 +99,7 @@ struct HoldingsView: View {
         return HStack {
             Text("資料日期：\(store.isDemo ? "示範資料" : (dates.last?.replacingOccurrences(of: "-", with: "/") ?? "—"))")
             Spacer()
-            Button(store.refreshing ? "更新中…" : "用富果更新報價") { Task { await store.refresh() } }.disabled(store.refreshing || store.isDemo)
+            Button(store.refreshing ? "更新中…" : "更新報價") { Task { await store.refresh() } }.disabled(store.refreshing || store.isDemo)
         }
         .font(.caption).foregroundStyle(Palette.muted)
     }

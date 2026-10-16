@@ -17,6 +17,7 @@ import SwiftUI
 }
 struct RootView: View {
     @EnvironmentObject var store: PortfolioStore
+    @Environment(\.scenePhase) private var phase
     @State private var tab = 0
     /// Re-selecting a tab returns it to its first screen.
     @State private var resets = [0, 0, 0, 0, 0]
@@ -35,7 +36,9 @@ struct RootView: View {
         }
         .environment(\.tabBarMinimize) { value in if minimized != value { minimized = value } }
         .onChange(of: tab) { _, _ in minimized = false }
-        .task { if !ProcessInfo.processInfo.arguments.contains("--ui-testing") { await store.refreshCatalog(); await store.refreshIndices() } }
+        .task { if !ProcessInfo.processInfo.arguments.contains("--ui-testing") { await store.refreshCatalog() } }
+        // Indices and prices on every return to the app, and each minute of the trading session without a Fugle key.
+        .task(id: phase) { if phase == .active, !ProcessInfo.processInfo.arguments.contains("--ui-testing") { await store.followMarket() } }
         .task(id: store.data.dividends.map(\.id)) { await DividendReminders.syncIfEnabled(store.data.dividends) }
         .onAppear {
             let args = ProcessInfo.processInfo.arguments
