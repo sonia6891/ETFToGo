@@ -366,31 +366,32 @@ final class PortfolioTests: XCTestCase {
         let cards = ["庫存損益", "付出成本 1,580,000", "台積電 2330 現股", "現股庫存 1,000股 現價 1,050.00", "付出成本：580,365 損益 +469,635",
                      "元大台灣50(0050)", "庫存股數 2張", "成本均價 50.12", "群創 3481", "付出成本 45,000", "玉山金2884", "股數3,000"]
         XCTAssertEqual(ScreenshotImport.parse(cards, in: listing), [
-            .init(symbol: "2330", shares: 1000, cost: 580365),
-            .init(symbol: "0050", shares: 2000, cost: nil),
+            .init(symbol: "2330", shares: 1000, cost: 580365, basis: .total),
+            .init(symbol: "0050", shares: 2000, cost: 50.12, basis: .perShare),
             .init(symbol: "2884", shares: 3000, cost: nil)
-        ], "Account totals, per-share averages and an unlisted company's figures are not taken")
+        ], "Account totals and an unlisted company's figures are not taken; 成本均價 is a price per share")
         let table = ["商品名稱 庫存股數 成本均價 付出成本 市值", "國泰永續高股息 00878 6,000 20.50 123,000 132,000", "台積電 2330 1,000 580.00 580,000 1,050,000", "合計 703,000 1,182,000"]
-        XCTAssertEqual(ScreenshotImport.parse(table, in: listing), [.init(symbol: "00878", shares: 6000, cost: 123000), .init(symbol: "2330", shares: 1000, cost: 580000)])
+        XCTAssertEqual(ScreenshotImport.parse(table, in: listing), [.init(symbol: "00878", shares: 6000, cost: 123000, basis: .total), .init(symbol: "2330", shares: 1000, cost: 580000, basis: .total)],
+                       "With both a price per share and a total, the total is taken")
         let titlesAbove = ["台積電 2330", "庫存股數 成本均價 付出成本", "1,000 580.37 580,365", "損益 報酬率", "+469,635 80.92%"]
-        XCTAssertEqual(ScreenshotImport.parse(titlesAbove, in: listing), [.init(symbol: "2330", shares: 1000, cost: 580365)])
-        XCTAssertEqual(ScreenshotImport.parse(["００８７８　國泰永續高股息", "庫存張數（張）：６", "付出成本(元)123,000"], in: listing), [.init(symbol: "00878", shares: 6000, cost: 123000)])
+        XCTAssertEqual(ScreenshotImport.parse(titlesAbove, in: listing), [.init(symbol: "2330", shares: 1000, cost: 580365, basis: .total)])
+        XCTAssertEqual(ScreenshotImport.parse(["００８７８　國泰永續高股息", "庫存張數（張）：６", "付出成本(元)123,000"], in: listing), [.init(symbol: "00878", shares: 6000, cost: 123000, basis: .total)])
         XCTAssertEqual(ScreenshotImport.parse(["0050元大台灣50", "股數 1,0O0", "付出成本 一百萬"], in: listing), [.init(symbol: "0050")], "Unreadable figures stay empty for the user")
     }
     func testScreenshotNamesWithoutCodes() {
         let cards = ["國泰證券 庫存", "台積電 現股", "庫存股數 1,000", "付出成本 580,365", "元大高股息", "庫存張數 3", "付出成本 105,000",
                      "台積雷", "股數 2,000", "測試股", "股數 500"]
         XCTAssertEqual(ScreenshotImport.parse(cards, in: listing), [
-            .init(symbol: "2330", shares: 1000, cost: 580365),
-            .init(symbol: "0056", shares: 3000, cost: 105000),
+            .init(symbol: "2330", shares: 1000, cost: 580365, basis: .total),
+            .init(symbol: "0056", shares: 3000, cost: 105000, basis: .total),
             .init(symbol: "", shares: 2000, name: "台積雷", choices: ["2330"]),
             .init(symbol: "", shares: 500, name: "測試股", choices: ["9991", "9992"])
         ], "An exact name gives the code; a misread or shared name leaves the code for the user to pick")
         let table = ["名稱 庫存股數 付出成本", "台積電 1,000 580,000", "國泰永續 高股息 6,000 123,000", "某某某 2,000 50,000", "合計 753,000"]
         XCTAssertEqual(ScreenshotImport.parse(table, in: listing), [
-            .init(symbol: "2330", shares: 1000, cost: 580000),
-            .init(symbol: "00878", shares: 6000, cost: 123000),
-            .init(symbol: "", shares: 2000, cost: 50000, name: "某某某")
+            .init(symbol: "2330", shares: 1000, cost: 580000, basis: .total),
+            .init(symbol: "00878", shares: 6000, cost: 123000, basis: .total),
+            .init(symbol: "", shares: 2000, cost: 50000, name: "某某某", basis: .total)
         ], "A table row whose name fits nothing keeps its figures, with the code left empty")
         XCTAssertEqual(ScreenshotImport.parse(["元大台灣…", "股數 1,000", "臺積電(現股)", "股數 2,000"], in: listing), [
             .init(symbol: "", shares: 1000, name: "元大台灣…", choices: ["0050"]),
@@ -414,14 +415,14 @@ final class PortfolioTests: XCTestCase {
         let table = ["名稱 類別 庫存股數 付出成本", "主動測試 00991A 現股 1,000 10,000", "主動測試 00991A 現股 1,000 10,000",
                      "主動測試 00991A 融資 3,000 33,000", "台積電 2330 融券 1,000 580,000"]
         XCTAssertEqual(ScreenshotImport.parse(table, in: lots), [
-            .init(symbol: "00991A", shares: 1000, cost: 10000),
-            .init(symbol: "00991A", shares: 1000, cost: 10000),
-            .init(symbol: "00991A", shares: 3000, cost: 33000, kind: .margin),
-            .init(symbol: "2330", shares: 1000, cost: 580000, kind: .short)
+            .init(symbol: "00991A", shares: 1000, cost: 10000, basis: .total),
+            .init(symbol: "00991A", shares: 1000, cost: 10000, basis: .total),
+            .init(symbol: "00991A", shares: 3000, cost: 33000, kind: .margin, basis: .total),
+            .init(symbol: "2330", shares: 1000, cost: 580000, kind: .short, basis: .total)
         ], "Every lot in one screenshot is kept, even two with the same figures")
         XCTAssertEqual(ScreenshotImport.parse(["主動測試 00991A 資", "股數 2,000", "付出成本 22,000", "主動測試 00991A", "股數 1,000", "付出成本 10,500"], in: lots), [
-            .init(symbol: "00991A", shares: 2000, cost: 22000, kind: .margin),
-            .init(symbol: "00991A", shares: 1000, cost: 10500)
+            .init(symbol: "00991A", shares: 2000, cost: 22000, kind: .margin, basis: .total),
+            .init(symbol: "00991A", shares: 1000, cost: 10500, basis: .total)
         ], "A card's code seen again after its figures starts the next lot; a lone 資 means 融資")
         let a = ScreenshotImport.Row(symbol: "00991A", shares: 1000, cost: 10000)
         let b = ScreenshotImport.Row(symbol: "00991A", shares: 2000, cost: 21000)
@@ -435,8 +436,8 @@ final class PortfolioTests: XCTestCase {
     }
     @MainActor func testScreenshotLotsMergeByCodeAndKind() throws {
         let funds = Fund.starters + [Fund(id: "00991A", name: "主動測試", strategy: .unclassified)]
-        var drafts = [ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 10000)), ScreenshotImport.Draft(.init(symbol: "00991A", shares: 2000, cost: 21000)),
-                      ScreenshotImport.Draft(.init(symbol: "00991A", shares: 3000, cost: 33000, kind: .margin)), ScreenshotImport.Draft(.init(symbol: "0050", cost: 100000))]
+        var drafts = [ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 10000, basis: .total)), ScreenshotImport.Draft(.init(symbol: "00991A", shares: 2000, cost: 21000, basis: .total)),
+                      ScreenshotImport.Draft(.init(symbol: "00991A", shares: 3000, cost: 33000, kind: .margin, basis: .total)), ScreenshotImport.Draft(.init(symbol: "0050", cost: 100000, basis: .total))]
         XCTAssertEqual(drafts[2].kind, .margin); XCTAssertEqual(drafts[3].shares, "")
         XCTAssertThrowsError(try BrokerPreview.make(drafts: drafts, broker: "國泰證券", account: "主要", funds: funds)) { XCTAssertTrue($0.localizedDescription.contains("股數")) }
         drafts[3].shares = "2張"
@@ -460,5 +461,36 @@ final class PortfolioTests: XCTestCase {
         let store = PortfolioStore(url: dir.appendingPathComponent("p.json"))
         try store.importBroker(preview, replaceAccount: false); try store.importBroker(preview, replaceAccount: false)
         XCTAssertEqual(store.data.holdings.count, 3, "Importing the same account again updates the same holdings")
+    }
+    func testScreenshotCostPerShareOrTotal() throws {
+        let funds = Fund.starters + [Fund(id: "00991A", name: "主動測試", strategy: .unclassified)]
+        let lots = ScreenshotImport.Listing([(code: "00991A", name: "主動測試")])
+        let read = ScreenshotImport.parse(["主動測試 00991A", "股數 1,000", "成本價 17.35"], in: lots)
+        XCTAssertEqual(read, [.init(symbol: "00991A", shares: 1000, cost: 17.35, basis: .perShare)])
+        let labelled = ScreenshotImport.Draft(read[0], price: 17.5)
+        XCTAssertTrue(labelled.perShare)
+        XCTAssertEqual(try XCTUnwrap(labelled.totalCost), 17350, accuracy: 0.001, "成本價 17.35 × 1,000 shares")
+        XCTAssertEqual(try XCTUnwrap(labelled.averageCost), 17.35, accuracy: 1e-9)
+        XCTAssertEqual(ScreenshotImport.parse(["主動測試 00991A", "股數 1,000", "成本 17.35"], in: lots), [.init(symbol: "00991A", shares: 1000, cost: 17.35)], "A plain 成本 does not say which it is")
+        XCTAssertTrue(ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 17.35), price: 17.5).perShare, "Near the price itself: a price per share")
+        XCTAssertFalse(ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 17350), price: 17.5).perShare, "Near the price once divided by the shares: a total")
+        for unsure in [ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 3), price: 17.5), ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 17.35))] {
+            XCTAssertEqual(unsure.cost, "", "Neither reading fits the price, or there is no price: not filled in")
+            XCTAssertNotNil(unsure.costNote)
+        }
+        XCTAssertNotNil(BrokerPreview.costWarning(average: 0.017, price: 17.5), "An average cost far under the price is always warned about")
+        XCTAssertNil(BrokerPreview.costWarning(average: 17.35, price: 17.5))
+        let lotsOfMargin = [ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 17, kind: .margin, basis: .perShare)),
+                            ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 18000, kind: .margin, basis: .total)),
+                            ScreenshotImport.Draft(.init(symbol: "00991A", shares: 500, cost: 17.5, basis: .perShare))]
+        let preview = try BrokerPreview.make(drafts: lotsOfMargin, broker: "國泰證券", account: "主要", funds: funds)
+        XCTAssertEqual(preview.holdings.map(\.shares), [2000, 500])
+        XCTAssertEqual(preview.holdings[0].cost, 35000, accuracy: 0.001, "17 × 1,000 + 18,000")
+        XCTAssertEqual(preview.holdings[0].unitCost, 17.5, accuracy: 1e-9); XCTAssertEqual(preview.holdings[0].broker, "國泰證券（融資）")
+        XCTAssertEqual(preview.holdings[1].cost, 8750, accuracy: 0.001)
+        XCTAssertTrue(preview.warnings(price: { $0 == "00991A" ? 17.5 : nil }).isEmpty)
+        let csv = try BrokerPreview.make(table: CSVTable.parse(Data("code,shares,cost\n00991A,1000,17.35".utf8)), mapping: BrokerMapping(symbol: 0, name: -1, shares: 1, cost: 2), broker: "國泰證券", account: "主要", funds: funds)
+        XCTAssertEqual(csv.warnings(price: { $0 == "00991A" ? 17.5 : nil }).count, 1, "A CSV price per share imported as a total is warned about")
+        XCTAssertTrue(csv.warnings(price: { _ in nil }).isEmpty)
     }
 }

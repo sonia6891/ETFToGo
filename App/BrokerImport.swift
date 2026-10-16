@@ -77,8 +77,9 @@ struct BrokerPreview {
         }
         return try build(entries, lots: mapping.lots, totalCost: mapping.totalCost, broker: broker, account: account, funds: funds, stock: stock)
     }
-    /// The lots the user checked after reading screenshots, each with shares and total cost. Lots of one code and
-    /// kind (現股 or 融資) become one holding: shares and costs are added, so the average cost is total ÷ shares.
+    /// The lots the user checked after reading screenshots. Each lot's total is its cost, or its price per share
+    /// times its shares; lots of one code and kind (現股 or 融資) become one holding with the shares and totals
+    /// added up, so the average cost is total ÷ shares.
     static func make(drafts: [ScreenshotImport.Draft], broker: String, account: String, funds: [Fund], stock: (String) -> StockInfo? = { StockSnapshot.bundled?.byID[$0] }) throws -> Self {
         guard !drafts.isEmpty else { throw AppDataError("沒有要匯入的持有。") }
         var entries: [Entry] = []
@@ -86,21 +87,37 @@ struct BrokerPreview {
             let code = draft.symbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(), place = "第 \(offset + 1) 筆"
             guard !code.isEmpty else { throw AppDataError("\(place)還沒有代號，請填入或刪除這一筆。") }
             guard draft.kind != .short else { throw AppDataError("\(place) \(code) 是融券（放空部位），不匯入；請刪除這一筆。") }
-            guard let quantity = shareCount(draft.shares) else { throw AppDataError("\(place) \(code) 還沒有股數，請對照截圖填入。") }
-            guard let cost = number(draft.cost) else { throw AppDataError("\(place) \(code) 還沒有總成本，請對照截圖填入。") }
-            guard quantity.isFinite, quantity > 0, cost.isFinite, cost >= 0 else { throw AppDataError("\(place) \(code) 的股數或總成本不正確。") }
+            guard let quantity = draft.shareCount else { throw AppDataError("\(place) \(code) 還沒有股數，請對照截圖填入。") }
+            guard let total = draft.totalCost else { throw AppDataError("\(place) \(code) 還沒有\(draft.perShare ? "每股成本" : "總成本")，請對照截圖填入。") }
+            guard quantity.isFinite, quantity > 0, total.isFinite, total >= 0 else { throw AppDataError("\(place) \(code) 的股數或成本不正確。") }
             let margin = draft.kind == .margin
             if let i = entries.firstIndex(where: { $0.code == code && $0.margin == margin }) {
-                entries[i].quantity = (entries[i].quantity ?? 0) + quantity; entries[i].cost = (entries[i].cost ?? 0) + cost
+                entries[i].quantity = (entries[i].quantity ?? 0) + quantity; entries[i].cost = (entries[i].cost ?? 0) + total
             } else {
-                entries.append(Entry(place: place, code: code, name: "", quantity: quantity, cost: cost, margin: margin))
+                entries.append(Entry(place: place, code: code, name: "", quantity: quantity, cost: total, margin: margin))
             }
         }
         return try build(entries, lots: false, totalCost: true, broker: broker, account: account, funds: funds, stock: stock)
     }
-    private static func number(_ text: String) -> Double? { Double(text.replacingOccurrences(of: ",", with: "").replacingOccurrences(of: " ", with: "")) }
+    /// Holdings whose average cost is far from the latest price: most likely a price per share taken as a total,
+    /// or the other way round. Shown before importing, never silently passed.
+    func warnings(price: (String) -> Double?) -> [String] {
+        var found: [String] = []
+        for holding in holdings {
+            guard let warning = Self.costWarning(average: holding.unitCost, price: price(holding.symbol)) else { continue }
+            found.append("\(holding.symbol) \(holding.name)" + (holding.broker.hasSuffix("（融資）") ? "（融資）" : "") + "：" + warning)
+        }
+        return found
+    }
+    static func costWarning(average: Double, price: Double?) -> String? {
+        guard let price, price > 0, !ScreenshotImport.plausible(average, price) else { return nil }
+        let ratio = average / price
+        let size = ratio < 1 ? "只有現價 \(priceText(price)) 元的 " + String(format: "%.1f", ratio * 100) + "%" : "是現價 \(priceText(price)) 元的 " + String(format: "%.1f", ratio) + " 倍"
+        return "平均成本 \(priceText(average)) 元，\(size)，請確認成本是每股價格還是總金額。"
+    }
+    static func number(_ text: String) -> Double? { Double(text.replacingOccurrences(of: ",", with: "").replacingOccurrences(of: " ", with: "")) }
     /// A share count written 1,000, 1,000股 or 2張 (1 張 = 1,000 股).
-    private static func shareCount(_ text: String) -> Double? {
+    static func shareCount(_ text: String) -> Double? {
         var value = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let lots = value.hasSuffix("張")
         if lots || value.hasSuffix("股") { value.removeLast() }
@@ -147,6 +164,8 @@ extension PortfolioStore {
 enum ScreenshotImport {
     /// 現股 (paid in full), 融資 (bought with a margin loan) or 融券 (sold short, not a holding, never imported).
     enum Kind: String, CaseIterable { case cash = "現股", margin = "融資", short = "融券" }
+    /// What a cost figure is: the total paid, or a price per share (成本價、均價).
+    enum Basis { case total, perShare }
     struct Row: Equatable {
         var symbol: String
         var shares: Double? = nil
@@ -157,24 +176,58 @@ enum ScreenshotImport {
         /// A hint for the user, such as a row cut off at a screenshot's edge.
         var note: String? = nil
         var kind: Kind = .cash
+        /// What `cost` is, when its title said so.
+        var basis: Basis? = nil
     }
-    /// A row of the editable list the user checks before importing.
+    /// A row of the editable list the user checks before importing. Its cost is a total or, with `perShare`, a
+    /// price per share; `costNote` says why a cost read from the screenshot was not filled in.
     struct Draft: Identifiable, Equatable {
         var id = UUID()
         var symbol = ""
         var shares = ""
         var cost = ""
+        var perShare = false
         var kind: Kind = .cash
         var seen = ""
         var choices: [String] = []
         var note: String?
+        var costNote: String?
         init() {}
-        init(_ row: Row) {
-            symbol = row.symbol; shares = row.shares.map(Self.plain) ?? ""; cost = row.cost.map(Self.plain) ?? ""
+        /// `price` is the latest price, which tells a price per share from a total when the title did not say.
+        init(_ row: Row, price: Double? = nil) {
+            symbol = row.symbol; shares = row.shares.map(Self.plain) ?? ""
             kind = row.kind; seen = row.name ?? ""; choices = row.choices; note = row.note
+            guard let read = row.cost else { return }
+            if let basis = row.basis ?? row.shares.flatMap({ ScreenshotImport.basis(cost: read, shares: $0, price: price) }) {
+                cost = Self.plain(read); perShare = basis == .perShare
+            } else {
+                let reason = price == nil ? "沒有現價可比對" : row.shares == nil ? "沒有股數可換算" : "當每股價格或總金額都跟現價對不起來"
+                costNote = "截圖讀到成本 \(Self.plain(read))，\(reason)，看不出是每股價格還是總金額，請確認後填入。"
+            }
+        }
+        var shareCount: Double? { BrokerPreview.shareCount(shares) }
+        var costValue: Double? { BrokerPreview.number(cost) }
+        /// What this lot cost in all: the cost, or the price per share times the shares.
+        var totalCost: Double? {
+            guard let count = shareCount, let value = costValue else { return nil }
+            return perShare ? value * count : value
+        }
+        var averageCost: Double? {
+            guard let count = shareCount, count > 0, let total = totalCost else { return nil }
+            return total / count
         }
         private static func plain(_ value: Double) -> String { value == value.rounded() && abs(value) < 1e15 ? String(Int64(value)) : String(value) }
     }
+    /// A cost with no title saying what it is: a total when cost ÷ shares is near the latest price, a price per share
+    /// when the cost itself is; nil when neither is, or there is no price to compare with.
+    static func basis(cost: Double, shares: Double, price: Double?) -> Basis? {
+        guard let price, price > 0, shares > 0 else { return nil }
+        if plausible(cost / shares, price) { return .total }
+        if plausible(cost, price) { return .perShare }
+        return nil
+    }
+    /// An average cost between 0.3 and 3 times the latest price.
+    static func plausible(_ average: Double, _ price: Double) -> Bool { (0.3...3.0).contains(average / price) }
     /// The stock and ETF lists by code and by name.
     struct Listing {
         private(set) var codes: Set<String> = []
@@ -221,12 +274,14 @@ enum ScreenshotImport {
             return true
         }
     }
-    private enum Field { case shares, lots, cost }
+    private enum Field { case shares, lots, total, perShare, anyCost }
     /// Titles of a share count; a count in 張 (1,000 shares) is converted.
     static let shareLabels: Set<String> = ["股數", "庫存股數", "現股庫存", "持有股數", "現股股數", "集保股數", "集保庫存"]
     static let lotLabels: Set<String> = ["張數", "庫存張數", "持有張數", "現股張數"]
-    /// Titles of the total amount paid; a per-share average such as 成本均價 is not used.
-    static let costLabels: Set<String> = ["付出成本", "持有成本", "總成本", "投資成本", "成本總額"]
+    /// Titles of the total amount paid.
+    static let costLabels: Set<String> = ["付出成本", "持有成本", "總成本", "成本金額", "投資成本", "成本總額"]
+    /// Titles of a price per share.
+    static let unitCostLabels: Set<String> = ["成本價", "均價", "平均成本", "平均成本價", "成交均價", "買進均價", "持有均價", "成本均價", "平均價", "成本單價"]
 
     /// Language correction reads Chinese better but may "correct" codes and figures, so each screenshot is read
     /// both ways and every word with a digit is taken from the uncorrected reading of the same place.
@@ -311,7 +366,7 @@ enum ScreenshotImport {
                 }
                 if let current {
                     if rows[current].shares == nil { rows[current].shares = figures.shares }
-                    if rows[current].cost == nil { rows[current].cost = figures.cost }
+                    if let cost = figures.cost { setCost(&rows[current], cost, figures.basis) }
                 }
             }
             mark(); headerFresh = false
@@ -342,7 +397,7 @@ enum ScreenshotImport {
     /// `full` is the same lot as `part` with more of its figures read.
     private static func covers(_ full: Row, _ part: Row) -> Bool {
         full.symbol == part.symbol && full.name == part.name && full.kind == part.kind
-            && (part.shares == nil || part.shares == full.shares) && (part.cost == nil || part.cost == full.cost)
+            && (part.shares == nil || part.shares == full.shares) && (part.cost == nil || (part.cost == full.cost && part.basis == full.basis))
             && [full.shares, full.cost].compactMap { $0 }.count > [part.shares, part.cost].compactMap { $0 }.count
     }
     /// 融券 when a lot's text says 融券, 券賣 or a lone 券; 融資 when it says 融資, 資買 or a lone 資.
@@ -395,7 +450,7 @@ enum ScreenshotImport {
         (#"\s+(?=[(（])"#, ""),                                                         // 付出成本 (元)
         (#"(?<![0-9,.])([0-9]{4,6}[A-Z]?)(?=\p{Han})(?![股張])(?!元(?!大))"#, "$1 "),   // 2330台積電, 0050元大台灣50
         (#"(?<=\p{Han})(?=[0-9]{4,6}[A-Z]?(?![0-9,.]))"#, " "),                         // 台積電2330
-        ("(" + shareLabels.union(lotLabels).union(costLabels).sorted { $0.count > $1.count }.joined(separator: "|") + #")((?:[(（][^)）]*[)）])?)(?=[0-9])"#, "$1$2 ")  // 股數1,000
+        ("(" + shareLabels.union(lotLabels).union(costLabels).union(unitCostLabels).union(["成本"]).sorted { $0.count > $1.count }.joined(separator: "|") + #")((?:[(（][^)）]*[)）])?)(?=[0-9])"#, "$1$2 ")  // 股數1,000
     ]
     /// The words of a line, with full-width digits and punctuation made plain and codes split from names.
     private static func tokens(_ line: String) -> [String] {
@@ -419,7 +474,9 @@ enum ScreenshotImport {
     private static func field(_ word: String) -> Field? {
         var title = word, inLots = false
         if let unit = title.range(of: #"[(（][^)）]*[)）]$"#, options: .regularExpression) { inLots = title[unit].contains("張"); title.removeSubrange(unit) }
-        if costLabels.contains(title) { return .cost }
+        if costLabels.contains(title) { return .total }
+        if unitCostLabels.contains(title) { return .perShare }
+        if title == "成本" { return .anyCost }
         if lotLabels.contains(title) { return .lots }
         if shareLabels.contains(title) { return inLots ? .lots : .shares }
         return nil
@@ -442,11 +499,19 @@ enum ScreenshotImport {
         }
     }
     private static func fill(_ row: inout Row, _ kind: Field, _ value: (number: Double, lots: Bool)) {
-        if kind == .cost {
-            if row.cost == nil { row.cost = value.number }
-        } else {
+        switch kind {
+        case .total: setCost(&row, value.number, .total)
+        case .perShare: setCost(&row, value.number, .perShare)
+        case .anyCost: setCost(&row, value.number, nil)
+        case .shares, .lots:
             let shares = value.number * (kind == .lots || value.lots ? 1000 : 1)
             if row.shares == nil, shares > 0, shares == shares.rounded() { row.shares = shares }
         }
+    }
+    /// A total read under its title beats a price per share, which beats a cost whose title does not say which;
+    /// of equal standing the first is kept.
+    private static func setCost(_ row: inout Row, _ cost: Double, _ basis: Basis?) {
+        func standing(_ basis: Basis?) -> Int { basis == .total ? 3 : basis == .perShare ? 2 : 1 }
+        if row.cost == nil || standing(basis) > standing(row.basis) { row.cost = cost; row.basis = basis }
     }
 }

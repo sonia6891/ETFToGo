@@ -20,6 +20,7 @@ struct BrokerView: View {
     @State private var confirmation = false
     @State private var replace = false
     @State private var message: String?
+    @State private var costHint: String?
     var body: some View { Form {
         Section("所有券商：持有對帳單匯入") {
             Text("可匯入券商匯出的 CSV，再選擇對應欄位；不能匯出 CSV 的券商（例如國泰證券），可改用庫存畫面截圖。這是檔案匯入，尚未連接券商帳戶自動同步。").font(.subheadline)
@@ -40,7 +41,12 @@ struct BrokerView: View {
                 Toggle("數量以張為單位（1 張 = 1,000 股）", isOn: $mapping.lots)
                 Toggle("成本欄是總成本", isOn: $mapping.totalCost)
                 Text(mapping.totalCost ? "總成本會除以股數，轉成每股成本。" : "成本欄會直接當成每股台幣成本。").font(.caption)
-                Button("驗證並預覽") { do { preview = try BrokerPreview.make(table: table, mapping: mapping, broker: broker, account: account, funds: store.funds, stock: { store.stock($0) }); message = nil } catch { preview = nil; message = error.localizedDescription } }
+                Button("驗證並預覽") {
+                    do {
+                        let made = try BrokerPreview.make(table: table, mapping: mapping, broker: broker, account: account, funds: store.funds, stock: { store.stock($0) })
+                        preview = made; costHint = otherCostColumn(made, table); message = nil
+                    } catch { preview = nil; message = error.localizedDescription }
+                }
             }
         }
         if !drafts.isEmpty { screenshotRows }
@@ -54,6 +60,8 @@ struct BrokerView: View {
                         Text("\(decimal(h.shares)) 股 · 總成本 \(money(h.cost)) · 平均 \(priceText(h.unitCost)) 元").font(.caption).foregroundStyle(.secondary)
                     }
                 }
+                ForEach(preview.warnings(price: { price($0) }), id: \.self) { Text($0).font(.caption).foregroundStyle(Palette.red) }
+                if let costHint { Text(costHint).font(.caption.bold()).foregroundStyle(Palette.red) }
                 Toggle("替換此帳戶先前匯入的庫存", isOn: $replace)
                 Text(replace ? "會移除這個帳戶先前匯入、但本次檔案已沒有的部位。其他帳戶與手動紀錄保留。" : "只新增或更新本檔部位；檔案未列出的舊部位保留。").font(.caption)
                 Button("確認匯入 \(preview.holdings.count) 筆") { confirmation = true }
@@ -85,8 +93,10 @@ struct BrokerView: View {
         Section {
             Text("每一列是截圖上的一批。請逐筆對照截圖確認或修改；沒辨識到的欄位會留空，請自行填入。股數以股為單位（1 張 = 1,000 股），總成本填含手續費的台幣金額。")
                 .font(.caption)
-            Text("匯入時，同一檔同類別的多批合併成一筆：股數與總成本相加，平均成本＝總成本÷股數。融資另存一筆，券商名稱標「（融資）」。")
+            Text("匯入時，同一檔同類別的多批合併成一筆：總成本是每一批的總成本（或每股成本 × 股數）相加，平均成本＝總成本÷總股數。融資另存一筆，券商名稱標「（融資）」。")
                 .font(.caption).foregroundStyle(.secondary)
+            Button("成本全部當作每股價格") { for i in drafts.indices { drafts[i].perShare = true } }
+            Button("成本全部當作總金額") { for i in drafts.indices { drafts[i].perShare = false } }
         } header: {
             Text("截圖辨識結果 · \(drafts.count) 批")
         }
@@ -109,7 +119,14 @@ struct BrokerView: View {
                     Text(ScreenshotImport.Kind.margin.rawValue).tag(ScreenshotImport.Kind.margin)
                 }.pickerStyle(.segmented)
                 LabeledContent("股數") { TextField("未辨識，請填寫", text: $draft.shares).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
-                LabeledContent("總成本（元）") { TextField("未辨識，請填寫", text: $draft.cost).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+                Picker("成本是", selection: $draft.perShare) {
+                    Text("總金額").tag(false)
+                    Text("每股價格").tag(true)
+                }.pickerStyle(.segmented)
+                LabeledContent(draft.perShare ? "每股成本（元）" : "總成本（元）") { TextField(draft.costNote == nil ? "未辨識，請填寫" : "成本待確認", text: $draft.cost).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+                if let costNote = draft.costNote, draft.cost.isEmpty { Text("成本待確認：\(costNote)").font(.caption).foregroundStyle(Palette.red) }
+                if let line = figures(draft) { Text(line).font(.caption).foregroundStyle(.secondary) }
+                if let warning = costWarning(draft) { Text(warning).font(.caption).foregroundStyle(Palette.red) }
                 if let note = draft.note { Text(note).font(.caption).foregroundStyle(Palette.red) }
                 Button("刪除這一筆", role: .destructive) { drafts.removeAll { $0.id == draft.id } }
             } header: {
@@ -118,7 +135,7 @@ struct BrokerView: View {
         }
         Section {
             Button("新增一筆") { drafts.append(ScreenshotImport.Draft()) }
-            Button("驗證並預覽") { do { preview = try BrokerPreview.make(drafts: drafts, broker: broker, account: account, funds: store.funds, stock: { store.stock($0) }); message = nil } catch { preview = nil; message = error.localizedDescription } }
+            Button("驗證並預覽") { do { preview = try BrokerPreview.make(drafts: drafts, broker: broker, account: account, funds: store.funds, stock: { store.stock($0) }); costHint = nil; message = nil } catch { preview = nil; message = error.localizedDescription } }
         }
     }
     /// 融券 lots: listed so the user sees why they are not imported.
@@ -136,6 +153,33 @@ struct BrokerView: View {
         if let shares = row.shares { parts.append("\(decimal(shares)) 股") }
         if let cost = row.cost { parts.append("總成本 \(money(cost))") }
         return parts.joined(separator: " · ")
+    }
+    /// Shares, cost per share, total and, with a price, market value and gain: enough to see a wrong cost at once.
+    private func figures(_ draft: ScreenshotImport.Draft) -> String? {
+        guard let shares = draft.shareCount, let total = draft.totalCost, let average = draft.averageCost else { return nil }
+        var parts = ["\(decimal(shares)) 股", "每股成本 \(priceText(average)) 元", "總成本 \(money(total)) 元"]
+        if let latest = price(draft.symbol) {
+            let value = latest * shares, gain = value - total
+            parts += ["現價 \(priceText(latest)) 元", "市值約 \(money(value)) 元", "損益約 " + (gain >= 0 ? "+" : "") + money(gain) + " 元"]
+        }
+        return parts.joined(separator: " · ")
+    }
+    private func costWarning(_ draft: ScreenshotImport.Draft) -> String? {
+        draft.averageCost.flatMap { BrokerPreview.costWarning(average: $0, price: price(draft.symbol)) }
+    }
+    /// The latest price: the viewer's own quote or the exchanges' last close.
+    private func price(_ symbol: String) -> Double? {
+        let code = symbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        return code.isEmpty ? nil : store.quote(code)?.price
+    }
+    /// When the CSV's costs look wrong, whether reading the cost column the other way fits the prices better.
+    private func otherCostColumn(_ made: BrokerPreview, _ table: CSVTable) -> String? {
+        let now = made.warnings(price: { price($0) }).count
+        guard now > 0 else { return nil }
+        var other = mapping; other.totalCost.toggle()
+        guard let alternative = try? BrokerPreview.make(table: table, mapping: other, broker: broker, account: account, funds: store.funds, stock: { store.stock($0) }),
+              alternative.warnings(price: { price($0) }).count < now else { return nil }
+        return mapping.totalCost ? "成本欄看起來是每股價格：請關閉「成本欄是總成本」再預覽。" : "成本欄看起來是總成本：請打開「成本欄是總成本」再預覽。"
     }
     private func title(_ draft: ScreenshotImport.Draft) -> String {
         let code = draft.symbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
@@ -162,9 +206,11 @@ struct BrokerView: View {
             } catch { failed += 1 }
         }
         let review = ScreenshotImport.review(pages)
-        drafts = review.rows.map { ScreenshotImport.Draft($0) }; skipped = review.short
+        drafts = review.rows.map { ScreenshotImport.Draft($0, price: price($0.symbol)) }; skipped = review.short
         var notes: [String] = []
         if !drafts.isEmpty { notes.append("已從 \(pages.count) 張截圖讀出 \(drafts.count) 批，請在上方逐筆對照確認。同一檔分批買進的會分列，匯入時再依現股／融資合併。") }
+        let unsure = drafts.filter { $0.costNote != nil }.count
+        if unsure > 0 { notes.append("其中 \(unsure) 批的成本看不出是每股價格還是總金額，已留空待確認。") }
         let unresolved = drafts.filter { $0.symbol.isEmpty }.count
         if unresolved > 0 { notes.append("其中 \(unresolved) 批只辨識出名稱，請選擇或填入代號。") }
         if !skipped.isEmpty { notes.append("另有 \(skipped.count) 筆融券不匯入。") }
