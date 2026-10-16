@@ -251,10 +251,19 @@ struct HomeView: View {
             let parts = Calendar.current.dateComponents([.month, .day], from: record.date)
             candidates.append((DataChecks.day(record.date), String(format: "%02d/%02d", parts.month ?? 0, parts.day ?? 0) + "・\(shown(money(record.amount), hidden: hidden)) 元"))
         }
+        // Announced pay dates still ahead, however long ago the ex-date was (payment comes weeks after it).
         let todayText = DataChecks.day()
-        if let entry = store.officialForHoldings().filter({ !$0.event.pay.isEmpty && $0.event.pay >= todayText }).min(by: { $0.event.pay < $1.event.pay }) {
-            let day = entry.event.pay.suffix(5).replacingOccurrences(of: "-", with: "/")
-            candidates.append((entry.event.pay, entry.event.amount.map { "\(day)・\(shown(money($0 * entry.shares), hidden: hidden)) 元" } ?? "\(day)・金額待公布"))
+        var official: (pay: String, amount: Double?, shares: Double)?
+        for symbol in Set(store.data.holdings.map(\.symbol)) {
+            let shares = store.data.holdings.filter { $0.symbol == symbol }.reduce(0) { $0 + $1.shares }
+            for event in store.official.list(symbol) where !event.pay.isEmpty && event.pay >= todayText {
+                let recorded = store.data.dividends.contains { $0.symbol == symbol && ($0.exDate.map(DataChecks.day) == event.ex || DataChecks.day($0.date) == event.pay) }
+                if !recorded, official.map({ event.pay < $0.pay }) ?? true { official = (event.pay, event.amount, shares) }
+            }
+        }
+        if let official {
+            let day = official.pay.suffix(5).replacingOccurrences(of: "-", with: "/")
+            candidates.append((official.pay, official.amount.map { "\(day)・\(shown(money($0 * official.shares), hidden: hidden)) 元" } ?? "\(day)・金額待公布"))
         }
         return candidates.min { $0.day < $1.day }?.text ?? "—"
     }

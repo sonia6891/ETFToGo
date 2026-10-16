@@ -451,6 +451,83 @@ table.cmp thead th:first-child { background: none; }
 .conn i { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 20%, transparent); }
 .conn.on { color: var(--green); }
 .conn.off { color: var(--pink); }
+/* Home page (same design as the iPhone app): search, scope tabs, asset card, market, watchlist, dividends and simulation. */
+.home-head { display: flex; align-items: center; gap: 10px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
+.home-head .logo { width: 44px; height: 44px; border-radius: 11px; flex: none; box-shadow: 0 4px 10px rgba(31,107,255,.2); }
+.home-head .name { flex: 1; min-width: 0; font-size: 24px; font-weight: 900; letter-spacing: .5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-search { display: flex; align-items: center; gap: 10px; width: 100%; height: 46px; padding: 0 16px; border-radius: 99px; background: var(--card); box-shadow: var(--shadow); color: var(--muted); font-size: 15px; text-align: left; }
+.home-search svg { width: 20px; height: 20px; color: var(--ink); flex: none; }
+.home-tabs { display: flex; gap: 26px; padding-left: 12px; }
+.home-tabs button { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 16px; font-weight: 700; color: color-mix(in srgb, var(--ink) 75%, transparent); }
+.home-tabs button::after { content: ""; width: 44px; height: 3px; border-radius: 3px; background: transparent; }
+.home-tabs button.on { color: var(--blue); font-weight: 900; }
+.home-tabs button.on::after { background: var(--blue); }
+.home-hero { position: relative; overflow: hidden; border-radius: 24px; padding: 18px; color: #fff; background: var(--hero); border: 1px solid rgba(255,255,255,.35); box-shadow: 0 12px 28px rgba(31,107,255,.3); cursor: pointer; text-align: left; }
+.home-hero > * { position: relative; }
+.home-hero > .wave { position: absolute; left: 0; bottom: 0; width: 100%; height: 62%; pointer-events: none; }
+.home-hero > .glass { position: absolute; right: 12px; bottom: 12px; width: 90px; height: 100px; pointer-events: none; }
+.hh-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hh-top b { font-size: 19px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.hh-top .twd { font-size: 14px; opacity: .85; white-space: nowrap; }
+.hh-top .eye { width: 30px; height: 30px; display: grid; place-items: center; color: #fff; flex: none; }
+.hh-top .eye svg { width: 21px; height: 21px; }
+.hh-add { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 99px; border: 1.2px solid rgba(255,255,255,.85); background: rgba(255,255,255,.15); color: #fff; font-weight: 800; font-size: 14px; white-space: nowrap; }
+.hh-add svg { width: 17px; height: 17px; }
+.hh-big { font-family: var(--num); font-size: 34px; font-weight: 900; line-height: 1.15; margin: 8px 0 2px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hh-note { font-size: 12px; opacity: .9; margin: 0 96px 0 0; }
+.hh-stats { display: flex; align-items: flex-start; margin: 10px 94px 0 0; }
+.hh-stats > div { flex: 1; min-width: 0; padding: 0 5px; }
+.hh-stats > div:first-child { padding-left: 0; }
+.hh-stats > i { width: 1px; height: 34px; background: rgba(255,255,255,.35); flex: none; align-self: center; }
+.hh-stats span { display: block; font-size: 12px; opacity: .9; white-space: nowrap; }
+.hh-stats b { display: block; font-family: var(--num); font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.hh-stats em { display: block; font-style: normal; font-size: 11px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hh-stats .up { color: #c5f7d4; } .hh-stats .down { color: #ffd1d4; } .hh-stats .flat { color: #fff; }
+.home-card { padding: 14px; border-radius: 22px; }
+.hm-head { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; color: var(--ink); }
+.hm-head > svg { width: 20px; height: 20px; color: var(--blue); flex: none; }
+.hm-head b { font-size: 17px; font-weight: 900; }
+.conn-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 800; white-space: nowrap; color: var(--c); background: color-mix(in srgb, var(--c) 11%, transparent); }
+.conn-pill i { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent); }
+.hm-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.hm-tile { border-radius: 16px; padding: 10px; min-width: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--blue) 10%, var(--card)), color-mix(in srgb, var(--blue) 3%, var(--card))); }
+.hm-tile.otc { background: linear-gradient(180deg, color-mix(in srgb, var(--purple) 11%, var(--card)), color-mix(in srgb, var(--purple) 3%, var(--card))); }
+.hm-th { display: flex; align-items: flex-start; gap: 4px; }
+.hm-th b { font-size: 14.5px; font-weight: 900; white-space: nowrap; }
+.hm-th .spark { flex: 1; min-width: 36px; max-width: 72px; margin-left: auto; }
+.hm-tile .v { font-family: var(--num); font-size: 19px; font-weight: 900; margin-top: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hm-tile .c { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hm-tile .cap { font-size: 11px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hw-empty { display: flex; align-items: center; gap: 14px; margin-top: 12px; padding: 14px; border-radius: 16px; border: 1px dashed color-mix(in srgb, var(--blue) 26%, transparent); }
+.hw-empty .star-art { width: 44px; height: 44px; flex: none; filter: drop-shadow(0 3px 6px rgba(245,140,15,.3)); }
+.hw-empty b { display: block; font-size: 14.5px; }
+.hw-empty .small { display: block; color: var(--muted); }
+.hw-empty .link { flex: none; white-space: nowrap; font-size: 14px; }
+.hg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.hg-div, .hg-combo { min-width: 0; min-height: 132px; padding: 12px; border-radius: 18px; display: flex; flex-direction: column; gap: 8px; text-align: left; color: var(--ink); }
+.hg-div { background: linear-gradient(135deg, color-mix(in srgb, var(--orange) 16%, var(--card)), color-mix(in srgb, var(--orange) 5%, var(--card))); }
+.hg-combo { background: linear-gradient(135deg, color-mix(in srgb, var(--purple) 14%, var(--card)), color-mix(in srgb, var(--blue) 5%, var(--card))); }
+.hg-div .t { font-size: 14.5px; font-weight: 900; white-space: nowrap; }
+.hg-div .t span { font-size: 11px; font-weight: 600; }
+.hg-div .vrow { display: flex; align-items: center; gap: 4px; }
+.hg-div .v { flex: 1; min-width: 0; font-family: var(--num); font-size: 19px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hg-div .art { width: 44px; height: 44px; flex: none; }
+.hg-div .next { display: flex; flex-wrap: wrap; gap: 2px 6px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; white-space: nowrap; }
+.hg-div .next span { color: var(--muted); flex: none; }
+.hg-div .next b { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.hg-ct { display: flex; align-items: flex-start; gap: 4px; width: 100%; text-align: left; color: var(--ink); }
+.hg-ct b { display: block; font-size: 14.5px; font-weight: 900; white-space: nowrap; }
+.hg-ct .sub { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.hg-ct svg { margin-left: auto; width: 50px; height: 46px; flex: none; }
+.hg-chips { display: flex; align-items: center; gap: 6px; margin-top: auto; }
+.hg-years { flex: 1; min-width: 0; display: flex; gap: 2px; padding: 2px; border-radius: 99px; background: color-mix(in srgb, var(--card) 80%, transparent); }
+.hg-years button { flex: 1; padding: 5px 0; border-radius: 99px; font-size: 11.5px; font-weight: 800; white-space: nowrap; color: var(--ink); }
+.hg-years button.on { background: var(--blue); color: #fff; }
+.hg-go { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--card); color: var(--blue); border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent); }
+.hg-go svg { width: 14px; height: 14px; }
+.hg-links { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; padding: 12px; border-radius: 14px; background: var(--card-2); text-align: left; font-size: 14px; color: var(--ink); }
+.hg-links > svg { width: 20px; height: 20px; color: var(--blue); flex: none; }
+.hg-links .small { white-space: nowrap; }
 .src-card { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
 .src-card .grow > div { font-size: 12.5px; color: var(--muted); line-height: 1.7; }
 .src-card .side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
@@ -913,16 +990,6 @@ function hotSyms(kind, n) {
   const pool = kind === "etf" ? FUNDS.map((f) => f.id) : STOCKS.map((x) => x.id);
   return pool.filter((sym) => c[sym] && c[sym][6] > 0).sort((a, b) => c[b][6] - c[a][6]).slice(0, n);
 }
-function srcCard() {
-  const live = CAN_FUGLE && !!fugleKey(), at = S.marketAt ? new Date(S.marketAt) : null;
-  if (live && liveOpen()) return `<div class="card src-card"><div class="grow"><div data-live-status>${liveSummary()}</div><div>更新時間：<span data-live-at>${liveAtText()}</span></div></div><div class="side"><span class="conn on"><i></i>已連線</span><button type="button" class="link" data-act="refreshMarket"${marketBusy || busy ? " disabled" : ""}>${icon("refresh")}${marketBusy ? "更新中…" : "立即更新"}</button></div></div>`;
-  const closeDay = SDATA && SDATA.closeDate ? SDATA.closeDate.twse || SDATA.closeDate.tpex : "";
-  const headline = live ? "收盤後・顯示最後一次更新的價格" : closeDay ? `最新收盤 ${ymd(closeDay)}` : "尚未取得報價";
-  const when = live && at ? `${at.getMonth() + 1}/${at.getDate()} ${pad(at.getHours())}:${pad(at.getMinutes())}` : live ? "尚未更新" : "—";
-  const btn = live ? `<button type="button" class="link" data-act="refreshMarket"${marketBusy || busy ? " disabled" : ""}>${icon("refresh")}${marketBusy ? "更新中…" : "即時更新"}</button>`
-    : CAN_FUGLE ? `<button type="button" class="link" data-act="push" data-view="connection">${icon("refresh")}即時更新（待授權）</button>` : "";
-  return `<div class="card src-card"><div class="grow"><div>${esc(headline)}</div><div>更新時間：${esc(when)}</div></div><div class="side"><span class="conn ${live ? "on" : "off"}"><i></i>${live ? "已連線" : "未連線"}</span>${btn}</div></div>`;
-}
 
 /* ---------- Fugle market data (same endpoints and checks as the iPhone app) ---------- */
 const PAGES_URL = "https://sonia6891.github.io/etftogo-web/";
@@ -1148,7 +1215,7 @@ async function loadHistory(sym, years) {
 const STREAM_URL = "wss://api.fugle.tw/marketdata/v1.0/stock/streaming";
 // Tests on this computer only may stand in a fake clock and server; nothing reads it on the published site.
 const LIVE_TEST = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? window.__liveTest || null : null;
-const LIVE = { ws: null, authed: false, subs: new Map(), pending: new Map(), cap: Infinity, retry: 0, fails: 0, noStream: false, busyUntil: 0, backoffUntil: 0, note: "",
+const LIVE = { openedAt: Date.now(), ws: null, authed: false, subs: new Map(), pending: new Map(), cap: Infinity, retry: 0, fails: 0, noStream: false, busyUntil: 0, backoffUntil: 0, note: "",
   reTimer: null, flushTimer: null, syncTimer: null, lastMsg: 0, lastPing: 0, lastTick: 0, lastLoop: 0, pollAt: 0, pollIdx: 0, polling: false, pollEvery: 0, ixAt: 0, candlesAt: 0, fullAt: 0, saveAt: 0 };
 function liveOpen() { return LIVE_TEST && LIVE_TEST.open != null ? !!LIVE_TEST.open : marketOpen(); }
 function liveWanted() { return CAN_FUGLE && !!fugleKey() && document.visibilityState === "visible" && liveOpen(); }
@@ -1161,7 +1228,7 @@ function liveTargets() {
   if ((v.view === "stock" || v.view === "detail") && v.sym) add(v.sym);
   [...d.holdings].sort((a, b) => (holdingValue(d, b) || 0) - (holdingValue(d, a) || 0)).forEach((h) => add(h.symbol));
   d.favorites.forEach(add);
-  if (v.view === "home" && (S.ui.homeMkt || 0) > 0 && SDATA && !SDATA.error) hotSyms(S.ui.homeMkt === 1 ? "stock" : "etf", 5).forEach(add);
+  if (v.view === "home" && (S.ui.homeScope || 0) > 0 && SDATA && !SDATA.error) hotSyms(S.ui.homeScope === 1 ? "stock" : "etf", 5).forEach(add);
   if (v.view === "combo") comboItems(d).forEach((x) => add(x.sym));
   return out;
 }
@@ -1276,7 +1343,7 @@ function liveDirty() { if (!LIVE.flushTimer) LIVE.flushTimer = setTimeout(liveFl
 /* Prices change in place; totals redraw at most every 10 s and never while typing or in a sheet. */
 function liveFlush() {
   LIVE.flushTimer = null;
-  patchQuotes(); patchIndices();
+  patchQuotes(); patchIndices(); fitText();
   const el = document.activeElement, typing = el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
   if (!typing && !S.sheet && ["home", "holdings", "holding", "overview", "combo"].includes(current().view) && Date.now() - LIVE.fullAt > 10000) {
     LIVE.fullAt = Date.now(); const y = window.scrollY; renderScreen(); window.scrollTo(0, y);
@@ -1300,6 +1367,7 @@ function patchIndices() {
     const v = document.querySelector(`[data-ix="${key}"]`), text = priceText(x.value);
     if (v && v.textContent !== text) { const before = parseFloat(v.textContent.replace(/,/g, "")); v.textContent = text; if (isFinite(before)) { v.classList.remove("tick-up", "tick-down"); void v.offsetWidth; v.classList.add(x.value >= before ? "tick-up" : "tick-down"); } }
     const c = document.querySelector(`[data-ixc="${key}"]`); if (c) c.innerHTML = ixChange(x);
+    const cap = document.querySelector(`[data-ixcap="${key}"]`); if (cap) cap.textContent = homeIxCap(key);
   });
 }
 function liveAtText() { const t = LIVE.lastTick || S.marketAt; if (!t) return "—"; const a = new Date(t); return `${a.getMonth() + 1}/${a.getDate()} ${pad(a.getHours())}:${pad(a.getMinutes())}:${pad(a.getSeconds())}`; }
@@ -1315,7 +1383,7 @@ function liveSummary() {
   parts.push("指數每 15 秒");
   return parts.join("・") + (LIVE.note ? `<br><span class="muted">${esc(LIVE.note)}</span>` : "");
 }
-function liveStatusChanged() { document.querySelectorAll("[data-live-status]").forEach((el) => { el.innerHTML = liveSummary(); }); }
+function liveStatusChanged() { document.querySelectorAll("[data-live-status]").forEach((el) => { el.innerHTML = liveSummary(); }); updateConnPills(); }
 /* After a resume: the stream may not resend current prices, so fetch them once. */
 async function liveCatchUp() {
   if (!liveWanted() || LIVE.polling) return;
@@ -1354,6 +1422,7 @@ async function livePoll() {
   } finally { LIVE.polling = false; }
 }
 function liveLoop() {
+  updateConnPills();
   const now = Date.now(), gap = LIVE.lastLoop ? now - LIVE.lastLoop : 0;
   LIVE.lastLoop = now;
   if (!liveWanted()) { if (LIVE.ws || LIVE.reTimer) liveStop(); return; }
@@ -1482,6 +1551,7 @@ const P = {
   coin: '<circle cx="12" cy="12" r="8.5"/><path d="M12 6.8v10.4M14.8 9.4c0-1.2-1.2-2.1-2.8-2.1s-2.8.8-2.8 2.1 1.2 1.8 2.8 2.2 2.8 1 2.8 2.3-1.2 2.2-2.8 2.2-2.8-.9-2.8-2.2"/>',
   trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
   bars: '<path d="M5 20v-7M10 20V8M15 20v-9M20 20V4"/>',
+  link: '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/>',
   target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
   columns: '<rect x="3.5" y="10" width="4.5" height="10" rx="1"/><rect x="9.75" y="5" width="4.5" height="15" rx="1"/><rect x="16" y="13" width="4.5" height="7" rx="1"/>',
   pie: '<path d="M11 4a8 8 0 1 0 9 9h-9z"/><path d="M14 2.5a8 8 0 0 1 7.5 7.5H14z"/>',
@@ -1691,71 +1761,124 @@ const TABS = [
 const VIEWS = {};
 
 VIEWS.home = () => {
-  const d = data(), s = summary(d), hour = new Date().getHours();
-  const greet = hour < 11 ? "早安！" : hour < 18 ? "午安！" : "晚安！";
-  const pts = slice(portfolioTrend(d), S.ui.homeRange), chg = changeOf(pts);
+  const d = data(), s = summary(d), scope = S.ui.homeScope || 0;
   const unread = notices().filter((n) => !isRead(n)).length;
-  const t = today();
-  const rows = upcoming(d).slice(0, 3).map((x) => ({ date: x.date, sym: x.symbol, sub: x.status === "預估" ? "預估配息" : "已公告配息", amount: x.amount, act: `data-act="divDetail" data-id="${esc(x.id)}"` }));
-  officialForHoldings(d).filter((o) => o.ex >= t).slice(0, Math.max(0, 3 - rows.length)).forEach((o) => rows.push({ date: o.pay || o.ex, sym: o.sym, sub: `官方公告・${md(o.ex)} 除息`, amount: o.amount ? o.amount * o.shares : null, act: `data-act="official" data-ref="${esc(o.sym + "|" + o.ex)}"` }));
   const body = `
-    <div class="row top" style="padding-top:calc(8px + env(safe-area-inset-top, 0px))">
-      <div class="grow"><div style="font-size:22px;font-weight:900;line-height:1.3">${greet}</div><div style="font-size:19px;font-weight:900;line-height:1.35">今天也是存股的好日子 😊</div></div>
+    <div class="home-head"><img class="logo" src="assets/app-icon.png" alt=""><span class="name">投資袋著走</span>
       <button type="button" class="icon-btn bell-wrap" data-act="push" data-view="notices" aria-label="通知中心${unread ? "，" + unread + " 則未讀" : ""}">${icon("bell")}${unread ? '<span class="dot"></span>' : ""}</button>
-      <button type="button" class="icon-btn" data-act="push" data-view="settings" aria-label="設定">${icon("gear")}</button>
-    </div>
-    ${IS_STANDALONE || S.prefs.installHidden ? "" : `<div class="card install-banner"><button type="button" class="install-banner grow" data-act="push" data-view="install"><img src="assets/app-icon.png" alt=""><span class="grow"><b>加入主畫面，像 App 一樣開啟</b><br><span class="small muted">先看看加入後主畫面的樣子</span></span>${chev()}</button><button type="button" class="x" data-act="hideInstall" aria-label="不再顯示加入主畫面提示">${icon("x")}</button></div>`}
-    ${homeMarket()}
-    ${homeWatch()}
-    <section class="hero" data-act="push" data-view="overview" role="button" tabindex="0" aria-label="我的資產總覽，點一下看資產總覽">
-      ${heroDeco()}
-      <div class="row"><span class="label">我的資產總覽 <span>(TWD)</span></span><span class="grow"></span>${d.holdings.length ? `<button type="button" class="icon-btn eye" data-act="refreshAll" aria-label="更新持有報價"${busy ? " disabled" : ""}>${icon("refresh")}</button>` : ""}<button type="button" class="icon-btn eye" data-act="hide" aria-label="${S.prefs.hidden ? "顯示金額" : "隱藏金額"}">${icon(S.prefs.hidden ? "eyeOff" : "eye")}</button></div>
-      <div class="big">${s.mv == null ? "—" : shown(money(s.mv))}</div>
-      ${s.unrealized != null ? `<div class="row bold num ${trendCls(s.unrealized)}" style="gap:6px;font-size:16px">${s.unrealized >= 0 ? "▲" : "▼"} ${shown(`${signed(s.unrealized)} (${pct(s.unrealizedPct)})`)}</div>` : `<div class="small" style="opacity:.9">${d.holdings.length ? "取得每檔持有的報價後，即可估算市值" : "新增持有後，這裡會整理你的資產"}</div>`}
-      <div class="hero-tiles">
-        <div class="hero-tile"><div class="t">總成本</div><div class="v">${shown(money(s.cost))}</div></div>
-        <div class="hero-tile"><div class="t">未實現損益</div><div class="v ${s.unrealized == null ? "" : trendCls(s.unrealized)}">${s.unrealized == null ? "—" : shown(signed(s.unrealized))}</div>${s.unrealizedPct == null ? "" : `<div class="tiny bold ${trendCls(s.unrealized)}">${shown(`(${pct(s.unrealizedPct)})`)}</div>`}</div>
-        <div class="hero-tile"><div class="t">累計配息</div><div class="v">${shown(money(s.paidTotal))}</div></div>
-      </div>
-      ${d.holdings.length && !d.holdings.some((h) => quoteOf(h.symbol, d)) ? `<div class="hero-hint">${esc(liveNote() || "按右上角箭頭取得持有報價")}</div>` : busy === "quotes" || marketBusy ? `<div class="hero-hint">正在更新報價…</div>` : ""}
-    </section>
-    <div class="tiles two">
-      <button type="button" class="tile" data-act="push" data-view="monthDiv"><span class="ic" style="background:linear-gradient(180deg,#ffc64d,#f5a20f)">${icon("coin")}</span><div class="grow"><div class="t">本月已領配息</div><div class="v">${shown(money(s.monthPaid))}</div></div></button>
-      <button type="button" class="tile" data-act="push" data-view="monthDiv" data-next="1"><span class="ic" style="background:linear-gradient(180deg,#5ea4ff,#1f6bff)">${icon("calendar")}</span><div class="grow"><div class="t">下月預估配息</div><div class="v">${shown(money(s.nextMonth))}</div></div></button>
-    </div>
-    <div class="card">
-      <div class="section-head" style="margin-bottom:10px"><b style="font-size:16px">資產走勢</b>${chg && chg.p != null ? `<span class="small">${rangeLabel[S.ui.homeRange]} <b class="num ${trendCls(chg.v)}">${pct(chg.p)}</b></span>` : ""}</div>
-      ${rangeChips(["1週", "1月", "3月", "1年", "全部"], S.ui.homeRange, "homeRange", true)}
-      <div style="margin-top:12px">${pts.length >= 2 ? lineChart(pts, { height: 130, money: true, axes: true }) : `<p class="note">每檔持有都取得報價與歷史走勢後，這裡會顯示目前持股的市值變化。${canLive() ? "到各檔 ETF 詳情按「取得歷史走勢」。" : esc(liveNote())}</p>`}</div>
-    </div>
-    ${d.holdings.length ? "" : `<button type="button" class="btn primary block" data-act="push" data-view="holdingForm">${icon("plus")}新增第一筆持有</button>`}
-    ${sectionHead("近期配息提醒", seeAll("push", 'data-view="recentDiv"'))}
-    <div class="card tight">${rows.length ? rows.map((r) => `<button type="button" class="list-row" ${r.act}>${dateBox(r.date)}<span class="grow"><span class="row" style="gap:6px"><b>${esc(r.sym)}</b><span class="ellipsis">${esc(nameOf(r.sym, d))}</span></span><span class="small muted">${esc(r.sub)}</span></span><b class="num">${r.amount == null ? `<span class="small muted">待公布</span>` : shown(money(r.amount))}</b>${chev()}</button>`).join("") : `<p class="note" style="padding:12px 0">記錄已公告或預估的配息，或持有有官方配息公告的 ETF，就能在這裡提前看到。</p>`}</div>`;
+      <button type="button" class="icon-btn" data-act="push" data-view="settings" aria-label="設定">${icon("gear")}</button></div>
+    <button type="button" class="home-search" data-act="homeSearch" aria-label="搜尋股票、ETF">${icon("search")}<span>搜尋股票、ETF</span></button>
+    <div class="home-tabs" role="tablist">${["總覽", "個股", "ETF"].map((t, i) => `<button type="button" role="tab" aria-selected="${i === scope}" class="${i === scope ? "on" : ""}" data-act="homeScope" data-i="${i}">${t}</button>`).join("")}</div>
+    ${homeHero(d, scope)}
+    ${homeMarketCard(scope)}
+    ${homeWatchCard(d, scope)}
+    ${homeGoalsCard(d, s)}
+    ${IS_STANDALONE || S.prefs.installHidden ? "" : `<div class="card install-banner"><button type="button" class="install-banner grow" data-act="push" data-view="install"><img src="assets/app-icon.png" alt=""><span class="grow"><b>加入主畫面，像 App 一樣開啟</b><br><span class="small muted">先看看加入後主畫面的樣子</span></span>${chev()}</button><button type="button" class="x" data-act="hideInstall" aria-label="不再顯示加入主畫面提示">${icon("x")}</button></div>`}`;
   return { hideHeader: true, body };
 };
-
-function ixChange(x) { return x && x.change != null ? `<div class="c bold num ${trendCls(x.change)}">${x.change > 0 ? "▲" : x.change < 0 ? "▼" : "－"} ${priceText(Math.abs(x.change))}${x.pct != null ? ` (${pct(x.pct)})` : ""}</div>` : `<div class="c muted">— (—)</div>`; }
-function ixCard(key) {
-  const x = indexInfo(key);
-  const ch = ixChange(x);
-  const line = x && x.points.length >= 2 ? lineChart(x.points, { height: 62, intraday: x.intraday, color: key === "tpex" ? "var(--purple)" : "var(--blue)" }) : `<div style="height:62px"></div>`;
-  return `<div class="ix-card${key === "tpex" ? " otc" : ""}"><div class="h">${icon("bars")}${INDEX_NAMES[key]}</div><div class="v" data-ix="${key}">${x ? priceText(x.value) : "—"}</div><div data-ixc="${key}">${ch}</div><div class="spark">${line}</div><div class="cap">${x ? esc(x.caption) : SDATA ? "走勢待取得" : "載入中…"}</div></div>`;
+/* The asset card for 總覽, 個股 or ETF. */
+function homeTotals(d, scope) {
+  const pick = (sym) => scope === 0 || isStock(sym) === (scope === 1);
+  const hs = d.holdings.filter((h) => pick(h.symbol)), vals = hs.map((h) => holdingValue(d, h)), missing = vals.filter((v) => v == null).length;
+  const value = !hs.length ? null : scope === 0 ? marketValue(d) : missing ? null : sum(vals, (v) => v);
+  return { value, cost: sum(hs, (h) => h.shares * h.unitCost), paid: sum(d.dividends.filter((x) => x.status === "已入帳" && pick(x.symbol)), (x) => x.amount), count: hs.length, missing };
 }
-function homeMarket() {
-  const tab = S.ui.homeMkt || 0, closeDay = SDATA && SDATA.closeDate ? SDATA.closeDate.twse : "";
-  let inner;
-  if (tab === 0) inner = `<div class="mkt-cards">${ixCard("taiex")}${ixCard("tpex")}</div>`;
-  else {
-    const syms = hotSyms(tab === 1 ? "stock" : "etf", 5);
-    inner = `<div class="card tight">${syms.length ? syms.map((x) => symLine(x)).join("") : `<p class="note" style="padding:12px 0">${SDATA ? "尚無收盤資料。" : "正在載入台股資料…"}</p>`}</div>
-      ${syms.length ? `<p class="note">依 ${closeDay ? ymd(closeDay) : "最近交易日"} 成交值排序的${tab === 1 ? "熱門個股" : "熱門 ETF"}。</p>` : ""}`;
+const HERO_WAVE = `<svg class="wave" viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 27 C35 3, 62 42, 100 12 L100 60 L0 60 Z" fill="rgba(255,255,255,.12)"/></svg>`;
+const HERO_BARS = `<svg class="glass" viewBox="0 0 90 100" aria-hidden="true"><defs><linearGradient id="hb-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".92"/><stop offset="1" stop-color="#9fc6ff" stop-opacity=".62"/></linearGradient></defs>${[[1, 26], [23, 40], [45, 55], [67, 72]].map(([x, h]) => `<rect x="${x}" y="${99 - h}" width="18" height="${h}" rx="5" fill="url(#hb-fill)" stroke="#fff" stroke-opacity=".95"/>`).join("")}<path d="M3 52 Q46 42 82 7" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M71 6 L82 7 L81 18" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const PLUS_CIRCLE = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7v10M7 12h10" stroke="#1f6bff" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+function homeHero(d, scope) {
+  const t = homeTotals(d, scope), gain = t.value == null ? null : t.value - t.cost, gp = gain != null && t.cost > 0 ? gain / t.cost * 100 : null;
+  const title = ["我的總資產", "我的個股資產", "我的 ETF 資產"][scope];
+  const note = t.count && t.value == null ? `<p class="hh-note">${t.missing} 檔持有還沒有台幣報價（外幣級別不計入），暫時無法估算市值。${esc(liveNote())}</p>` : busy === "quotes" || marketBusy ? `<p class="hh-note">正在更新報價…</p>` : "";
+  return `<section class="home-hero" data-act="push" data-view="overview" role="button" tabindex="0" aria-label="${title}，點一下看資產總覽">${HERO_WAVE}${HERO_BARS}
+    <div class="hh-top"><b class="fit">${title}</b><span class="twd">(TWD)</span><button type="button" class="eye" data-act="hide" aria-label="${S.prefs.hidden ? "顯示金額" : "隱藏金額"}">${icon(S.prefs.hidden ? "eyeOff" : "eye")}</button><button type="button" class="hh-add" data-act="push" data-view="holdingForm">${PLUS_CIRCLE}新增持有</button></div>
+    <div class="hh-big num" data-home-value>${t.value == null ? "—" : shown(money(t.value))}</div>${note}
+    <div class="hh-stats"><div><span>投入成本</span><b class="fit">${t.count ? shown(money(t.cost)) : "—"}</b></div><i></i><div><span>未實現損益</span><b class="fit ${gain == null ? "" : trendCls(gain)}">${gain == null ? "—" : shown(signed(gain))}</b>${gp == null ? "" : `<em class="fit ${trendCls(gain)}">${shown(`(${pct(gp)})`)}</em>`}</div><i></i><div><span>累積配息</span><b class="fit">${t.paid > 0 ? shown(money(t.paid)) : "—"}</b></div></div>
+  </section>`;
+}
+/* 台灣市場: both indices (or the most traded stocks / ETFs), whether prices are moving, and the live feed's status. */
+function connState() {
+  const key = CAN_FUGLE && !!fugleKey();
+  if (key && liveOpen()) {
+    const ixAt = Math.max(0, ...["taiex", "tpex"].map((k) => (S.indices[k] && S.indices[k].at) || 0));
+    const fresh = Math.max(LIVE.lastTick || 0, S.marketAt || 0, ixAt) > Date.now() - 45000;
+    if ((LIVE.authed && (LIVE.subs.size || !liveTargets().length)) || fresh) return ["盤中即時", "var(--green)"];
+    // Just opened, or the socket is still authenticating: not an error yet.
+    if (!LIVE.lastLoop || (LIVE.ws && !LIVE.authed) || (!LIVE.ws && !LIVE.reTimer && !LIVE.noStream && Date.now() >= (LIVE.busyUntil || 0) && Date.now() - (LIVE.openedAt || 0) < 20000)) return ["連線中", "var(--blue)"];
+    return ["連線異常", "var(--orange)"];
   }
-  return `${segment(["大盤", "個股", "ETF"], tab, "homeMkt", "pill")}${inner}${srcCard()}`;
+  return key && S.marketAt ? ["已連線", "var(--green)"] : ["未連線", "var(--pink)"];
 }
-function homeWatch() {
-  const d = data(), favs = d.favorites.slice(0, 5);
-  return `<div class="section-head"><h2 class="section-title row" style="gap:6px"><span class="st-ic" style="color:var(--orange)">${icon("star", true)}</span>我的自選</h2>${seeAll("push", 'data-view="watchlist"')}</div>
-    <div class="card tight">${favs.length ? favs.map((x) => symLine(x)).join("") : `<p class="note" style="padding:12px 0">在探索或詳情頁按星號，就能把股票與 ETF 加入自選。</p>`}</div>`;
+function connPill() { const [t, c] = connState(); return `<button type="button" class="conn-pill" data-conn style="--c:${c}" data-act="push" data-view="sources" aria-label="行情${t}"><i></i>${t}</button>`; }
+function updateConnPills() { document.querySelectorAll("[data-conn]").forEach((el) => { const [t, c] = connState(); if (el.textContent !== t) { el.style.setProperty("--c", c); el.innerHTML = `<i></i>${t}`; el.setAttribute("aria-label", "行情" + t); } }); }
+function ixChange(x) { return x && x.change != null ? `<div class="c bold num ${trendCls(x.change)}">${x.change > 0 ? "▲" : x.change < 0 ? "▼" : "－"} ${priceText(Math.abs(x.change))}${x.pct != null ? ` (${pct(x.pct)})` : ""}</div>` : `<div class="c muted">— (—)</div>`; }
+function homeIxCap(key) {
+  const live = S.indices[key], x = indexInfo(key);
+  if (!x) return SDATA ? "更新時間：—" : "載入中…";
+  if (x.live && live && live.at) {
+    const day = live.date || dayStr(new Date(live.at)), a = new Date(live.at);
+    return liveOpen() && day === today() ? `更新時間：${pad(a.getHours())}:${pad(a.getMinutes())}` : `更新時間：${md(day)} 收盤`;
+  }
+  const snap = SDATA && SDATA.index ? SDATA.index[key] : null;
+  return snap && snap.date ? `更新時間：${md(snap.date)} 收盤` : "更新時間：—";
+}
+function homeIxTile(key) {
+  const x = indexInfo(key);
+  const spark = x && x.points.length >= 2 ? `<span class="spark">${lineChart(x.points, { height: 34, intraday: x.intraday, color: key === "tpex" ? "var(--purple)" : "var(--blue)" })}</span>` : "";
+  return `<div class="hm-tile${key === "tpex" ? " otc" : ""}"><div class="hm-th"><b>${INDEX_NAMES[key]}</b>${spark}</div><div class="v num" data-ix="${key}">${x ? priceText(x.value) : "—"}</div><div data-ixc="${key}">${ixChange(x)}</div><div class="cap" data-ixcap="${key}">${esc(homeIxCap(key))}</div></div>`;
+}
+function homeMarketCard(scope) {
+  let inner;
+  if (scope === 0) inner = `<div class="hm-tiles">${homeIxTile("taiex")}${homeIxTile("tpex")}</div>`;
+  else {
+    const syms = hotSyms(scope === 1 ? "stock" : "etf", 5);
+    inner = `<p class="note" style="margin-top:10px">${scope === 1 ? "熱門個股" : "熱門 ETF"}（依成交值）</p>${syms.length ? syms.map((x) => symLine(x)).join("") : `<p class="note" style="padding:12px 0">${SDATA ? "尚無收盤資料。" : "正在載入台股資料…"}</p>`}`;
+  }
+  const live = CAN_FUGLE && !!fugleKey() && liveOpen();
+  const status = live ? `<p class="small muted" style="margin:10px 0 0" data-live-status>${liveSummary()}</p>` : LIVE.note ? `<p class="small muted" style="margin:10px 0 0">${esc(LIVE.note)}</p>` : "";
+  return `<div class="card home-card"><div class="hm-head">${icon("bars")}<b>台灣市場</b><span class="grow"></span>${connPill()}</div>${inner}${status}</div>`;
+}
+/* 我的自選, split into stocks and ETFs; on 總覽 it opens on the half that has symbols until the viewer picks one. */
+const STAR_ART = `<svg class="star-art" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="hw-star" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd95a"/><stop offset="1" stop-color="#f58c0f"/></linearGradient></defs><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.4L12 17.4l-5.8 3 1.1-6.4-4.7-4.6 6.5-.9z" fill="url(#hw-star)" stroke="#f5a20f" stroke-width=".6" stroke-linejoin="round"/></svg>`;
+function homeWatchKind(d, scope) {
+  if (scope) return scope === 1 ? 0 : 1;
+  const hasS = d.favorites.some((x) => isStock(x)), hasE = d.favorites.some((x) => !isStock(x));
+  if (!S.ui.homeWatchPicked) { if (hasE && !hasS) return 1; if (hasS && !hasE) return 0; }
+  return S.ui.homeWatch || 0;
+}
+function homeWatchCard(d, scope) {
+  const kind = S.ui.homeWatchScope === scope && S.ui.homeWatchPicked ? S.ui.homeWatch || 0 : homeWatchKind(d, scope);
+  const list = d.favorites.filter((x) => isStock(x) === (kind === 0)).slice().sort(), others = d.favorites.length - list.length, label = kind === 0 ? "股票" : "ETF";
+  const shownList = list.slice(0, 5);
+  const body = shownList.length
+    ? `<div style="margin-top:6px">${shownList.map((x) => symLine(x)).join("")}</div>${list.length > 5 ? `<button type="button" class="link" style="width:100%;justify-content:center;margin-top:6px" data-act="push" data-view="watchlist">查看全部 ${list.length} 檔</button>` : ""}`
+    : `<div class="hw-empty">${STAR_ART}<div class="grow"><b>${others ? "尚未加入自選" + label : "尚未加入自選"}</b><span class="small">${others ? `另一個分頁有 ${others} 檔自選；也可以追蹤你關注的${label}。` : "追蹤你關注的股票或 ETF，掌握即時動態。"}</span></div><button type="button" class="link" data-act="homeAddFav" data-k="${kind}">新增自選${icon("right")}</button></div>`;
+  return `<div class="card home-card"><div class="hm-head"><span class="st-ic" style="color:var(--orange)">${icon("star", true)}</span><b>我的自選</b><span class="grow"></span><button type="button" class="link" data-act="push" data-view="watchlist">管理${icon("right")}</button></div><div style="margin-top:12px">${segment(["股票", "ETF"], kind, "homeWatch", "pill")}</div>${body}</div>`;
+}
+/* 配息與目標: this month's dividends and the next payment, and the combined simulation over 3, 5 or 10 years. */
+function homeNextPay(d) {
+  const t = today(), c = [];
+  const r = upcoming(d)[0]; if (r) c.push([r.date, `${md(r.date)}・${shown(money(r.amount))} 元`]);
+  const o = [...new Set(d.holdings.map((h) => h.symbol))].flatMap((sym) => officialEvents(sym)
+    .filter((e) => e.pay && e.pay >= t && !d.dividends.some((x) => x.symbol === sym && (x.exDate === e.ex || x.date === e.pay)))
+    .map((e) => ({ pay: e.pay, amount: e.amount, shares: sum(d.holdings.filter((h) => h.symbol === sym), (h) => h.shares) })))
+    .sort((a, b) => a.pay.localeCompare(b.pay))[0];
+  if (o) c.push([o.pay, `${md(o.pay)}・${o.amount ? shown(money(o.amount * o.shares)) + " 元" : "金額待公布"}`]);
+  c.sort((a, b) => a[0].localeCompare(b[0]));
+  return c.length ? c[0][1] : "—";
+}
+const COMBO_ART = `<svg viewBox="0 0 50 46" aria-hidden="true">${[["#1f6bff", 13], ["#7a52f2", 19], ["#e94b80", 27], ["#f58c0f", 38]].map(([c, h], i) => `<rect x="${8 + i * 11}" y="${45 - h}" width="8" height="${h}" rx="3" fill="${c}"/>`).join("")}<path d="M2 26 Q22 22 42 5" fill="none" stroke="#7a52f2" stroke-width="2.2" stroke-linecap="round"/><path d="M34 4 L42 5 L41 13" fill="none" stroke="#7a52f2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function homeGoalsCard(d, s) {
+  const c = comboOf(d), month = s.monthPaid + s.monthPending;
+  return `<div class="card home-card">
+    <button type="button" class="hm-head" data-act="push" data-view="goal"><span class="st-ic" style="color:var(--orange)">${icon("coin")}</span><b>配息與目標</b><span class="grow"></span>${icon("right")}</button>
+    <div class="hg-grid">
+      <button type="button" class="hg-div" data-act="push" data-view="monthDiv"><span class="t">本月配息 <span>(TWD)</span></span><span class="vrow"><b class="v fit">${month > 0 ? shown(money(month)) : "—"}</b>${art("div-coins")}</span><span class="next"><span>下次入帳</span><b class="num">${esc(homeNextPay(d))}</b></span></button>
+      <div class="hg-combo"><button type="button" class="hg-ct" data-act="push" data-view="combo"><span><b>組合試算</b><span class="sub">個股 + ETF</span></span>${COMBO_ART}</button>
+        <div class="hg-chips"><div class="hg-years">${[3, 5, 10].map((y) => `<button type="button" class="${c.years === y ? "on" : ""}" data-act="homeYears" data-v="${y}" aria-pressed="${c.years === y}" aria-label="試算 ${y} 年">${y}年</button>`).join("")}</div><button type="button" class="hg-go" data-act="homeCombo" aria-label="看試算結果">${icon("right")}</button></div></div>
+    </div>
+    <button type="button" class="hg-links" data-act="push" data-view="sources">${icon("link")}<span class="grow">資料更新與券商連結</span><span class="small muted">尚未連結券商</span>${chev()}</button>
+  </div>`;
 }
 
 VIEWS.overview = () => {
@@ -1959,7 +2082,7 @@ function activeChips() {
 function fundList() {
   const d = data(), items = filteredFunds();
   const q = S.ui.q.trim().toLowerCase(), stockHits = q ? STOCKS.filter((x) => x.id.toLowerCase().includes(q) || x.name.toLowerCase().includes(q)).length : 0;
-  const hint = stockHits ? `<button type="button" class="list-row" style="justify-content:center;color:var(--blue);font-weight:800" data-act="dKind" data-i="1">個股也有 ${stockHits} 檔符合，切換到個股${icon("right")}</button>` : "";
+  const hint = stockHits ? `<button type="button" class="list-row" style="justify-content:center;color:var(--blue);font-weight:800" data-act="dKind" data-i="1">個股也有 ${stockHits} 檔符合，切換到個股${chev()}</button>` : "";
   if (!items.length) return stockHits ? hint : empty("🔍", "找不到符合的 ETF", "換個代號、名稱或篩選條件試試。");
   const shownItems = items.slice(0, S.ui.listMore ? items.length : 60);
   return shownItems.map((f) => {
@@ -1981,6 +2104,12 @@ function stockList() {
   if (!items.length) return STOCKS.length ? empty("🔍", "找不到符合的股票", "換個代號、名稱或產業試試。") : `<p class="note" style="padding:12px 0">${SDATA && SDATA.error ? "個股名單載入失敗，請稍後重新整理。" : "正在載入上市櫃個股名單…"}</p>`;
   const list = items.slice(0, S.ui.listMore ? items.length : 60);
   return list.map((x) => symLine(x.id, x.industry)).join("") + (items.length > list.length ? `<button type="button" class="list-row" style="justify-content:center;color:var(--blue);font-weight:800" data-act="listMore">顯示全部 ${items.length} 檔</button>` : "");
+}
+/* While searching ETFs, companies whose code or name match are listed too, with a way to the full stock results. */
+function stockMatches() {
+  const q = (S.ui.q || "").trim().toLowerCase(); if (!q || !STOCKS.length) return "";
+  const list = STOCKS.filter((x) => x.id.toLowerCase().startsWith(q) || x.name.toLowerCase().includes(q)).slice(0, 5);
+  return list.length ? `<div class="card tight"><div class="section-head" style="padding:10px 0 4px"><b style="font-size:15px">個股</b><button type="button" class="link" data-act="dKind" data-i="1">看全部個股結果${icon("right")}</button></div>${list.map((x) => symLine(x.id)).join("")}</div>` : "";
 }
 function stockDiscover() {
   const n = filteredStocks().length, tw = STOCKS.filter((x) => x.market === "TWSE").length, tp = STOCKS.length - tw;
@@ -2011,6 +2140,7 @@ VIEWS.discover = () => {
     title: "探索 ETF", sub: "台灣上市・上櫃 ETF",
     body: `${segment(["ETF", "個股"], 0, "dKind", "pill")}
       <label class="search">${icon("search")}<input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="搜尋代號或名稱（例：0050）" value="${esc(S.ui.q)}" aria-label="搜尋 ETF"></label>
+      <div id="stock-matches">${stockMatches()}</div>
       ${liveStatus()}
       <div class="section-head"><h2 class="numbered"><i>1</i>系統用途分類</h2><span class="tiny muted">依名稱規則整理，點選即可篩選</span></div>
       <div class="cats">${["存錢筒", "印鈔機", "老虎機"].map(cat).join("")}</div>
@@ -3006,9 +3136,19 @@ function renderScreen() {
   $("#screen").innerHTML = `${head}<main class="body${out.bottom ? " with-bar" : ""}">${out.body}</main>${out.bottom ? `<div class="actionbar"><div class="inner">${out.bottom}</div></div>` : ""}`;
   updateTabs();
   if (out.after) out.after();
+  fitText();
   if (active && (active === "q" || active === "hq")) { const el = $("#" + active); if (el) { el.focus(); try { el.setSelectionRange(caret, caret); } catch (e) { /* not a text input */ } } }
   queueLiveSync();
 }
+/* Text marked .fit shrinks (to 55% at most) until it fits its box, like minimumScaleFactor in the app. */
+function fitText() {
+  document.querySelectorAll(".fit").forEach((el) => {
+    el.style.fontSize = "";
+    const base = parseFloat(getComputedStyle(el).fontSize), min = base * 0.55;
+    for (let size = base; el.scrollWidth > el.clientWidth + 0.5 && size > min; ) { size -= 0.5; el.style.fontSize = size + "px"; }
+  });
+}
+window.addEventListener("resize", () => fitText());
 /* The tab bar is built once so the glass bubble can animate between tabs. */
 let shownTab = null;
 function updateTabs() {
@@ -3131,7 +3271,22 @@ const ACT = {
     if (isStock(ds.sym)) { S.ui.sdTab = Number(ds.sec) === 3 ? 3 : 0; S.ui.sdRange = "1年"; go("stock", { sym: ds.sym }); return; }
     S.ui.detail = Number(ds.sec || 0); S.ui.detailRange = "1年"; go("detail", { sym: ds.sym });
   },
-  homeMkt: (ds) => { S.ui.homeMkt = Number(ds.i); renderScreen(); },
+  homeScope: (ds) => { S.ui.homeScope = Number(ds.i); S.ui.homeWatchPicked = false; renderScreen(); },
+  homeWatch: (ds) => { S.ui.homeWatch = Number(ds.i); S.ui.homeWatchPicked = true; S.ui.homeWatchScope = S.ui.homeScope || 0; renderScreen(); },
+  // The search starts clean on 探索's first screen, on 個股 from the 個股 tab, else on ETFs with matching stocks listed too.
+  homeSearch: () => {
+    S.ui.dKind = (S.ui.homeScope || 0) === 1 ? 1 : 0; S.ui.q = ""; S.ui.filter = emptyFilter(); S.ui.listMore = false;
+    S.stacks[1] = []; S.tab = 1; renderScreen(); window.scrollTo(0, 0);
+    const q = $("#q"); if (q) q.focus();
+  },
+  homeAddFav: (ds) => { S.ui.dKind = Number(ds.k) === 0 ? 1 : 0; S.ui.listMore = false; S.stacks[1] = []; S.tab = 1; renderScreen(); window.scrollTo(0, 0); },
+  homeYears: (ds) => { comboOf(data()).years = Number(ds.v); commit(); },
+  homeCombo: () => {
+    const t = comboTotals(data());
+    if (!(t.total > 0)) { go("combo"); return; }
+    // Behind the result sit the simulation and its settings, so 調整假設 (back) lands on the settings.
+    S.stacks[S.tab].push({ view: "combo" }, { view: "comboSet" }); S.ui.cbScen = null; S.ui.cbPart = null; go("comboResult");
+  },
   dKind: (ds) => { S.ui.dKind = Number(ds.i); S.ui.listMore = false; renderScreen(); window.scrollTo(0, 0); },
   sMarket: (ds) => { S.ui.sMarket = ds.v; S.ui.listMore = false; renderScreen(); },
   sdTab: (ds) => { S.ui.sdTab = Number(ds.i); renderScreen(); },
@@ -3183,7 +3338,6 @@ const ACT = {
   cbPart: (ds) => { S.ui.cbPart = S.ui.cbPart === ds.v ? null : ds.v; renderScreen(); },
   fav: (ds) => toggleFav(ds.sym),
   hide: () => { S.prefs.hidden = !S.prefs.hidden; savePrefs(); renderScreen(); },
-  homeRange: (ds) => { S.ui.homeRange = ds.v; renderScreen(); },
   overviewRange: (ds) => { S.ui.overviewRange = ds.v; renderScreen(); },
   spread: (ds) => { S.ui.spread = Number(ds.i); renderScreen(); },
   detailRange: (ds) => { S.ui.detailRange = ds.v; renderScreen(); const v = current(); if (ds.v === "當日" && v.view === "detail") loadIntraday(v.sym, true); },
@@ -3409,7 +3563,11 @@ document.addEventListener("keydown", (e) => {
 });
 document.addEventListener("input", (e) => {
   const t = e.target;
-  if (t.id === "q") { S.ui.q = t.value; S.ui.listMore = false; const list = $("#fund-list"); if (list) list.innerHTML = S.ui.dKind === 1 ? stockList() : fundList(); return; }
+  if (t.id === "q") {
+    S.ui.q = t.value; S.ui.listMore = false; const list = $("#fund-list"); if (list) list.innerHTML = S.ui.dKind === 1 ? stockList() : fundList();
+    const matches = $("#stock-matches"); if (matches) matches.innerHTML = stockMatches();
+    return;
+  }
   if (t.id === "hq") { S.ui.hq = t.value; const list = $("#hlist"); if (list) { const items = sortedHoldings(); list.innerHTML = items.length ? items.map(holdingRow).join("") : `<div class="card">${empty("🔍", "找不到符合的持有", "換個代號、名稱或券商試試。")}</div>`; } return; }
   if (t.closest("#plan-form")) return updatePlan();
   if (t.closest("#calc-form")) return updateCalc();
