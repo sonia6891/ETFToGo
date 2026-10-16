@@ -59,6 +59,8 @@ a { color: var(--blue); }
 .head .sub { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .head .right { display: flex; gap: 0; justify-content: flex-end; }
 .head .text-btn { color: var(--blue); font-weight: 700; padding: 8px 10px; }
+.head .live-link { align-self: center; margin-right: 2px; padding: 6px 10px; border-radius: 99px; color: var(--blue); background: color-mix(in srgb, var(--blue) 11%, transparent); font-size: 13px; font-weight: 800; white-space: nowrap; text-decoration: none; }
+.about-src .note { margin-top: 6px; }
 .icon-btn { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; color: var(--ink); }
 .icon-btn:active { background: var(--line); }
 .icon-btn svg { width: 22px; height: 22px; }
@@ -451,6 +453,7 @@ table.cmp thead th:first-child { background: none; }
 .conn i { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 20%, transparent); }
 .conn.on { color: var(--green); }
 .conn.off { color: var(--pink); }
+.conn.close { color: var(--blue); }
 /* Home page (same design as the iPhone app): search, scope tabs, asset card, market, watchlist, dividends and simulation. */
 .home-head { display: flex; align-items: center; gap: 10px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
 .home-head .logo { width: 44px; height: 44px; border-radius: 11px; flex: none; box-shadow: 0 4px 10px rgba(31,107,255,.2); }
@@ -1054,6 +1057,10 @@ async function fetchHistory(sym, years) {
 }
 let busy = null;
 const canLive = () => CAN_FUGLE && !!fugleKey();
+/* 看即時價: without the viewer's own Fugle key prices are each trading day's close, so the stock and ETF pages link
+   to the live quote on Yahoo 股市 in a new tab. Yahoo marks OTC codes .TWO. */
+const liveQuoteURL = (sym, market) => `https://tw.stock.yahoo.com/quote/${encodeURIComponent(sym)}${market === "TPEx" ? ".TWO" : ".TW"}`;
+const liveLink = (sym, market) => (canLive() ? "" : `<a class="live-link" href="${liveQuoteURL(sym, market)}" target="_blank" rel="noopener noreferrer" aria-label="看即時價（另開 Yahoo 股市）">看即時價</a>`);
 function liveNote() {
   if (!CAN_FUGLE) return "Claude 連結版無法連線行情服務，請改用網頁版 App（設定裡有網址）。";
   if (!fugleKey()) return "到「設定 › 富果行情連線」存入行情金鑰後即可取得。";
@@ -1807,7 +1814,8 @@ function connState() {
     if (!LIVE.lastLoop || (LIVE.ws && !LIVE.authed) || (!LIVE.ws && !LIVE.reTimer && !LIVE.noStream && Date.now() >= (LIVE.busyUntil || 0) && Date.now() - (LIVE.openedAt || 0) < 20000)) return ["連線中", "var(--blue)"];
     return ["連線異常", "var(--orange)"];
   }
-  return key && S.marketAt ? ["已連線", "var(--green)"] : ["未連線", "var(--pink)"];
+  if (!key) return ["每日收盤", "var(--blue)"];
+  return S.marketAt ? ["已連線", "var(--green)"] : ["未連線", "var(--pink)"];
 }
 function connPill() { const [t, c] = connState(); return `<button type="button" class="conn-pill" data-conn style="--c:${c}" data-act="push" data-view="sources" aria-label="行情${t}"><i></i>${t}</button>`; }
 function updateConnPills() { document.querySelectorAll("[data-conn]").forEach((el) => { const [t, c] = connState(); if (el.textContent !== t) { el.style.setProperty("--c", c); el.innerHTML = `<i></i>${t}`; el.setAttribute("aria-label", "行情" + t); } }); }
@@ -2048,6 +2056,7 @@ VIEWS.about = () => ({
   title: "關於 投資袋著走", back: true,
   body: `<div class="card" style="text-align:center"><img class="art" src="assets/app-icon.png" alt="" style="width:72px;height:72px;margin:0 auto 8px;border-radius:18px"><b style="font-size:18px">投資袋著走</b><p class="note">網頁版・2026-10-16 介面</p></div>
     <div class="card"><b>使用說明</b><p class="note" style="margin-top:6px">策略分類依 ETF 名稱規則整理，不是投資建議或收益保證。沒有可靠資料的欄位不顯示估計值；試算結果是情境假設。</p></div>
+    <div class="card about-src"><b>資料來源與授權</b><p class="note">每日開盤、收盤價與指數衍生自臺灣證券交易所「上市個股日成交資訊」「每日收盤行情－大盤統計資訊」及證券櫃檯買賣中心「上櫃股票行情」「櫃買指數歷史資料」，該資料係依據政府資料開放授權條款（Open Government Data License）進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。</p><p class="note"><a href="https://data.gov.tw/license" target="_blank" rel="noopener noreferrer">政府資料開放授權條款：data.gov.tw/license</a></p><p class="note">公司基本資料、ETF 名單與配息資訊取自臺灣證券交易所與證券櫃檯買賣中心公開資訊。使用你自己的富果金鑰時，盤中行情由富果提供；資訊來源：臺灣證券交易所、證券櫃檯買賣中心。</p><p class="note">本網頁與上述機構沒有合作或背書關係；資料僅供參考，交易請以券商與交易所公告為準。</p></div>
     ${CAN_FUGLE ? "" : `<div class="card"><b>網頁版 App（可連線行情）</b><p class="num" style="margin:6px 0 10px;overflow-wrap:anywhere;user-select:all">${PAGES_URL}</p><button type="button" class="btn soft block" data-act="copy" data-text="${PAGES_URL}">複製網址</button></div>`}`,
 });
 /* ---------- discover ---------- */
@@ -2263,7 +2272,7 @@ VIEWS.detail = (v) => {
   const updated = q ? (q.fetchedAt ? new Date(q.fetchedAt) : null) : null;
   return {
     title: `${f.id} ${f.name}`, sub: [f.market ? "台灣" + marketName(f) : "", theme, assetKind(f)].filter(Boolean).join("・"), back: true, wideRight: true,
-    right: `<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(f.id)}" aria-label="切換收藏">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="copy" data-text="${esc(f.id + " " + f.name + "｜投資袋著走")}" aria-label="複製代號與名稱">${icon("share")}</button>`,
+    right: `${liveLink(f.id, f.market)}<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(f.id)}" aria-label="切換收藏">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="copy" data-text="${esc(f.id + " " + f.name + "｜投資袋著走")}" aria-label="複製代號與名稱">${icon("share")}</button>`,
     body: `<div><div class="row" style="align-items:baseline;flex-wrap:wrap;gap:8px"><span class="price-big" data-px="${esc(f.id)}">${q ? priceText(q.price) : "--"}</span><span data-chg="${esc(f.id)}" data-size="">${quoteChange(q, "")}</span><span class="grow"></span><span class="tiny muted">${updated ? `更新時間 ${pad(updated.getMonth() + 1)}/${pad(updated.getDate())} ${pad(updated.getHours())}:${pad(updated.getMinutes())}` : "更新時間 --/-- --:--"}</span></div>
         <p class="note">${q ? quoteNote(q) : liveNote() || "尚未取得報價。"}${CAN_FUGLE && fugleKey() ? ` <button type="button" class="link" data-act="refreshOne" data-sym="${esc(f.id)}"${busy ? " disabled" : ""}>${busy === "quotes" ? "更新中…" : "更新報價"}</button>` : ""}</p></div>
       ${segment(["總覽", "走勢", "持股", "配息", "資訊"], sec, "detailSec", "pill")}${content}`,
@@ -2331,10 +2340,10 @@ VIEWS.stock = (v) => {
   const content = [stockOverview, (s2) => stockTrend(s2, d), stockFinance, (s2) => stockDividends(s2, x, q, d)][tab](sym, x, q, d);
   return {
     title: "個股詳情", back: true, wideRight: true,
-    right: `<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(sym)}" aria-label="切換自選">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="copy" data-text="${esc(sym + " " + x.name + "｜投資袋著走")}" aria-label="複製代號與名稱">${icon("share")}</button>`,
+    right: `${liveLink(sym, x.market)}<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(sym)}" aria-label="切換自選">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="copy" data-text="${esc(sym + " " + x.name + "｜投資袋著走")}" aria-label="複製代號與名稱">${icon("share")}</button>`,
     body: `<div class="card row" style="gap:12px">${avatar(sym, "big")}<div class="grow" style="min-width:0"><div class="row wrap" style="gap:8px"><b style="font-size:22px">${esc(sym)}</b><b style="font-size:20px">${esc(x.name)}</b>${mkBadge(sym)}</div><div class="small muted" style="margin-top:4px">${esc(x.fullName || x.industry || "")}</div></div></div>
       <div class="sd-cards"><div class="card"><div class="price-big" style="font-size:30px" data-px="${esc(sym)}">${q ? priceText(q.price) : "—"}</div><div style="margin-top:4px" data-chg="${esc(sym)}" data-size="small">${q ? quoteChange(q, "small") : `<span class="small muted">— (—)</span>`}</div></div>
-        <div class="card sd-info"><div>${icon("clock")}${live && liveOpen() ? "盤中即時更新" : live ? "收盤後・最後一次更新的價格" : "顯示最新收盤價"}</div><div><span class="conn ${live ? "on" : "off"}"><i></i>${live ? "已連線" : "未連線"}</span></div><div>更新時間：${upd ? `${pad(upd.getMonth() + 1)}/${pad(upd.getDate())} ${pad(upd.getHours())}:${pad(upd.getMinutes())}` : "—"}</div></div></div>
+        <div class="card sd-info"><div>${icon("clock")}${live && liveOpen() ? "盤中即時更新" : live ? "收盤後・最後一次更新的價格" : "顯示最新收盤價"}</div><div><span class="conn ${live ? "on" : "close"}"><i></i>${live ? "已連線" : "收盤價"}</span></div><div>更新時間：${upd ? `${pad(upd.getMonth() + 1)}/${pad(upd.getDate())} ${pad(upd.getHours())}:${pad(upd.getMinutes())}` : "—"}</div></div></div>
       ${segment(["總覽", "走勢", "財務", "股利"], tab, "sdTab", "pill")}${content}`,
     bottom: `<button type="button" class="btn outline" style="flex:1" data-act="fav" data-sym="${esc(sym)}">${icon("star", fav)}${fav ? "已加入自選" : "加入自選"}</button><button type="button" class="btn primary" style="flex:1" data-act="addToCombo" data-sym="${esc(sym)}">${icon("calc")}加入試算</button>`,
   };
