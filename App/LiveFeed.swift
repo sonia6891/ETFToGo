@@ -32,6 +32,8 @@ struct LiveTick: Equatable {
     var volume: Double?
     var date: String?
     var trial: Bool
+    /// During a trial match: the last real trade (closePrice).
+    var lastTrade: Double? = nil
 }
 enum LiveEvent: Equatable {
     case authenticated
@@ -102,7 +104,7 @@ enum LiveProtocol {
         let price = trial ? number(data["lastPrice"]) : (number(data["closePrice"]) ?? number(data["lastPrice"]))
         guard let price, price > 0 else { return nil }
         let total = data["total"] as? [String: Any]
-        return LiveTick(symbol: symbol, price: price, change: number(data["change"]), changePercent: number(data["changePercent"]), open: number(data["openPrice"]), high: number(data["highPrice"]), low: number(data["lowPrice"]), volume: number(total?["tradeVolume"]), date: data["date"] as? String, trial: trial)
+        return LiveTick(symbol: symbol, price: price, change: number(data["change"]), changePercent: number(data["changePercent"]), open: number(data["openPrice"]), high: number(data["highPrice"]), low: number(data["lowPrice"]), volume: number(total?["tradeVolume"]), date: data["date"] as? String, trial: trial, lastTrade: trial ? number(data["closePrice"]) : nil)
     }
     /// Field by field, because a push does not carry everything a REST quote does. Only the same trading day's
     /// figures carry over; the currency always does.
@@ -123,6 +125,23 @@ enum LiveProtocol {
         quote.source = nil
         if quote.currency == nil { quote.currency = guessCurrency(tick.symbol) }
         return quote
+    }
+    /// The last real trade behind a pushed quote: the quote itself, or during a trial match the day's earlier real one,
+    /// else one rebuilt from the push's closePrice (the change measured from the same reference price).
+    static func realTrade(_ quote: Quote, _ tick: LiveTick, known: Quote?) -> Quote? {
+        guard tick.trial else { return quote }
+        if let known, known.date == quote.date, known.trial != true { return known }
+        guard let trade = tick.lastTrade, trade > 0 else { return nil }
+        var real = quote
+        real.price = trade; real.trial = nil
+        if let change = tick.change, tick.price - change > 0 {
+            let reference = tick.price - change
+            real.change = ((trade - reference) * 10000).rounded() / 10000
+            real.changePercent = ((trade - reference) / reference * 10000).rounded() / 100
+        } else {
+            real.change = nil; real.changePercent = nil
+        }
+        return real.isValid ? real : nil
     }
     /// Foreign-currency share classes end in C or K; everything else on TWSE/TPEx trades in NT$.
     static func guessCurrency(_ symbol: String) -> String { symbol.hasSuffix("C") || symbol.hasSuffix("K") ? "UNKNOWN" : "TWD" }
@@ -187,6 +206,9 @@ struct LiveStatus: Equatable {
 
     private static let pausedNote = "連不上富果即時串流，先改為定時更新，稍後自動再試。"
     private var exchangeOffset = 0
+    private var targetOffset = 0
+    /// The last real trade of each symbol, saved instead of a trial-match price when the app leaves.
+    private var lastReal: [String: Quote] = [:]
 
     init(store: PortfolioStore) { self.store = store }
 
@@ -229,7 +251,9 @@ struct LiveStatus: Equatable {
     func syncSoon() {
         Task { [weak self] in
             try? await Task.sleep(nanoseconds: 1_000_000_000)
-            self?.sync()
+            guard let self else { return }
+            self.sync()
+            if self.keyless, self.exchangeFails == 0 { self.pollAt = min(self.pollAt, Date()) }
         }
     }
 
@@ -317,7 +341,10 @@ struct LiveStatus: Equatable {
         case .tick(let tick):
             let previous = buffer[tick.symbol] ?? store.liveQuotes[tick.symbol] ?? store.data.quotes[tick.symbol]
             let quote = LiveProtocol.merge(previous, tick)
-            if quote.isValid { buffer[tick.symbol] = quote; queueFlush() }
+            if quote.isValid {
+                buffer[tick.symbol] = quote; queueFlush()
+                if let real = LiveProtocol.realTrade(quote, tick, known: lastReal[tick.symbol]) { lastReal[tick.symbol] = real }
+            }
         case .error(let code, let message):
             failed(code: code, message: message)
         case .heartbeat, .other:
@@ -364,8 +391,8 @@ struct LiveStatus: Equatable {
     }
     /// Symbols to keep fresh, most important first: the open detail page, holdings by value, then the watchlist.
     private func targets() -> [String] {
-        var out: [String] = []
-        func add(_ symbol: String?) { if let symbol, DataChecks.code(symbol), !out.contains(symbol) { out.append(symbol) } }
+        var out: [String] = [], seen = Set<String>()
+        func add(_ symbol: String?) { if let symbol, DataChecks.code(symbol), seen.insert(symbol).inserted { out.append(symbol) } }
         add(store.liveFocus)
         let holdings = store.data.holdings.sorted { (store.marketValue(of: $0) ?? 0) > (store.marketValue(of: $1) ?? 0) }
         for holding in holdings { add(holding.symbol) }
@@ -415,7 +442,10 @@ struct LiveStatus: Equatable {
                 if let total = row["tradeVolume"] { fields["total"] = ["tradeVolume": total] }
                 guard let tick = LiveProtocol.tick(fields) else { continue }
                 let quote = LiveProtocol.merge(store.data.quotes[symbol], tick)
-                if quote.isValid { out[symbol] = quote }
+                if quote.isValid {
+                    out[symbol] = quote
+                    if let real = LiveProtocol.realTrade(quote, tick, known: lastReal[symbol]) { lastReal[symbol] = real }
+                }
             }
         }
         return out
@@ -449,6 +479,7 @@ struct LiveStatus: Equatable {
                 let symbol = catchUp.removeFirst()
                 let value = try await quote(symbol)
                 if !streamedRecently(symbol) { buffer[symbol] = value; queueFlush() }
+            if value.trial != true { lastReal[symbol] = value }
                 pollAt = Date().addingTimeInterval(1.2)
                 return
             }
@@ -460,6 +491,7 @@ struct LiveStatus: Equatable {
             pollIndex += 1
             let value = try await quote(symbol)
             if !streamedRecently(symbol) { buffer[symbol] = value; queueFlush() }
+            if value.trial != true { lastReal[symbol] = value }
             pollAt = Date().addingTimeInterval(max(1.5, cycle / Double(rest.count)))
         } catch {
             if let failure = error as? StoreError, case .http(let code) = failure, code == 403, paid != false {
@@ -475,16 +507,21 @@ struct LiveStatus: Equatable {
     private func pollExchange() async {
         polling = true
         defer { polling = false }
-        let first = targets()
-        var extra = store.liveSymbols.filter { !first.contains($0) }
-        if !extra.isEmpty { let shift = exchangeOffset % extra.count; extra = Array(extra[shift...] + extra[..<shift]) }
-        let symbols = first + extra
+        // The open page and the largest holdings every time; the other holdings and the watchlist take turns, then the
+        // home page's lists, so every code is asked within a few rounds.
+        let all = targets(), known = Set(all)
+        let head = Array(all.prefix(20))
+        let tail = Self.rotated(Array(all.dropFirst(20)), by: targetOffset)
+        let extra = Self.rotated(store.liveSymbols.filter { !known.contains($0) }, by: exchangeOffset)
+        let symbols = head + tail + extra
         do {
             let got = try await ExchangeLive.market(symbols, markets: store.markets(symbols))
             for (symbol, quote) in got.quotes { buffer[symbol] = quote }
             if !got.quotes.isEmpty { queueFlush() }
             store.indices.merge(got.indices) { _, new in new }
-            exchangeOffset += got.asked.filter { !first.contains($0) }.count
+            let asked = Set(got.asked)
+            targetOffset += tail.filter(asked.contains).count
+            exchangeOffset += extra.filter(asked.contains).count
             exchangeFails = 0
             if note.hasPrefix("證交所") { note = "" }
         } catch {
@@ -494,6 +531,11 @@ struct LiveStatus: Equatable {
         pollAt = Date().addingTimeInterval(exchangeFails == 0 ? 10 : min(60, 10 * Double(exchangeFails + 1)))
         lastUpdate = Date()
         publish()
+    }
+    private static func rotated(_ list: [String], by offset: Int) -> [String] {
+        guard !list.isEmpty else { return list }
+        let shift = offset % list.count
+        return Array(list[shift...] + list[..<shift])
     }
     /// Returns true when requests should stop for now.
     private func restFailed(_ error: Error) -> Bool {
@@ -544,8 +586,9 @@ struct LiveStatus: Equatable {
         var next = store.data
         var changed = false
         for symbol in keep {
-            // A trial-match price is not a trade, so the last real one stays saved.
-            guard let quote = store.liveQuotes[symbol], quote.trial != true, quote.isValid, (next.quotes[symbol]?.fetchedAt ?? .distantPast) < quote.fetchedAt else { continue }
+            // A trial-match price is not a trade, so the last real one is saved instead.
+            guard let live = store.liveQuotes[symbol], let quote = live.trial == true ? lastReal[symbol] : live, quote.isValid,
+                  (next.quotes[symbol]?.fetchedAt ?? .distantPast) < quote.fetchedAt else { continue }
             next.quotes[symbol] = quote
             changed = true
         }

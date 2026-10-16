@@ -194,18 +194,36 @@ final class PortfolioTests: XCTestCase {
         XCTAssertEqual(trade.price, 1460); XCTAssertNil(trade.trial)
     }
     func testRequestPaceKeepsWithinLimit() async {
-        let start = Date(timeIntervalSince1970: 1_000)
+        let start = ContinuousClock.now
+        func at(_ seconds: Int) -> ContinuousClock.Instant { start + .seconds(seconds) }
         let exchange = RequestPace(limit: 1, window: 5)
-        let first = await exchange.reserve(now: start)
-        let second = await exchange.reserve(now: start)
-        let third = await exchange.reserve(now: start.addingTimeInterval(1))
-        XCTAssertEqual(first, 0); XCTAssertEqual(second, 5); XCTAssertEqual(third, 9, "Waits behind the reserved slot, 5 s apart")
+        let first = await exchange.take(now: at(0))
+        let second = await exchange.take(now: at(0))
+        let third = await exchange.take(now: at(1))
+        let fourth = await exchange.take(now: at(5))
+        XCTAssertEqual(first, 0); XCTAssertEqual(second, 5, accuracy: 0.001)
+        XCTAssertEqual(third, 4, accuracy: 0.001, "A caller that waited and gave up took no turn")
+        XCTAssertEqual(fourth, 0)
         let fugle = RequestPace(limit: 3, window: 60)
         var waits: [TimeInterval] = []
-        for _ in 0..<4 { waits.append(await fugle.reserve(now: start)) }
-        XCTAssertEqual(waits, [0, 0, 0, 60])
-        let later = await fugle.reserve(now: start.addingTimeInterval(130))
+        for _ in 0..<4 { waits.append(await fugle.take(now: at(0))) }
+        XCTAssertEqual(Array(waits.prefix(3)), [0, 0, 0]); XCTAssertEqual(waits[3], 60, accuracy: 0.001)
+        let later = await fugle.take(now: at(60))
         XCTAssertEqual(later, 0, "Old requests leave the window")
+    }
+    func testRealTradeBehindTrialMatch() throws {
+        let tick = LiveTick(symbol: "2330", price: 1455, change: 15, changePercent: 1.04, open: nil, high: nil, low: nil, volume: nil, date: "2026-10-16", trial: true, lastTrade: 1460)
+        let shown = LiveProtocol.merge(nil, tick)
+        XCTAssertEqual(shown.price, 1455); XCTAssertEqual(shown.trial, true)
+        let rebuilt = try XCTUnwrap(LiveProtocol.realTrade(shown, tick, known: nil))
+        XCTAssertEqual(rebuilt.price, 1460); XCTAssertNil(rebuilt.trial)
+        XCTAssertEqual(rebuilt.change ?? 0, 20, accuracy: 0.0001); XCTAssertEqual(rebuilt.changePercent ?? 0, 1.39, accuracy: 0.001)
+        let earlier = Quote(symbol: "2330", price: 1458, changePercent: 1.25, date: "2026-10-16", fetchedAt: Date(), currency: "TWD", change: 18)
+        XCTAssertEqual(LiveProtocol.realTrade(shown, tick, known: earlier)?.price, 1458, "The day's earlier real trade is kept")
+        var trade = tick; trade.trial = false; trade.lastTrade = nil
+        XCTAssertEqual(LiveProtocol.realTrade(LiveProtocol.merge(nil, trade), trade, known: earlier)?.price, 1455)
+        guard case .tick(let parsed) = LiveProtocol.parse(#"{"event":"data","channel":"aggregates","data":{"symbol":"2330","lastPrice":1455,"closePrice":1460,"isTrial":true}}"#) else { return XCTFail("trial push") }
+        XCTAssertEqual(parsed.lastTrade, 1460)
     }
     func testLiveMergeKeepsMissingFields() {
         let saved = Quote(symbol: "0050", price: 100, changePercent: 1, date: "2026-10-16", fetchedAt: Date(timeIntervalSince1970: 0), currency: "TWD", change: 1, open: 99, high: 101, low: 98, volume: 5000, source: ExchangeLive.source)

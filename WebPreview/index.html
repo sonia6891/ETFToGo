@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ETF 袋著走</title>
+<title>投資袋著走</title>
 <style>
 /* Layout: one phone-width column (max 440px), a translucent sticky header, a scrolling body and a floating
    translucent tab bar that lets the page show through. Light and dark themes share the tokens below. */
@@ -1679,12 +1679,12 @@ VIEWS.settings = () => {
       </div>
       <p class="note" style="margin-top:-8px">${S.mode === "demo" ? "目前是示範資料，可隨意操作，不會儲存。切換到「我的資料」才會記錄你的持有。" : "我的資料：" + where}</p>
       <div class="card tight">
-        <button type="button" class="set-row" data-act="push" data-view="install"><img class="si" src="assets/app-icon.png" alt=""><span class="grow bold">加入主畫面<br><span class='small muted' style='font-weight:500'>${IS_STANDALONE ? "已從主畫面開啟" : "用 ETF 袋著走圖示，像 App 一樣開啟"}</span></span>${chev()}</button>
+        <button type="button" class="set-row" data-act="push" data-view="install"><img class="si" src="assets/app-icon.png" alt=""><span class="grow bold">加入主畫面<br><span class='small muted' style='font-weight:500'>${IS_STANDALONE ? "已從主畫面開啟" : "用 投資袋著走圖示，像 App 一樣開啟"}</span></span>${chev()}</button>
         ${row("database", "var(--blue)", "資料來源<br><span class='small muted' style='font-weight:500'>管理報價、持有、配息資料來源</span>", chev(), 'data-act="push" data-view="sources"')}
         ${row("cloud", "var(--teal)", "資料備份與還原<br><span class='small muted' style='font-weight:500'>本地匯出・匯入</span>", chev(), 'data-act="push" data-view="backup"')}
         ${row("key", "var(--purple)", "富果行情連線<br><span class='small muted' style='font-weight:500'>" + (CAN_FUGLE ? (fugleKey() ? "已存入金鑰" : "存入你的 API Key") : "請改用網頁版 App") + "</span>", chev(), 'data-act="push" data-view="connection"')}
         ${row("shield", "var(--green)", "隱私與安全<br><span class='small muted' style='font-weight:500'>資料存放與清除</span>", chev(), 'data-act="push" data-view="privacy"')}
-        ${row("info", "var(--blue-deep)", "關於 ETF 袋著走<br><span class='small muted' style='font-weight:500'>版本・資料來源・使用說明</span>", chev(), 'data-act="push" data-view="about"')}
+        ${row("info", "var(--blue-deep)", "關於 投資袋著走<br><span class='small muted' style='font-weight:500'>版本・資料來源・使用說明</span>", chev(), 'data-act="push" data-view="about"')}
       </div>`,
   };
 };
@@ -1725,11 +1725,11 @@ VIEWS.install = () => {
   const os = S.ui.installOS || (IS_ANDROID ? "android" : "ios");
   const key = (ic, text) => `<span class="key">${ic ? icon(ic) : ""}${text}</span>`;
   const ghost = () => `<div class="hs-app"><i></i><b></b></div>`;
-  const preview = `<div class="hs-preview" aria-label="加入後，主畫面會出現 ETF 袋著走的口袋圖示" role="img">
-      <div class="hs-grid">${ghost()}${ghost()}${ghost()}${ghost()}${ghost()}<div class="hs-app"><img src="assets/app-icon.png" alt=""><span>ETF 袋著走</span></div>${ghost()}${ghost()}</div>
+  const preview = `<div class="hs-preview" aria-label="加入後，主畫面會出現 投資袋著走的口袋圖示" role="img">
+      <div class="hs-grid">${ghost()}${ghost()}${ghost()}${ghost()}${ghost()}<div class="hs-app"><img src="assets/app-icon.png" alt=""><span>投資袋著走</span></div>${ghost()}${ghost()}</div>
       <div class="hs-dock"><i></i><i></i><i></i><i></i></div></div>`;
   const status = IS_STANDALONE
-    ? `<div class="card row" style="gap:10px"><span class="si" style="width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--green)">${icon("check")}</span><span class="grow"><b>已經從主畫面開啟</b><br><span class="small muted">你現在用的就是主畫面上的 ETF 袋著走。</span></span></div>`
+    ? `<div class="card row" style="gap:10px"><span class="si" style="width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--green)">${icon("check")}</span><span class="grow"><b>已經從主畫面開啟</b><br><span class="small muted">你現在用的就是主畫面上的 投資袋著走。</span></span></div>`
     : !CAN_FUGLE
       ? `<div class="card"><b>請改用網頁版網址加入</b><p class="note" style="margin:6px 0 10px">這個 Claude 頁面加入主畫面時，會顯示 Claude 的圖示，也無法連線富果。請用 Safari 開啟下面的網頁版，再照步驟加入，主畫面就會是口袋圖示。</p><p class="num" style="margin:0 0 10px;overflow-wrap:anywhere;user-select:all">${PAGES_URL}</p><div class="btn-row"><button type="button" class="btn soft" data-act="copy" data-text="${PAGES_URL}">複製網址</button><a class="btn primary" style="text-decoration:none" href="${PAGES_URL}" target="_blank" rel="noopener">開啟網頁版</a></div></div>`
       : IN_APP_BROWSER
@@ -1740,7 +1740,7 @@ VIEWS.install = () => {
       <ol class="steps">
         <li><span>用 <b>Safari</b> 點下面的按鈕，問「要允許下載描述檔嗎？」時點「允許」。</span></li>
         <li><span>打開 iPhone「設定」，點最上面的「已下載描述檔」，再點右上角「安裝」。會顯示「未驗證」，因為描述檔沒有付費簽章；裡面只有這一個主畫面圖示。</span></li>
-        <li><span>回到主畫面，就會看到藍底口袋的「ETF 袋著走」。</span></li>
+        <li><span>回到主畫面，就會看到藍底口袋的「投資袋著走」。</span></li>
       </ol>
       <a class="btn primary block" style="text-decoration:none;margin-top:6px" href="ETFToGo.mobileconfig" data-act="profile">${icon("addSquare")}下載主畫面描述檔</a>
       <p class="note" style="margin-top:8px">按了沒反應，或檔案跑到「檔案」App 裡：<a href="ETFToGo.mobileconfig" style="color:var(--blue);font-weight:700">直接下載描述檔</a>，再到「檔案 › 下載項目」點它。</p>
@@ -1748,20 +1748,20 @@ VIEWS.install = () => {
   const quick = !IS_STANDALONE && CAN_FUGLE && installPrompt ? `<button type="button" class="btn primary block" data-act="install">${icon("addSquare")}加入主畫面</button>` : "";
   const steps = os === "ios"
     ? `<ol class="steps">
-        <li><span>用 <b>Safari</b> 開啟 ETF 袋著走網頁版。</span></li>
+        <li><span>用 <b>Safari</b> 開啟 投資袋著走網頁版。</span></li>
         <li><span>點 Safari 下方的 ${key("", "⋯")}，再點 ${key("share", "分享")}（較舊的 iOS 直接點下方的分享按鈕）。</span></li>
         <li><span>往下滑，點 ${key("addSquare", "加入主畫面")}。</span></li>
-        <li><span>名稱保持「ETF 袋著走」，「以網頁 App 開啟」保持開啟，再點右上角「加入」。</span></li>
+        <li><span>名稱保持「投資袋著走」，「以網頁 App 開啟」保持開啟，再點右上角「加入」。</span></li>
       </ol>`
     : `<ol class="steps">
-        <li><span>用 <b>Chrome</b> 開啟 ETF 袋著走網頁版。</span></li>
+        <li><span>用 <b>Chrome</b> 開啟 投資袋著走網頁版。</span></li>
         <li><span>點右上角 ${key("", "⋮")} 選單。</span></li>
         <li><span>點 ${key("addSquare", "加入主畫面")}，再選「安裝」。</span></li>
         <li><span>回到主畫面，就會看到口袋圖示。</span></li>
       </ol>`;
   return {
     title: "加入主畫面", back: true,
-    body: `<div class="card"><b>加入後的主畫面</b><p class="note" style="margin:4px 0 12px">主畫面會出現 ETF 袋著走的口袋圖示，點它就像 App 一樣全螢幕開啟。</p>${preview}</div>
+    body: `<div class="card"><b>加入後的主畫面</b><p class="note" style="margin:4px 0 12px">主畫面會出現 投資袋著走的口袋圖示，點它就像 App 一樣全螢幕開啟。</p>${preview}</div>
       ${status}${quick}${profileCard}
       ${IS_STANDALONE ? "" : `<div class="card"><div class="row"><b class="grow">${os === "ios" ? "或從 Safari 加入" : "加入步驟"}</b><div class="seg-mini">${[["ios", "iPhone"], ["android", "Android"]].map(([k, t]) => `<button type="button" class="${os === k ? "on" : ""}" data-act="installOS" data-v="${k}">${t}</button>`).join("")}</div></div>${steps}</div>`}
       <div class="card"><b>主畫面上是舊圖示？</b><p class="note" style="margin:6px 0 4px">iPhone 會記住加入當下的圖示，要重新加入才會換成新圖示。主畫面 App 的資料存在它自己裡面，移除前一定要先備份：</p>
@@ -1776,8 +1776,8 @@ VIEWS.install = () => {
 };
 
 VIEWS.about = () => ({
-  title: "關於 ETF 袋著走", back: true,
-  body: `<div class="card" style="text-align:center"><img class="art" src="assets/app-icon.png" alt="" style="width:72px;height:72px;margin:0 auto 8px;border-radius:18px"><b style="font-size:18px">ETF 袋著走</b><p class="note">網頁版・2026-10-16 介面</p></div>
+  title: "關於 投資袋著走", back: true,
+  body: `<div class="card" style="text-align:center"><img class="art" src="assets/app-icon.png" alt="" style="width:72px;height:72px;margin:0 auto 8px;border-radius:18px"><b style="font-size:18px">投資袋著走</b><p class="note">網頁版・2026-10-16 介面</p></div>
     <div class="card"><b>資料來源</b><div class="kv-list" style="margin-top:6px">
       <div><span class="muted">ETF 名單</span><span>證交所、櫃買中心${CATALOG_INFO && CATALOG_INFO.listedDate ? "（" + ymd(CATALOG_INFO.listedDate) + "）" : ""}</span></div>
       <div><span class="muted">即時報價</span><span>富果行情 API（你的金鑰）</span></div>
@@ -1993,7 +1993,7 @@ VIEWS.detail = (v) => {
   const updated = q ? (q.date === "示範資料" ? new Date() : q.fetchedAt ? new Date(q.fetchedAt) : null) : null;
   return {
     title: `${f.id} ${f.name}`, sub: [f.market ? "台灣" + marketName(f) : "", theme, assetKind(f)].filter(Boolean).join("・"), back: true, wideRight: true,
-    right: `<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(f.id)}" aria-label="切換收藏">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="copy" data-text="${esc(f.id + " " + f.name + "｜ETF 袋著走")}" aria-label="複製代號與名稱">${icon("share")}</button>`,
+    right: `<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(f.id)}" aria-label="切換收藏">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="copy" data-text="${esc(f.id + " " + f.name + "｜投資袋著走")}" aria-label="複製代號與名稱">${icon("share")}</button>`,
     body: `<div><div class="row" style="align-items:baseline;flex-wrap:wrap;gap:8px"><span class="price-big">${q ? priceText(q.price) : "--"}</span>${quoteChange(q, "")}<span class="grow"></span><span class="tiny muted">${updated ? `更新時間 ${pad(updated.getMonth() + 1)}/${pad(updated.getDate())} ${pad(updated.getHours())}:${pad(updated.getMinutes())}` : "更新時間 --/-- --:--"}</span></div>
         <p class="note">${q ? quoteNote(q) : liveNote() || "尚未取得報價。"}${CAN_FUGLE && fugleKey() ? ` <button type="button" class="link" data-act="refreshOne" data-sym="${esc(f.id)}"${busy ? " disabled" : ""}>${busy === "quotes" ? "更新中…" : "更新報價"}</button>` : ""}</p></div>
       ${segment(["總覽", "走勢", "持股", "配息", "資訊"], sec, "detailSec", "pill")}${content}`,
@@ -2062,7 +2062,7 @@ VIEWS.stock = (v) => {
   const content = [stockOverview, (s2) => stockTrend(s2, d), stockFinance, (s2) => stockDividends(s2, x, q, d)][tab](sym, x, q, d);
   return {
     title: "個股詳情", back: true, wideRight: true,
-    right: `<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(sym)}" aria-label="切換自選">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="copy" data-text="${esc(sym + " " + x.name + "｜ETF 袋著走")}" aria-label="複製代號與名稱">${icon("share")}</button>`,
+    right: `<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(sym)}" aria-label="切換自選">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="copy" data-text="${esc(sym + " " + x.name + "｜投資袋著走")}" aria-label="複製代號與名稱">${icon("share")}</button>`,
     body: `<div class="card row" style="gap:12px">${avatar(sym, "big")}<div class="grow" style="min-width:0"><div class="row wrap" style="gap:8px"><b style="font-size:22px">${esc(sym)}</b><b style="font-size:20px">${esc(x.name)}</b>${mkBadge(sym)}</div><div class="small muted" style="margin-top:4px">${esc(x.fullName || x.industry || "")}</div></div></div>
       <div class="sd-cards"><div class="card"><div class="price-big" style="font-size:30px">${q ? priceText(q.price) : "—"}</div><div style="margin-top:4px">${q ? quoteChange(q, "small") : `<span class="small muted">— (—)</span>`}</div></div>
         <div class="card sd-info"><div>${icon("clock")}即時／延遲依資料來源</div><div><span class="conn ${live ? "on" : "off"}"><i></i>${live ? "已連線" : "未連線"}</span></div><div>資料來源：${esc(src)}</div><div>更新時間：${upd ? `${pad(upd.getMonth() + 1)}/${pad(upd.getDate())} ${pad(upd.getHours())}:${pad(upd.getMinutes())}` : "—"}</div></div></div>
@@ -3242,7 +3242,7 @@ const ACT = {
   removeKey: () => { try { localStorage.removeItem(FUGLE_KEY); } catch (e) { /* nothing stored */ } S.ui.keyMsg = "已移除金鑰。"; renderScreen(); },
   copyExport: () => { const box = $("#export-box"); try { navigator.clipboard.writeText(box.value).then(() => toast("已複製備份 JSON"), () => { box.select(); toast("請長按選取後複製"); }); } catch (e) { box.select(); toast("請長按選取後複製"); } },
   importData: () => importJSON($("#import-box").value),
-  exportJSON: () => download(`ETF袋著走-備份-${today()}.json`, JSON.stringify(body(data())), "application/json"),
+  exportJSON: () => download(`投資袋著走-備份-${today()}.json`, JSON.stringify(body(data())), "application/json"),
   csvOpt: (ds) => { const b = $("#csv-broker"); if (b) S.ui.csv.broker = b.value; S.ui.csv[ds.k] = ds.v === "1"; renderScreen(); },
   csvImport: () => {
     const c = S.ui.csv, pv = csvPreview(); if (!pv || !pv.items.length) return;

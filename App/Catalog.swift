@@ -28,19 +28,21 @@ enum DataChecks {
         return try Data(contentsOf: url)
     }
 }
-/// Spaces requests to one service across the whole app: a request waits until it fits `limit` per `window`.
+/// Spaces requests to one service across the whole app: at most `limit` per `window`, counted when a request is
+/// actually sent, so a caller that gives up while waiting (a page closed) takes nothing. On the continuous clock,
+/// which keeps time while the phone sleeps and does not move when the date and time are changed.
 actor RequestPace {
     private let limit: Int
-    private let window: TimeInterval
-    private var slots: [Date] = []
-    init(limit: Int, window: TimeInterval) { self.limit = limit; self.window = window }
-    /// Seconds to wait before sending. Slots are handed out in order, so they stay sorted.
-    func reserve(now: Date = Date()) -> TimeInterval {
-        var start = max(now, slots.last ?? now)
-        slots.removeAll { $0 <= start.addingTimeInterval(-window) }
-        if slots.count >= limit { start = slots[slots.count - limit].addingTimeInterval(window) }
-        slots.append(start)
-        return start.timeIntervalSince(now)
+    private let window: Duration
+    private var sent: [ContinuousClock.Instant] = []
+    init(limit: Int, window: TimeInterval) { self.limit = limit; self.window = .milliseconds(Int64(window * 1000)) }
+    /// 0: send now, and it is counted. Otherwise the seconds to wait before asking again.
+    func take(now: ContinuousClock.Instant? = nil) -> TimeInterval {
+        let now = now ?? ContinuousClock.now
+        sent.removeAll { $0 + window <= now }
+        if sent.count < limit { sent.append(now); return 0 }
+        let wait = now.duration(to: sent[sent.count - limit] + window).components
+        return max(0.05, Double(wait.seconds) + Double(wait.attoseconds) / 1e18)
     }
 }
 enum PublicHTTP {
@@ -51,8 +53,11 @@ enum PublicHTTP {
     static func get(_ url: URL, key: String? = nil) async throws -> Data {
         guard url.scheme == "https" else { throw AppDataError("只接受安全的資料連線。") }
         if let pace = url.host == "api.fugle.tw" ? fugle : (url.host == "mis.twse.com.tw" ? exchange : nil) {
-            let wait = await pace.reserve()
-            if wait > 0 { try await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000)) }
+            while true {
+                let wait = await pace.take()
+                if wait == 0 { break }
+                try await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
+            }
         }
         var request = URLRequest(url: url); request.timeoutInterval = 25; request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("application/json", forHTTPHeaderField: "Accept")

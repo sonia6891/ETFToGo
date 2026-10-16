@@ -126,7 +126,7 @@ struct Quote: Codable {
     var volume: Double? = nil
     /// `ExchangeLive.source` for keyless exchange quotes; nil for Fugle and older saved quotes.
     var source: String? = nil
-    /// True while the price is the opening trial match rather than a trade (streamed quotes only).
+    /// True while the price is a trial match (before the open or in the closing call) rather than a trade; never saved.
     var trial: Bool? = nil
     var isExchangeLive: Bool { source == ExchangeLive.source }
     var isTWD: Bool { currency == "TWD" || (currency == nil && Fund.starters.contains { $0.id == symbol }) }
@@ -513,15 +513,21 @@ enum StoreError: LocalizedError {
                 do {
                     for symbol in stale { fetched[symbol] = try await Fugle.quote(symbol: symbol, key: key, currency: data.quotes[symbol]?.currency) }
                 } catch {
-                    if !fetched.isEmpty { var next = data; next.quotes.merge(fetched) { _, refreshed in refreshed }; try? commit(next) }
+                    if !fetched.isEmpty { try? keepFetched(fetched) }
                     throw error
                 }
             }
-            // The user may have edited holdings while the requests were running.
-            var next = data
-            next.quotes.merge(fetched) { _, refreshed in refreshed }
-            try commit(next)
+            try keepFetched(fetched)
         } catch { message = error.localizedDescription }
+    }
+    /// Saves refreshed quotes, merged into the current data since the user may have edited holdings meanwhile.
+    /// Trial-match prices only show (through liveQuotes) and are never saved as the day's price.
+    private func keepFetched(_ fetched: [String: Quote]) throws {
+        let trial = fetched.filter { $0.value.trial == true }
+        if !trial.isEmpty { liveQuotes.merge(trial) { _, new in new } }
+        var next = data
+        next.quotes.merge(fetched.filter { $0.value.trial != true }) { _, refreshed in refreshed }
+        try commit(next)
     }
 }
 enum SecureKey {
