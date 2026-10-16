@@ -90,8 +90,8 @@ extension PortfolioStore {
 
     /// Exchange prices for these codes when no Fugle key is saved. Quiet: on failure the last good quotes stay.
     func refreshLive(_ symbols: [String]) async {
-        // During the session the live feed asks for the open page on its next round.
-        guard !hasFugleKey, !liveStatus.running, !symbols.isEmpty,
+        // During the session the live feed asks for the open page on its next round. UI tests stay offline.
+        guard !hasFugleKey, !liveStatus.running, !symbols.isEmpty, !ProcessInfo.processInfo.arguments.contains("--ui-testing"),
               let fetched = try? await ExchangeLive.quotes(symbols, markets: markets(symbols)), !fetched.isEmpty else { return }
         var next = data
         next.quotes.merge(fetched) { _, refreshed in refreshed }

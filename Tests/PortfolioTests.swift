@@ -16,9 +16,9 @@ final class PortfolioTests: XCTestCase {
         var data = Portfolio.sample
         data.holdings[0].shares = -1
         XCTAssertThrowsError(try Portfolio.decodeBackup(JSONEncoder().encode(data)))
-        data = .demo; data.schema = 99
+        data = .sample; data.schema = 99
         XCTAssertThrowsError(try Portfolio.decodeBackup(JSONEncoder().encode(data)))
-        data = .demo; data.holdings.append(data.holdings[0])
+        data = .sample; data.holdings.append(data.holdings[0])
         XCTAssertThrowsError(try Portfolio.decodeBackup(JSONEncoder().encode(data)))
     }
     @MainActor func testPersistenceAndImportIdempotence() throws {
