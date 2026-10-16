@@ -2245,7 +2245,7 @@ VIEWS.detail = (v) => {
   const updated = q ? (q.fetchedAt ? new Date(q.fetchedAt) : null) : null;
   return {
     title: `${f.id} ${f.name}`, sub: [f.market ? "台灣" + marketName(f) : "", theme, assetKind(f)].filter(Boolean).join("・"), back: true, wideRight: true,
-    right: `${liveLink(f.id, f.market)}<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(f.id)}" aria-label="切換收藏">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="copy" data-text="${esc(f.id + " " + f.name + "｜投資袋著走")}" aria-label="複製代號與名稱">${icon("share")}</button>`,
+    right: `${liveLink(f.id, f.market)}<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(f.id)}" aria-label="切換收藏">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="share" data-text="${esc(f.id + " " + f.name + "｜投資袋著走")}" data-url="${esc(PAGES_URL + "#detail-" + f.id)}" aria-label="分享">${icon("share")}</button>`,
     body: `<div><div class="row" style="align-items:baseline;flex-wrap:wrap;gap:8px"><span class="price-big" data-px="${esc(f.id)}">${q ? priceText(q.price) : "--"}</span><span data-chg="${esc(f.id)}" data-size="">${quoteChange(q, "")}</span><span class="grow"></span><span class="tiny muted">${updated ? `更新時間 ${pad(updated.getMonth() + 1)}/${pad(updated.getDate())} ${pad(updated.getHours())}:${pad(updated.getMinutes())}` : "更新時間 --/-- --:--"}</span></div>
         <p class="note">${q ? quoteNote(q) : liveNote() || "尚未取得報價。"}${CAN_FUGLE && fugleKey() ? ` <button type="button" class="link" data-act="refreshOne" data-sym="${esc(f.id)}"${busy ? " disabled" : ""}>${busy === "quotes" ? "更新中…" : "更新報價"}</button>` : ""}</p></div>
       ${segment(["總覽", "走勢", "持股", "配息", "資訊"], sec, "detailSec", "pill")}${content}`,
@@ -2313,7 +2313,7 @@ VIEWS.stock = (v) => {
   const content = [stockOverview, (s2) => stockTrend(s2, d), stockFinance, (s2) => stockDividends(s2, x, q, d)][tab](sym, x, q, d);
   return {
     title: "個股詳情", back: true, wideRight: true,
-    right: `${liveLink(sym, x.market)}<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(sym)}" aria-label="切換自選">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="copy" data-text="${esc(sym + " " + x.name + "｜投資袋著走")}" aria-label="複製代號與名稱">${icon("share")}</button>`,
+    right: `${liveLink(sym, x.market)}<button type="button" class="icon-btn" style="color:var(--orange)" data-act="fav" data-sym="${esc(sym)}" aria-label="切換自選">${icon("star", fav)}</button><button type="button" class="icon-btn" data-act="share" data-text="${esc(sym + " " + x.name + "｜投資袋著走")}" data-url="${esc(PAGES_URL + "#stock-" + sym)}" aria-label="分享">${icon("share")}</button>`,
     body: `<div class="card row" style="gap:12px">${avatar(sym, "big")}<div class="grow" style="min-width:0"><div class="row wrap" style="gap:8px"><b style="font-size:22px">${esc(sym)}</b><b style="font-size:20px">${esc(x.name)}</b>${mkBadge(sym)}</div><div class="small muted" style="margin-top:4px">${esc(x.fullName || x.industry || "")}</div></div></div>
       <div class="sd-cards"><div class="card"><div class="price-big" style="font-size:30px" data-px="${esc(sym)}">${q ? priceText(q.price) : "—"}</div><div style="margin-top:4px" data-chg="${esc(sym)}" data-size="small">${q ? quoteChange(q, "small") : `<span class="small muted">— (—)</span>`}</div></div>
         <div class="card sd-info"><div>${icon("clock")}${live && liveOpen() ? "盤中即時更新" : live ? "收盤後・最後一次更新的價格" : "顯示最新收盤價"}</div><div><span class="conn ${live ? "on" : "close"}"><i></i>${live ? "已連線" : "收盤價"}</span></div><div>更新時間：${upd ? `${pad(upd.getMonth() + 1)}/${pad(upd.getDate())} ${pad(upd.getHours())}:${pad(upd.getMinutes())}` : "—"}</div></div></div>
@@ -3360,6 +3360,12 @@ const ACT = {
     const d = data(); const list = (d.comparison || []).slice();
     if (list.includes(ds.sym)) { toast(ds.sym + " 已在比較清單，可到「工具 › 三檔比較」查看。"); return; }
     if (list.length >= 3) list.shift(); list.push(ds.sym); d.comparison = list; commit(); toast("已加入比較：" + list.join("、"));
+  },
+  // The system share sheet where there is one (a link preview with the app icon), else the text and link copied.
+  share: (ds) => {
+    const copy = () => ACT.copy({ text: ds.text + " " + ds.url });
+    if (!navigator.share) return copy();
+    navigator.share({ title: "投資袋著走", text: ds.text, url: ds.url }).catch((e) => { if (!e || e.name !== "AbortError") copy(); });
   },
   copy: (ds) => { const t = ds.text; const done = () => toast("已複製：" + t); try { navigator.clipboard.writeText(t).then(done, () => toast(t)); } catch (e) { toast(t); } },
   sheet: (ds) => openSheet(ds.sheet, { id: ds.id, sym: ds.sym }),
