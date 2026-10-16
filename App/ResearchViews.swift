@@ -19,11 +19,11 @@ struct ComponentsContent: View {
                 Text("\(symbol) 成分股").font(.title3.bold()).foregroundStyle(Palette.ink)
                 Button(busy ? "取得中…" : "更新成分股") { Task { busy = true; error = nil; defer { busy = false }; do { try store.saveComponents(await Fugle.components(symbol: symbol)) } catch { self.error = error.localizedDescription } } }.buttonStyle(.borderedProminent).disabled(busy).padding(.vertical, 12)
                 Button("匯入成分股 JSON") { importing = true }
-                Text("連線需要富果成分股資料權限；也可匯入有來源及日期的成分檔。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 12)
+                Text("連線需要行情金鑰的成分股權限；也可匯入有日期的成分檔。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 12)
             }
             if let error { Text(error).foregroundStyle(Palette.red) }
             if let snapshot {
-                Card { LabeledContent("資料日期", value: snapshot.date); LabeledContent("揭露股票權重", value: "\(decimal(snapshot.totalWeight))%").padding(.vertical, 12); Text(snapshot.source ?? "未提供來源").font(.caption).foregroundStyle(Palette.muted) }
+                Card { LabeledContent("資料日期", value: snapshot.date); LabeledContent("揭露股票權重", value: "\(decimal(snapshot.totalWeight))%").padding(.vertical, 12) }
                 Text("只包含已揭露股票部位，可能未含現金、債券與期貨；不是基金全部資產。").font(.caption).foregroundStyle(Palette.muted)
                 Card(padding: 12) {
                     LazyVStack(spacing: 0) {
@@ -191,12 +191,10 @@ struct FeesContent: View {
                     feeLine("交易手續費", fee.commission); feeLine("交易稅", fee.tax)
                     feeLine("申購／買回交易費（扣抵）", fee.subscriptionOffset)
                     feeLine("保證費", fee.guarantee); feeLine("其他費用", fee.other)
-                    Text("統計截至 \(String(fee.year))/12/31；取得日 \(catalog.fetchedDay)。來源：投信投顧公會，各投信申報。基金統編 \(fee.fundID)。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 12)
+                    Text("統計截至 \(String(fee.year))/12/31；取得日 \(catalog.fetchedDay)。基金統編 \(fee.fundID)。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 12)
                     Text("全年累計實際比率，並非現行契約費率；當年新成立基金可能未涵蓋完整一年。總費用率使用原始公布值，各項四捨五入後可能不完全相加一致。交易費用扣抵申購／買回交易費，不能全部相加。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 10)
-                    Link("查看公會月／季／年報表", destination: URL(string: catalog.sourceURL)!).padding(.top, 12)
                 } else {
                     Text("這檔尚未配對到已核對的年度費用資料。新掛牌、主動式、期貨型或更名基金可能缺值；不顯示為 0%。").foregroundStyle(Palette.muted).padding(.top, 14)
-                    Link("查看公會費用報表", destination: URL(string: "https://www.sitca.org.tw/ROC/Industry/IN2211.aspx?pid=IN2222_01")!).padding(.top, 12)
                 }
             }
             Card {
@@ -207,7 +205,6 @@ struct FeesContent: View {
                     if let rate = fee.annualExpensePercent, let year = fee.expenseYear { LabeledContent("\(String(year)) 年總費用率", value: "\(decimal(rate))%").padding(.top, 18) }
                     Text("資料日期：\(fee.effectiveDate)").font(.caption).foregroundStyle(Palette.muted).padding(.top, 14)
                     Text(fee.note).font(.caption).foregroundStyle(Palette.muted).padding(.top, 8)
-                    if let url = URL(string: fee.sourceURL) { Link("查看記錄的資料來源", destination: url).padding(.top, 12) }
                     Text("使用者記錄，尚未由 App 核驗最新契約。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 8)
                 } else { Text("尚未收錄經核對的費用率，缺值不當成 0%。").foregroundStyle(Palette.muted).padding(.vertical, 14) }
                 Button("記錄／更新費用資料") { editing = true }.buttonStyle(.bordered).padding(.top, 14)

@@ -164,7 +164,7 @@ struct RecentDividendsView: View {
                     }.padding(.vertical, 6)
                 }
             }
-            Text("官方公告來自證交所 ETF 收益分配與櫃買中心除權息預告（證交所 \(store.official.sources["twse"] ?? "內建")）。可到「設定 › 資料來源」立即更新。").font(.caption).foregroundStyle(Palette.muted)
+            Text("官方公告資料日 \(store.official.sources["twse"] ?? "內建")，可到「設定 › 資料更新」立即更新。").font(.caption).foregroundStyle(Palette.muted)
         }
         .navigationTitle("近期配息").navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .topBarTrailing) { NavigationLink(value: AppRoute.dividendForm(id: nil, symbol: nil, officialEx: nil)) { Image(systemName: "plus") }.accessibilityLabel("新增配息紀錄") } }
@@ -209,7 +209,7 @@ struct DividendDetailView: View {
                         Text("\(shown(money(item.amount), hidden: hidden)) 元").font(.title3.bold()).monospacedDigit().foregroundStyle(Palette.blue)
                     }
                     .padding(12).background(Palette.blue.opacity(0.09), in: RoundedRectangle(cornerRadius: 12)).padding(.top, 6)
-                    if let source = item.source { line("資料來源", source) }
+                    if let source = item.source { line("紀錄類型", source) }
                     if let note = item.note, !note.isEmpty { line("備註", note) }
                 }
                 if item.status != .paid {
@@ -318,7 +318,7 @@ struct DividendFormView: View {
                     FieldRow(title: "發放日期") { DatePicker("發放日期", selection: $date, displayedComponents: .date).labelsHidden() }
                     FieldRow(title: "除息日（可選）") { HStack { Toggle("有除息日", isOn: $hasExDate).labelsHidden(); if hasExDate { DatePicker("除息日", selection: $exDate, displayedComponents: .date).labelsHidden() } } }
                     FieldRow(title: "扣繳費用（可選）") { UnitField(placeholder: "0", text: $deduction, unit: "元") }
-                    FieldRow(title: "資料來源") { Picker("資料來源", selection: $source) { ForEach(DividendSource.allCases) { Text("\($0.rawValue)（\($0.status.rawValue)）").tag($0) } }.labelsHidden() }
+                    FieldRow(title: "紀錄類型") { Picker("紀錄類型", selection: $source) { ForEach(DividendSource.allCases) { Text("\($0.rawValue)（\($0.status.rawValue)）").tag($0) } }.labelsHidden() }
                     FieldRow(title: "備註（可選）") { TextField("例如：玉山證券", text: $note) }
                     if legacy { FieldRow(title: "入帳總額") { UnitField(placeholder: "總額", text: $total, unit: "元") } }
                 }.padding(.top, 10)
@@ -329,7 +329,7 @@ struct DividendFormView: View {
                 Button { save() } label: { Text("儲存紀錄").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14).foregroundStyle(.white).background(Palette.hero, in: RoundedRectangle(cornerRadius: 14)) }.accessibilityIdentifier("save-dividend")
                 Button { dismiss() } label: { Text("取消").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14).foregroundStyle(Palette.ink).background(Palette.card, in: RoundedRectangle(cornerRadius: 14)) }
             }.buttonStyle(.plain)
-            Text("資料來源決定狀態：證券帳務＝已入帳、投信公告＝已公告、自行預估＝預估。公告與預估不計入已入帳股息。").font(.caption).foregroundStyle(Palette.muted)
+            Text("紀錄類型決定狀態：證券帳務＝已入帳、投信公告＝已公告、自行預估＝預估。公告與預估不計入已入帳股息。").font(.caption).foregroundStyle(Palette.muted)
         }
         .navigationTitle(id == nil ? "新增配息紀錄" : "編輯配息紀錄").navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: load)
@@ -428,7 +428,7 @@ struct YearDividendsView: View {
     }
     private func export(_ items: [Dividend]) -> URL? {
         let quote: (String) -> String = { "\"\($0.replacingOccurrences(of: "\"", with: "\"\""))\"" }
-        var lines = [["入帳日期", "代號", "名稱", "除息日", "每單位配息", "股數", "扣繳費用", "入帳金額", "資料來源", "備註"].joined(separator: ",")]
+        var lines = [["入帳日期", "代號", "名稱", "除息日", "每單位配息", "股數", "扣繳費用", "入帳金額", "紀錄類型", "備註"].joined(separator: ",")]
         for x in items.sorted(by: { $0.date < $1.date }) {
             let exDay: String = x.exDate.map { DataChecks.day($0) } ?? ""
             let perShare: String = x.perShare.map { String($0) } ?? ""

@@ -401,7 +401,7 @@ enum StoreError: LocalizedError {
         do {
             let next = try await CatalogAPI.fetch()
             if let old = catalog {
-                guard next.listedDate >= old.listedDate else { throw AppDataError("來源日期比目前資料舊，未覆寫。") }
+                guard next.listedDate >= old.listedDate else { throw AppDataError("新取得的資料日期比目前舊，未覆寫。") }
                 for market in ["TWSE", "TPEx"] {
                     guard Double(next.funds.filter { $0.market == market }.count) >= Double(old.funds.filter { $0.market == market }.count) * 0.8 else { throw AppDataError("名單數量異常減少，保留原有清單。") }
                 }
@@ -427,7 +427,7 @@ enum StoreError: LocalizedError {
             if key.isEmpty {
                 // No Fugle key: the exchange's own live prices, all codes in one or two requests.
                 fetched = try await ExchangeLive.quotes(targets, markets: markets(targets))
-                guard !fetched.isEmpty else { throw AppDataError("證交所目前沒有這些代號的成交資料，保留上次報價。") }
+                guard !fetched.isEmpty else { throw AppDataError("目前沒有這些代號的成交資料，保留上次報價。") }
             } else {
                 // In a list, prices streamed in the last minute are already current. PublicHTTP spaces the requests so
                 // they stay within the plan together with live polling; what arrived before an error is still kept.

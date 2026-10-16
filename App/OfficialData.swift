@@ -65,7 +65,7 @@ struct OfficialDividends: Codable {
         do {
             let bytes = try await PublicHTTP.get(URL(string: "https://www.twse.com.tw/rwd/zh/ETF/etfDiv?stkNo=&startDate=\(startText)&endDate=\(year)1231&response=json")!)
             guard let root = try JSONSerialization.jsonObject(with: bytes) as? [String: Any], root["status"] as? String == "ok",
-                  let fields = root["fields"] as? [String], fields.count > 5, fields[2] == "除息交易日", let rows = root["data"] as? [[Any]] else { throw AppDataError("證交所回傳格式不符。") }
+                  let fields = root["fields"] as? [String], fields.count > 5, fields[2] == "除息交易日", let rows = root["data"] as? [[Any]] else { throw AppDataError("上市配息資料格式不符。") }
             for row in rows where row.count > 5 {
                 guard let symbol = (row[0] as? String)?.trimmingCharacters(in: .whitespaces), markets[symbol] != nil, let ex = rocDay(row[2] as? String ?? "") else { continue }
                 let amount = Double((row[5] as? String ?? "").replacingOccurrences(of: ",", with: "")).flatMap { $0 > 0 ? $0 : nil }
@@ -78,10 +78,10 @@ struct OfficialDividends: Codable {
                 if let label = frequency(of: next.events[symbol] ?? []) { next.freq[symbol] = label }
             }
             next.sources["twse"] = DataChecks.day()
-        } catch { errors.append("證交所：\(error.localizedDescription)") }
+        } catch { errors.append("上市：\(error.localizedDescription)") }
         do {
             let bytes = try await PublicHTTP.get(URL(string: "https://www.tpex.org.tw/openapi/v1/tpex_exright_prepost")!)
-            guard let rows = try JSONSerialization.jsonObject(with: bytes) as? [[String: Any]] else { throw AppDataError("櫃買中心回傳格式不符。") }
+            guard let rows = try JSONSerialization.jsonObject(with: bytes) as? [[String: Any]] else { throw AppDataError("上櫃配息資料格式不符。") }
             for row in rows {
                 guard let symbol = (row["SecuritiesCompanyCode"] as? String)?.trimmingCharacters(in: .whitespaces), markets[symbol] == "TPEx",
                       (row["ExRrightsExDividend"] as? String ?? "").contains("息"), let ex = rocDay(row["ExRrightsExDividendDate"] as? String ?? "") else { continue }
@@ -91,7 +91,7 @@ struct OfficialDividends: Codable {
                 next.events[symbol] = list.sorted { $0.ex > $1.ex }
             }
             next.sources["tpex"] = DataChecks.day()
-        } catch { errors.append("櫃買中心：\(error.localizedDescription)") }
+        } catch { errors.append("上櫃：\(error.localizedDescription)") }
         if errors.count == 2 { throw AppDataError("無法更新官方配息資料，保留原本資料。\(errors.joined(separator: "；"))") }
         return next
     }

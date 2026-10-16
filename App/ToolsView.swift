@@ -134,7 +134,7 @@ struct ComparisonView: View {
                 let current = pairs[min(pair, pairs.count - 1)]
                 OverlapPanel(left: symbols[current.0], right: symbols[current.1])
             }
-            Text("總報酬率與波動度依還原日收盤價；內扣費用率為投信投顧公會公布的年度實際總費用率；殖利率＝近一年官方每單位配息合計 ÷ 最新價。").font(.caption).foregroundStyle(Palette.muted)
+            Text("總報酬率與波動度依還原日收盤價；內扣費用率為公布的年度實際總費用率；殖利率＝近一年官方每單位配息合計 ÷ 最新價。").font(.caption).foregroundStyle(Palette.muted)
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .principal) { VStack(spacing: 0) { Text("三檔比較").font(.headline).foregroundStyle(Palette.ink); Text("選擇最多三檔 ETF 進行績效與指標比較").font(.caption2).foregroundStyle(Palette.muted) } } }

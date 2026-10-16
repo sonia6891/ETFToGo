@@ -143,7 +143,7 @@ struct IndexCard: View {
         return arrow + " " + priceText(abs(change)) + tail
     }
     private func caption(live: Quote?, snapshot: StockSnapshot.MarketIndex?) -> String {
-        if let live { return (live.isExchangeLive ? "證交所即時・" : "富果即時・") + live.fetchedAt.formatted(date: .omitted, time: .shortened) }
+        if let live { return "即時・" + live.fetchedAt.formatted(date: .omitted, time: .shortened) }
         guard let snapshot else { return "走勢待取得" }
         let day = String(snapshot.date.suffix(5)).replacingOccurrences(of: "-", with: "/")
         return "近 \(min(snapshot.history.count, 22)) 個交易日・\(day) 收盤"
@@ -155,7 +155,7 @@ struct TintedIconLabel: LabelStyle {
         HStack(spacing: 6) { configuration.icon.foregroundStyle(tint); configuration.title }
     }
 }
-/// Where prices come from: the viewer's Fugle key, else the exchange's live prices, else the bundled closes.
+/// How fresh the prices are and a refresh button; where they come from is not shown.
 struct SourceCard: View {
     @EnvironmentObject var store: PortfolioStore
     @State private var hasKey = false
@@ -164,15 +164,16 @@ struct SourceCard: View {
         let day: String? = store.stockSnapshot?.closeDate["twse"]?.replacingOccurrences(of: "-", with: "/")
         let status = store.liveStatus
         let connected = hasKey || store.indices["taiex"] != nil || status.running
-        let closed: String = hasKey ? "富果行情 API" : (connected ? "證交所即時（免金鑰）" : (day.map { "證交所・櫃買中心收盤（\($0)）" } ?? "待設定"))
-        let source: String = status.running ? liveLine(status) : closed
+        let closeDay = store.indices["taiex"]?.date.replacingOccurrences(of: "-", with: "/") ?? day
+        let closed: String = closeDay.map { "最新收盤 \($0)" } ?? "尚未取得報價"
+        let headline: String = status.running ? liveLine(status) : closed
         let stamp = status.lastUpdate ?? store.indices["taiex"]?.fetchedAt
         let updated: String = stamp.map { $0.formatted(date: .omitted, time: .standard) } ?? "—"
         HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 5) {
                     if status.running { Image(systemName: "circle.fill").font(.system(size: 7)).foregroundStyle(Palette.green).symbolEffect(.pulse) }
-                    Text(status.running ? source : "資料來源：\(source)").fixedSize(horizontal: false, vertical: true)
+                    Text(headline).fixedSize(horizontal: false, vertical: true)
                 }
                 Text("更新時間：\(updated)")
                 if !status.note.isEmpty { Text(status.note).fixedSize(horizontal: false, vertical: true) }
@@ -189,10 +190,10 @@ struct SourceCard: View {
         .onAppear { hasKey = ((try? SecureKey.read()) ?? "").isEmpty == false }
     }
     private func liveLine(_ status: LiveStatus) -> String {
-        if status.exchange { return "證交所即時・每 10 秒更新（約 5 秒延遲）" }
+        if status.exchange { return "盤中即時更新・每 10 秒" }
         var parts: [String] = []
-        if !status.subscribed.isEmpty { parts.append("富果即時串流 \(status.subscribed.count) 檔") }
-        else if status.connecting { parts.append("正在連線富果即時串流") }
+        if !status.subscribed.isEmpty { parts.append("即時串流 \(status.subscribed.count) 檔") }
+        else if status.connecting { parts.append("正在連線即時串流") }
         else if status.reconnecting { parts.append("串流中斷，稍後自動重連") }
         if status.paidPlan { parts.append("全市場每 5 秒") }
         else if status.pollSeconds > 0 { parts.append("其餘約每 \(status.pollSeconds) 秒") }
@@ -274,14 +275,9 @@ struct StockDetailView: View {
     private func sourceInfo(_ quote: Quote?) -> some View {
         var live = false
         if let quote, let own = store.liveQuotes[symbol] ?? store.data.quotes[symbol], own.fetchedAt == quote.fetchedAt { live = quote.fetchedAt.timeIntervalSinceNow > -86400 }
-        let streaming = store.liveStatus.subscribed.contains(symbol)
-        let exchange: String = store.stock(symbol)?.market == "TPEx" ? "櫃買中心收盤" : "證交所收盤"
-        let source: String = quote == nil ? "待設定" : (streaming ? "富果即時串流" : (live ? (quote?.isExchangeLive == true ? "證交所即時" : "富果行情") : exchange))
         let updated: String = quote.map { $0.date.replacingOccurrences(of: "-", with: "/") + (live ? " " + $0.fetchedAt.formatted(date: .omitted, time: .shortened) : "") } ?? "—"
         return VStack(alignment: .leading, spacing: 5) {
-            Label("即時／延遲依資料來源", systemImage: "clock").font(.caption2)
             HStack(spacing: 5) { Circle().fill(live ? Palette.green : Palette.pink).frame(width: 8, height: 8); Text(live ? "已連線" : "未連線").font(.caption.bold()) }.foregroundStyle(live ? Palette.green : Palette.pink)
-            Text("資料來源：\(source)").font(.caption2)
             Text("更新時間：\(updated)").font(.caption2)
         }.foregroundStyle(Palette.muted)
     }
@@ -321,7 +317,7 @@ struct StockDetailView: View {
                     LabeledContent("公司全名", value: info.fullName)
                 }.font(.subheadline)
             }
-            if let quote, store.data.quotes[symbol] == nil, store.liveQuotes[symbol] == nil { Text("收盤價・資料日 \(quote.date.replacingOccurrences(of: "-", with: "/"))（證交所／櫃買中心公開資料，非即時）").font(.caption).foregroundStyle(Palette.muted) }
+            if let quote, store.data.quotes[symbol] == nil, store.liveQuotes[symbol] == nil { Text("收盤價・資料日 \(quote.date.replacingOccurrences(of: "-", with: "/"))（非即時）").font(.caption).foregroundStyle(Palette.muted) }
             Button(store.refreshing ? "更新中…" : "更新報價") { Task { await store.refresh(symbols: [symbol]) } }.font(.caption.bold()).disabled(store.refreshing)
         }
     }
@@ -356,7 +352,7 @@ struct StockDetailView: View {
                     }.padding(.top, 8)
                 } else { Text("尚未收錄這家公司的財報每股盈餘。").font(.subheadline).foregroundStyle(Palette.muted).padding(.top, 8) }
             }
-            Text("資料來源：證交所、櫃買中心開放資料（公開資訊觀測站彙整），取得日 \(store.stockSnapshot?.fetchedDay ?? "—")。月營收為公司自結數，原始單位千元。").font(.caption).foregroundStyle(Palette.muted)
+            Text("資料取得日 \(store.stockSnapshot?.fetchedDay ?? "—")。月營收為公司自結數，原始單位千元。").font(.caption).foregroundStyle(Palette.muted)
         }
     }
     /// Revenue is reported in thousand NT$.
@@ -421,7 +417,6 @@ struct StockDetailView: View {
                         Divider().padding(.vertical, 6)
                         HStack { Text(item.date.replacingOccurrences(of: "-", with: "/")).monospacedDigit(); Spacer(); Text(item.kind).frame(width: 60); Text(item.value.map { "\(decimal($0)) 元" } ?? "—").bold().monospacedDigit().frame(width: 90, alignment: .trailing) }.font(.subheadline).foregroundStyle(Palette.ink)
                     }
-                    Text("來源：證交所除權除息計算結果表、上市公司股利分派情形").font(.caption2).foregroundStyle(Palette.muted).padding(.top, 8)
                 }
             }
             NavigationLink(value: AppRoute.dividendForm(id: nil, symbol: symbol, officialEx: nil)) { PrimaryButtonLabel(title: "記錄這檔配息") }.buttonStyle(.plain)
@@ -492,7 +487,7 @@ struct StockDiscoverContent: View {
                 if items.count > visible.count { Button("顯示全部 \(items.count) 檔") { showAll = true }.font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.top, 10) }
             }
             if let snapshot = store.stockSnapshot {
-                Text("上市 \(all.filter { $0.market == "TWSE" }.count) · 上櫃 \(all.filter { $0.market == "TPEx" }.count) 家公司（\(snapshot.fetchedDay) 公開資料）。沒有富果金鑰時，持有、自選與看過的個股用證交所即時價，其餘顯示 \(snapshot.closeDate["twse"] ?? "") 收盤價。").font(.caption).foregroundStyle(Palette.muted)
+                Text("上市 \(all.filter { $0.market == "TWSE" }.count) · 上櫃 \(all.filter { $0.market == "TPEx" }.count) 家公司（資料日 \(snapshot.fetchedDay)）。持有、自選與看過的個股會即時更新，其餘顯示 \(snapshot.closeDate["twse"] ?? "") 收盤價。").font(.caption).foregroundStyle(Palette.muted)
             }
         }
     }

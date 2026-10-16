@@ -232,7 +232,7 @@ struct DiscoverView: View {
         }.buttonStyle(.plain).accessibilityLabel(on ? "取消自選 \(symbol)" : "加入自選 \(symbol)")
     }
     @ViewBuilder private var footer: some View {
-        Text("上市 \(store.funds.filter { $0.market == "TWSE" }.count) · 上櫃 \(store.funds.filter { $0.market == "TPEx" }.count) 個代碼。配息頻率依證交所近一年除息次數推算，上櫃 ETF 未收錄；產業依名稱歸類。").font(.caption).foregroundStyle(Palette.muted)
+        Text("上市 \(store.funds.filter { $0.market == "TWSE" }.count) · 上櫃 \(store.funds.filter { $0.market == "TPEx" }.count) 個代碼。配息頻率依近一年除息次數推算，上櫃 ETF 未收錄；產業依名稱歸類。").font(.caption).foregroundStyle(Palette.muted)
         if let catalog = store.catalog { Text("上市資料日 \(catalog.listedDate) · 上櫃取得日 \(catalog.fetchedDay)").font(.caption).foregroundStyle(Palette.muted) }
         if let message = store.catalogMessage { Text(message).font(.caption).foregroundStyle(Palette.muted) }
         Button(store.catalogRefreshing ? "更新中…" : "更新上市櫃名單") { Task { await store.refreshCatalog() } }.font(.subheadline).disabled(store.catalogRefreshing)
@@ -279,7 +279,7 @@ struct FilterSheet: View {
                         }.padding(.vertical, 12)
                         Divider()
                     }
-                    Text("交易市場、資產類別依官方名單的基金類型；產業與商品結構依名稱歸類；配息頻率依證交所近一年除息次數推算，上櫃 ETF 尚無歷史資料。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 12)
+                    Text("交易市場、資產類別依官方名單的基金類型；產業與商品結構依名稱歸類；配息頻率依近一年除息次數推算，上櫃 ETF 尚無歷史資料。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 12)
                 }
                 .padding(20)
             }
@@ -444,8 +444,7 @@ struct FundDetail: View {
     }
     private var updatedText: String {
         guard let quote else { return "更新時間 --/-- --:--・按「更新報價」取得" }
-        let source = quote.isExchangeLive ? "證交所即時 · " : ""
-        return "\(source)報價日期 \(quote.date) · 取得於 \(quote.fetchedAt.formatted(date: .abbreviated, time: .shortened))"
+        return "報價日期 \(quote.date) · 取得於 \(quote.fetchedAt.formatted(date: .abbreviated, time: .shortened))"
     }
     private var overview: some View {
         let strategy = fund.strategy, color = Palette.strategy(strategy)
@@ -572,7 +571,7 @@ struct FundHoldingsContent: View {
                     if let frequency = store.official.frequency(fund.id) { line("配息頻率", frequency) }
                     if let listing = fund.listingDate { line("掛牌日期", listing) }
                 }.padding(.top, 6)
-                Text("基金公司依基金名稱判斷；費用為投信投顧公會公布的年度實際比率。追蹤指數、基金規模與保管銀行尚無可靠的免費資料來源，暫不顯示。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 8)
+                Text("基金公司依基金名稱判斷；費用為公布的年度實際比率。追蹤指數、基金規模與保管銀行暫不顯示。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 8)
             }
         }
     }
@@ -609,7 +608,6 @@ struct FundDividends: View {
                             }.foregroundStyle(Palette.ink)
                         }
                     }
-                    Text("來源：\(fund.market == "TPEx" ? "櫃買中心除權息預告" : "證交所 ETF 收益分配")").font(.caption2).foregroundStyle(Palette.muted).padding(.top, 8)
                 }
             }
             NavigationLink(value: AppRoute.dividendForm(id: nil, symbol: fund.id, officialEx: nil)) { PrimaryButtonLabel(title: "記錄這檔配息") }.buttonStyle(.plain)
@@ -679,7 +677,6 @@ struct BasisView: View {
             Card { Text(Strategy.basis).font(.caption).foregroundStyle(Palette.ink) }
             HStack(spacing: 10) {
                 StatTile(title: "資料基準日", value: store.catalog?.listedDate ?? "—", icon: "calendar")
-                StatTile(title: "資料來源", value: "證交所、櫃買", icon: "building.columns")
             }
         }
         .navigationTitle("分類依據").navigationBarTitleDisplayMode(.inline)

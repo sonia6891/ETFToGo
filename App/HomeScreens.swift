@@ -277,7 +277,7 @@ struct SettingsView: View {
                 row("eye.fill", Palette.blue, "隱藏金額") { Toggle("隱藏金額", isOn: $hidden).labelsHidden().tint(Palette.blue) }
             }
             Card(padding: 12) {
-                link("cylinder.split.1x2.fill", Palette.blue, "資料來源", "管理報價、持有、配息資料來源", .sources)
+                link("cylinder.split.1x2.fill", Palette.blue, "資料更新", "報價、配息與 ETF 名單的更新狀態", .sources)
                 Divider()
                 link("icloud.and.arrow.up.fill", Palette.teal, "資料備份與還原", "本地匯出・匯入", .backup)
                 Divider()
@@ -285,7 +285,7 @@ struct SettingsView: View {
                 Divider()
                 link("checkmark.shield.fill", Palette.green, "隱私與安全", "資料存放與金鑰保存", .privacy)
                 Divider()
-                link("info.circle.fill", Palette.deepBlue, "關於 投資袋著走", "版本・資料來源・使用說明", .about)
+                link("info.circle.fill", Palette.deepBlue, "關於 投資袋著走", "版本・使用說明", .about)
             }
         }
         .navigationTitle("設定").navigationBarTitleDisplayMode(.inline)
@@ -317,19 +317,19 @@ struct SourcesView: View {
         let latestQuote = store.data.quotes.values.map(\.fetchedAt).max()
         Page {
             Card(padding: 12) {
-                row("chart.bar.fill", Palette.blue, "市場報價（台股）", status: hasKey ? ("已連線", Palette.green) : ("免金鑰", Palette.green), lines: [hasKey ? "資料來源：富果行情 API（你的金鑰）" : "資料來源：證交所基本市況報導（約 5 秒延遲）", "最後更新：\(latestQuote.map { $0.formatted(date: .numeric, time: .shortened) } ?? "—")"]) {
+                row("chart.bar.fill", Palette.blue, "市場報價（台股）", status: hasKey ? ("已連線", Palette.green) : ("免金鑰", Palette.green), lines: ["最後更新：\(latestQuote.map { $0.formatted(date: .numeric, time: .shortened) } ?? "—")"]) {
                     Button(store.refreshing ? "更新中…" : "立即更新") { Task { await store.refresh() } }.disabled(store.refreshing)
                 }
                 Divider()
-                row("bag.fill", Palette.orange, "我的持有", status: ("已儲存", Palette.green), lines: ["資料來源：手動輸入・交易紀錄・CSV 匯入", "最後異動：\(lastTrade.map { ymdText($0.date) } ?? "—")"]) {
+                row("bag.fill", Palette.orange, "我的持有", status: ("已儲存", Palette.green), lines: ["最後異動：\(lastTrade.map { ymdText($0.date) } ?? "—")"]) {
                     NavigationLink("匯入／更新", value: AppRoute.broker)
                 }
                 Divider()
-                row("calendar", Palette.pink, "配息資料", status: ("官方來源", Palette.green), lines: ["資料來源：證交所 ETF 收益分配・櫃買中心除權息預告", "更新：證交所 \(store.official.sources["twse"] ?? "—")・櫃買 \(store.official.sources["tpex"] ?? "—")"]) {
+                row("calendar", Palette.pink, "配息資料", status: ("官方公告", Palette.green), lines: ["更新：上市 \(store.official.sources["twse"] ?? "—")・上櫃 \(store.official.sources["tpex"] ?? "—")"]) {
                     Button(store.officialRefreshing ? "更新中…" : "立即更新") { Task { await store.refreshOfficial() } }.disabled(store.officialRefreshing)
                 }
                 Divider()
-                row("list.bullet.rectangle", Palette.teal, "ETF 名單", status: ("官方來源", Palette.green), lines: ["上市資料日 \(store.catalog?.listedDate ?? "—")・上櫃取得日 \(store.catalog?.fetchedDay ?? "—")", "共 \(store.catalog?.funds.count ?? 0) 個代碼"]) {
+                row("list.bullet.rectangle", Palette.teal, "ETF 名單", status: ("官方名單", Palette.green), lines: ["上市資料日 \(store.catalog?.listedDate ?? "—")・上櫃取得日 \(store.catalog?.fetchedDay ?? "—")", "共 \(store.catalog?.funds.count ?? 0) 個代碼"]) {
                     Button(store.catalogRefreshing ? "更新中…" : "立即更新") { Task { await store.refreshCatalog() } }.disabled(store.catalogRefreshing)
                 }
                 Divider()
@@ -338,7 +338,7 @@ struct SourcesView: View {
             if let message = store.officialMessage ?? store.catalogMessage { Text(message).font(.caption).foregroundStyle(Palette.muted) }
             Text("你自己的配息紀錄仍以券商入帳為準；官方資料用來帶入每單位金額與日期、推算配息頻率。上櫃 ETF 只有近期除權息預告，沒有歷史紀錄與發放日。").font(.caption).foregroundStyle(Palette.muted)
         }
-        .navigationTitle("資料來源狀態").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("資料更新").navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { Task { await store.refreshOfficial(); if !store.data.holdings.isEmpty { await store.refresh() } } } label: { Image(systemName: "arrow.clockwise") }.accessibilityLabel("全部更新") } }
         .onAppear { hasKey = !((try? SecureKey.read()) ?? "").isEmpty }
     }
@@ -375,14 +375,7 @@ struct AboutView: View {
                     Text("版本 \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")").font(.caption).foregroundStyle(Palette.muted)
                 }.frame(maxWidth: .infinity)
             }
-            Card {
-                Text("資料來源").font(.headline).foregroundStyle(Palette.ink)
-                LabeledContent("ETF 名單", value: "證交所、櫃買中心").padding(.top, 8)
-                LabeledContent("即時報價", value: "證交所（免金鑰）・富果行情 API")
-                LabeledContent("配息公告", value: "證交所、櫃買中心")
-                LabeledContent("年度費用", value: "投信投顧公會")
-            }.font(.subheadline)
-            Card { Text("使用說明").font(.headline).foregroundStyle(Palette.ink); Text("策略分類依 ETF 名稱規則整理，不是投資建議或收益保證。沒有可靠來源的欄位不顯示估計值；試算結果是情境假設。").font(.subheadline).foregroundStyle(Palette.muted).padding(.top, 6) }
+            Card { Text("使用說明").font(.headline).foregroundStyle(Palette.ink); Text("策略分類依 ETF 名稱規則整理，不是投資建議或收益保證。沒有可靠資料的欄位不顯示估計值；試算結果是情境假設。").font(.subheadline).foregroundStyle(Palette.muted).padding(.top, 6) }
         }
         .navigationTitle("關於 投資袋著走").navigationBarTitleDisplayMode(.inline)
     }

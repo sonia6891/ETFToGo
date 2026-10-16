@@ -205,7 +205,8 @@ struct LiveStatus: Equatable {
     private var exchangeFails = 0
     private var wasWanted = false
 
-    private static let pausedNote = "連不上富果即時串流，先改為定時更新，稍後自動再試。"
+    private static let pausedNote = "連不上即時串流，先改為定時更新，稍後自動再試。"
+    private static let exchangeNote = "即時報價暫時取不到，稍後自動重試。"
     private var exchangeOffset = 0
     private var targetOffset = 0
     /// The last real trade of each symbol, saved instead of a trial-match price when the app leaves.
@@ -524,10 +525,10 @@ struct LiveStatus: Equatable {
             targetOffset += tail.filter(asked.contains).count
             exchangeOffset += extra.filter(asked.contains).count
             exchangeFails = 0
-            if note.hasPrefix("證交所") { note = "" }
+            if note == Self.exchangeNote { note = "" }
         } catch {
             exchangeFails += 1
-            if exchangeFails >= 3 { note = "證交所即時報價暫時取不到，稍後自動重試。" }
+            if exchangeFails >= 3 { note = Self.exchangeNote }
         }
         pollAt = Date().addingTimeInterval(exchangeFails == 0 ? 10 : min(60, 10 * Double(exchangeFails + 1)))
         lastUpdate = Date()
@@ -541,7 +542,7 @@ struct LiveStatus: Equatable {
     /// Returns true when requests should stop for now.
     private func restFailed(_ error: Error) -> Bool {
         guard let failure = error as? StoreError, case .http(let code) = failure else { return false }
-        if code == 429 { backoffUntil = Date().addingTimeInterval(60); note = "富果請求次數已達上限，1 分鐘後再更新。"; publish(); return true }
+        if code == 429 { backoffUntil = Date().addingTimeInterval(60); note = "報價請求次數已達上限，1 分鐘後再更新。"; publish(); return true }
         if code == 401 { keyRejected = true; closeSocket(); note = "金鑰無效或已失效，請重新確認。"; publish(); return true }
         return false
     }

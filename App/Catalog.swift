@@ -109,7 +109,7 @@ enum CatalogAPI {
         let rows = try JSONDecoder().decode([[String: String]].self, from: listed)
         let listedActive = try JSONDecoder().decode(MarketList.self, from: active)
         let otcActive = try JSONDecoder().decode(MarketList.self, from: otc)
-        guard !rows.isEmpty, listedActive.status == "success", otcActive.status == "success", !listedActive.data.isEmpty, !otcActive.data.isEmpty else { throw AppDataError("上市或上櫃來源缺資料，保留原名單。") }
+        guard !rows.isEmpty, listedActive.status == "success", otcActive.status == "success", !listedActive.data.isEmpty, !otcActive.data.isEmpty else { throw AppDataError("上市或上櫃資料不完整，保留原名單。") }
         var details: [String: [String: String]] = [:]; var dates: [String] = []
         for row in rows {
             guard let code = row["基金代號"], let day = DataChecks.rocDay(row["出表日期"] ?? ""), day <= today, details[code] == nil else { throw AppDataError("上市基本資料欄位或日期改變，未覆寫。") }
