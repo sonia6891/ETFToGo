@@ -1,4 +1,5 @@
 import XCTest
+import CoreGraphics
 @testable import ETFToGo
 
 final class PortfolioTests: XCTestCase {
@@ -339,5 +340,59 @@ final class PortfolioTests: XCTestCase {
         store.liveQuotes["0056"] = Quote(symbol: "0056", price: 40, changePercent: nil, date: DataChecks.day(), fetchedAt: Date().addingTimeInterval(-3600), currency: "TWD", trial: true)
         XCTAssertNotEqual(store.quote("0056")?.price, 40, "An hour-old trial-match price is over")
         XCTAssertNil(reopened.data.quotes["9999"], "Only holdings and the watchlist are saved")
+    }
+    func testBrokerCSVImportsStocksAlongsideETFs() throws {
+        let table = try CSVTable.parse(Data("股票代號,商品名稱,現股庫存,付出成本\n2330,,1000,\"580,000\"\n0050,元大台灣50,2000,\"100,000\"\n".utf8))
+        let mapping = BrokerMapping(guessing: table)
+        XCTAssertEqual([mapping.symbol, mapping.name, mapping.shares, mapping.cost], [0, 1, 2, 3], "國泰證券's column titles are recognised")
+        let stocks = ["2330": StockInfo(id: "2330", name: "台積電", market: "TWSE", industry: "半導體業", fullName: "台灣積體電路製造股份有限公司", listingDate: "1994-09-05")]
+        let preview = try BrokerPreview.make(table: table, mapping: mapping, broker: "國泰證券", account: "主要", funds: Fund.starters, stock: { stocks[$0] })
+        XCTAssertEqual(preview.holdings.map(\.symbol), ["2330", "0050"])
+        XCTAssertEqual(preview.holdings[0].name, "台積電", "A stock is named from the stock list")
+        XCTAssertEqual(preview.holdings[0].strategy, .unclassified)
+        XCTAssertEqual(preview.holdings[0].unitCost, 580)
+        XCTAssertEqual(preview.holdings[1].name, "元大台灣50"); XCTAssertEqual(preview.holdings[1].strategy, .saving)
+        XCTAssertEqual(preview.totalCost, 680000)
+        let unlisted = try CSVTable.parse(Data("股票代號,現股庫存,付出成本\n2330,1000,580000\n1234,1000,10000".utf8))
+        XCTAssertThrowsError(try BrokerPreview.make(table: unlisted, mapping: BrokerMapping(guessing: unlisted), broker: "國泰證券", account: "主要", funds: Fund.starters, stock: { stocks[$0] })) { error in
+            XCTAssertTrue(error.localizedDescription.contains("1234"), "A code in neither list is still refused")
+        }
+        let bundled = try BrokerPreview.make(table: table, mapping: mapping, broker: "國泰證券", account: "主要", funds: Fund.starters)
+        XCTAssertEqual(bundled.holdings[0].name, StockSnapshot.bundled?.byID["2330"]?.name, "By default stocks come from the bundled list")
+    }
+    func testScreenshotLinesGiveCodeSharesAndCost() {
+        let known: Set<String> = ["2330", "0050", "00878", "2884"]
+        let cards = ["庫存損益", "付出成本 1,580,000", "台積電 2330 現股", "現股庫存 1,000股 現價 1,050.00", "付出成本：580,365 損益 +469,635",
+                     "元大台灣50(0050)", "庫存股數 2張", "成本均價 50.12", "群創 3481", "付出成本 45,000", "玉山金2884", "股數3,000"]
+        XCTAssertEqual(ScreenshotImport.parse(cards) { known.contains($0) }, [
+            .init(symbol: "2330", shares: 1000, cost: 580365),
+            .init(symbol: "0050", shares: 2000, cost: nil),
+            .init(symbol: "2884", shares: 3000, cost: nil)
+        ], "Account totals, per-share averages and an unlisted company's figures are not taken")
+        let table = ["商品名稱 庫存股數 成本均價 付出成本 市值", "國泰永續高股息 00878 6,000 20.50 123,000 132,000", "台積電 2330 1,000 580.00 580,000 1,050,000", "合計 703,000 1,182,000"]
+        XCTAssertEqual(ScreenshotImport.parse(table) { known.contains($0) }, [.init(symbol: "00878", shares: 6000, cost: 123000), .init(symbol: "2330", shares: 1000, cost: 580000)])
+        let titlesAbove = ["台積電 2330", "庫存股數 成本均價 付出成本", "1,000 580.37 580,365", "損益 報酬率", "+469,635 80.92%"]
+        XCTAssertEqual(ScreenshotImport.parse(titlesAbove) { known.contains($0) }, [.init(symbol: "2330", shares: 1000, cost: 580365)])
+        XCTAssertEqual(ScreenshotImport.parse(["００８７８　國泰永續高股息", "庫存張數（張）：６", "付出成本(元)123,000"]) { known.contains($0) }, [.init(symbol: "00878", shares: 6000, cost: 123000)])
+        XCTAssertEqual(ScreenshotImport.parse(["0050元大台灣50", "股數 1,0O0", "付出成本 一百萬"]) { known.contains($0) }, [.init(symbol: "0050")], "Unreadable figures stay empty for the user")
+    }
+    func testScreenshotBoxesPagesAndDrafts() throws {
+        let boxes: [(text: String, box: CGRect)] = [
+            ("1,000", CGRect(x: 0.55, y: 0.795, width: 0.15, height: 0.03)),
+            ("台積電 2330", CGRect(x: 0.05, y: 0.8, width: 0.3, height: 0.03)),
+            ("580,000", CGRect(x: 0.55, y: 0.7, width: 0.2, height: 0.03)),
+            ("付出成本", CGRect(x: 0.05, y: 0.7, width: 0.2, height: 0.03))
+        ]
+        XCTAssertEqual(ScreenshotImport.lines(from: boxes), ["台積電 2330 1,000", "付出成本 580,000"])
+        let first: [ScreenshotImport.Row] = [.init(symbol: "0050", shares: 2000, cost: 100000), .init(symbol: "2330", shares: 1000)]
+        let second: [ScreenshotImport.Row] = [.init(symbol: "2330", shares: 1000, cost: 580000), .init(symbol: "0050", shares: 500, cost: 30000)]
+        XCTAssertEqual(ScreenshotImport.merge([first, second]), [.init(symbol: "0050", shares: 2000, cost: 100000), .init(symbol: "2330", shares: 1000, cost: 580000), .init(symbol: "0050", shares: 500, cost: 30000)],
+                       "A holding cut off in one screenshot is completed by the next; differing figures are kept for the user")
+        var drafts = [ScreenshotImport.Draft(.init(symbol: "0050", shares: 2000, cost: 100000)), ScreenshotImport.Draft(.init(symbol: "2330", shares: 1000))]
+        XCTAssertEqual(drafts[0].shares, "2000"); XCTAssertEqual(drafts[1].cost, "")
+        XCTAssertThrowsError(try BrokerPreview.make(drafts: drafts, broker: "國泰證券", account: "主要", funds: Fund.starters)) { XCTAssertTrue($0.localizedDescription.contains("總成本")) }
+        drafts[1].cost = "580,000"
+        let preview = try BrokerPreview.make(drafts: drafts, broker: "國泰證券", account: "主要", funds: Fund.starters)
+        XCTAssertEqual(preview.holdings.map(\.shares), [2000, 1000]); XCTAssertEqual(preview.holdings[1].unitCost, 580)
     }
 }
