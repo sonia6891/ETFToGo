@@ -61,8 +61,8 @@ enum ExchangeLive {
         return result
     }
     private static func number(_ value: Any?) -> Double? {
-        guard let text = (value as? String) ?? (value as? NSNumber)?.stringValue, let value = Double(text.replacingOccurrences(of: ",", with: "")), value.isFinite else { return nil }
-        return value
+        guard let text = (value as? String) ?? (value as? NSNumber)?.stringValue, let parsed = Double(text.replacingOccurrences(of: ",", with: "")), parsed.isFinite else { return nil }
+        return parsed
     }
 }
 
@@ -100,19 +100,11 @@ extension PortfolioStore {
         let minutes = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
         return (2...6).contains(parts.weekday ?? 1) && minutes >= 8 * 60 + 55 && minutes <= 13 * 60 + 40
     }
-    /// While the app is in front: indices and prices once, then every minute during trading hours when no
-    /// Fugle key is saved (with a key, quotes stay on the viewer's own Fugle requests).
+    /// On every return to the app: indices and prices once, also outside the session so the day's closes show.
+    /// During the session LiveFeed keeps them moving (Fugle streaming with a key, the exchange every 10 s without).
     func followMarket() async {
         guard !isDemo else { return }
-        var first = true
-        while !Task.isCancelled {
-            let keyless = !hasFugleKey
-            if first || (keyless && Self.marketOpen()) {
-                await refreshIndices()
-                if keyless { await refreshLive(liveSymbols) }
-            }
-            first = false
-            try? await Task.sleep(nanoseconds: 60_000_000_000)
-        }
+        await refreshIndices()
+        if !hasFugleKey { await refreshLive(liveSymbols) }
     }
 }
