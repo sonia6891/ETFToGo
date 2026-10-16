@@ -699,6 +699,8 @@ struct AccentRow: ViewModifier {
 }
 extension View {
     func accentRow(_ color: Color) -> some View { modifier(AccentRow(color: color)) }
+    /// Room for the floating tab bar. The tab stack's own inset does not reach pushed screens, so every destination adds it.
+    func tabBarSpace() -> some View { safeAreaInset(edge: .bottom) { Color.clear.frame(height: 76) } }
 }
 /// Rising bars drawn on the blue hero cards.
 struct HeroDeco: View {

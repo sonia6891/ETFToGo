@@ -87,7 +87,7 @@ struct HomeView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .refreshable { await store.refresh() }
-        .navigationDestination(isPresented: $overview) { OverviewView() }
+        .navigationDestination(isPresented: $overview) { OverviewView().tabBarSpace() }
     }
     private var header: some View {
         let unread = AppNotice.all(store).filter { !readNotices.split(separator: ",").map(String.init).contains($0.id) }.count

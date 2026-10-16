@@ -51,8 +51,8 @@ struct RouteView: View {
 }
 extension View {
     func appRoutes() -> some View {
-        navigationDestination(for: AppRoute.self) { RouteView(route: $0) }
-            .navigationDestination(for: Fund.self) { FundDetail(fund: $0) }
+        navigationDestination(for: AppRoute.self) { RouteView(route: $0).tabBarSpace() }
+            .navigationDestination(for: Fund.self) { FundDetail(fund: $0).tabBarSpace() }
     }
 }
 

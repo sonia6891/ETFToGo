@@ -369,7 +369,7 @@ struct ComboSettingsView: View {
         }
         .navigationTitle("試算設定").navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: load)
-        .navigationDestination(isPresented: $showResult) { ComboResultView() }
+        .navigationDestination(isPresented: $showResult) { ComboResultView().tabBarSpace() }
     }
     @State private var etfPercentText = ""
     private var draft: ComboSettings {

@@ -250,7 +250,7 @@ struct StockDetailView: View {
                 ShareLink(item: "\(symbol) \(store.name(for: symbol))｜ETF 袋著走") { Image(systemName: "square.and.arrow.up") }
             }
         }
-        .navigationDestination(isPresented: $openCombo) { ComboView() }
+        .navigationDestination(isPresented: $openCombo) { ComboView().tabBarSpace() }
     }
     private func sourceInfo(_ quote: Quote?) -> some View {
         var live = false
