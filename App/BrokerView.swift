@@ -25,8 +25,8 @@ struct BrokerView: View {
             TextField("帳戶暱稱（例如主要帳戶）", text: $account).accessibilityIdentifier("broker-import-account")
             Text("同券商同暱稱會更新同一組庫存；請勿輸入完整帳號或密碼。成本請先換算為台幣。").font(.caption).foregroundStyle(.secondary)
             Button("選擇庫存 CSV") { importing = true }
-            PhotosPicker(selection: $shots, maxSelectionCount: 10, matching: .images) { Text("從截圖匯入") }.disabled(reading).accessibilityIdentifier("broker-import-screenshots")
-            Text("可一次選多張庫存畫面截圖（最多 10 張）。文字只在這支手機上辨識，不會上傳。").font(.caption).foregroundStyle(.secondary)
+            PhotosPicker(selection: $shots, maxSelectionCount: 20, matching: .images) { Text("從截圖匯入") }.disabled(reading).accessibilityIdentifier("broker-import-screenshots")
+            Text("庫存很長時可捲動分段截圖，一次選多張（最多 20 張），同一檔重複出現只算一筆。只有名稱沒有代號也可以。文字只在這支手機上辨識，不會上傳。").font(.caption).foregroundStyle(.secondary)
         }
         if reading { Section { HStack(spacing: 10) { ProgressView(); Text("正在辨識截圖文字…") } } }
         if let table {
@@ -72,47 +72,71 @@ struct BrokerView: View {
         .onChange(of: mapping.symbol) { _, _ in preview = nil }.onChange(of: mapping.name) { _, _ in preview = nil }.onChange(of: mapping.shares) { _, _ in preview = nil }.onChange(of: mapping.cost) { _, _ in preview = nil }.onChange(of: mapping.lots) { _, _ in preview = nil }.onChange(of: mapping.totalCost) { _, _ in preview = nil }
     }
     private func column(_ title: String, selection: Binding<Int>, table: CSVTable) -> some View { Picker(title, selection: selection) { Text("未選擇").tag(-1); ForEach(table.headers.indices, id: \.self) { i in Text("\(i + 1). \(table.headers[i])").tag(i) } } }
-    /// What the screenshots showed, for the user to check against them before the usual preview.
-    private var screenshotRows: some View {
+    /// What the screenshots showed, one section per holding, for the user to check before the usual preview.
+    @ViewBuilder private var screenshotRows: some View {
         Section {
-            ForEach($drafts) { $draft in
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(listedName(draft.symbol)).font(.headline)
-                    LabeledContent("代號") { TextField("例如 2330", text: $draft.symbol).textInputAutocapitalization(.characters).autocorrectionDisabled().multilineTextAlignment(.trailing) }
-                    LabeledContent("股數") { TextField("未辨識，請填寫", text: $draft.shares).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
-                    LabeledContent("總成本（元）") { TextField("未辨識，請填寫", text: $draft.cost).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
-                }.padding(.vertical, 2)
-            }.onDelete { drafts.remove(atOffsets: $0) }
-            Button("新增一筆") { drafts.append(ScreenshotImport.Draft()) }
-            Button("驗證並預覽") { do { preview = try BrokerPreview.make(drafts: drafts, broker: broker, account: account, funds: store.funds, stock: { store.stock($0) }); message = nil } catch { preview = nil; message = error.localizedDescription } }
+            Text("請逐筆對照截圖確認或修改。沒辨識到的欄位會留空，請自行填入；股數以股為單位（1 張 = 1,000 股），總成本填含手續費的台幣金額。")
+                .font(.caption)
         } header: {
             Text("截圖辨識結果 · \(drafts.count) 筆")
-        } footer: {
-            Text("請逐筆對照截圖確認或修改。沒辨識到的欄位會留空，請自行填入；股數以股為單位（1 張 = 1,000 股），總成本填含手續費的台幣金額。向左滑可刪除一筆。")
         }
+        ForEach($drafts) { $draft in
+            let number = (drafts.firstIndex { $0.id == draft.id } ?? 0) + 1
+            Section {
+                if draft.symbol.isEmpty && !draft.seen.isEmpty {
+                    Text(draft.choices.isEmpty ? "截圖上的「\(draft.seen)」對不到股票或 ETF 名單，請填代號。" : "截圖上的「\(draft.seen)」有 \(draft.choices.count) 個可能，請選擇代號。")
+                        .font(.caption).foregroundStyle(Palette.red)
+                }
+                if !draft.choices.isEmpty && (draft.symbol.isEmpty || draft.choices.contains(draft.symbol)) {
+                    Picker("選擇代號", selection: $draft.symbol) {
+                        Text("未選擇").tag("")
+                        ForEach(draft.choices, id: \.self) { code in Text("\(code) \(listedName(code))").tag(code) }
+                    }
+                }
+                LabeledContent("代號") { TextField("例如 2330", text: $draft.symbol).textInputAutocapitalization(.characters).autocorrectionDisabled().multilineTextAlignment(.trailing) }
+                LabeledContent("股數") { TextField("未辨識，請填寫", text: $draft.shares).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
+                LabeledContent("總成本（元）") { TextField("未辨識，請填寫", text: $draft.cost).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+                if let note = draft.note { Text(note).font(.caption).foregroundStyle(Palette.red) }
+                Button("刪除這一筆", role: .destructive) { drafts.removeAll { $0.id == draft.id } }
+            } header: {
+                Text("第 \(number) 筆 · \(title(draft))")
+            }
+        }
+        Section {
+            Button("新增一筆") { drafts.append(ScreenshotImport.Draft()) }
+            Button("驗證並預覽") { do { preview = try BrokerPreview.make(drafts: drafts, broker: broker, account: account, funds: store.funds, stock: { store.stock($0) }); message = nil } catch { preview = nil; message = error.localizedDescription } }
+        }
+    }
+    private func title(_ draft: ScreenshotImport.Draft) -> String {
+        let code = draft.symbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if !code.isEmpty { return "\(code) \(listedName(code))" }
+        return draft.seen.isEmpty ? "新的一筆" : "「\(draft.seen)」"
     }
     private func listedName(_ symbol: String) -> String {
         let code = symbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        guard !code.isEmpty else { return "新的一筆" }
-        return store.funds.first { $0.id == code }?.name ?? store.stock(code)?.name ?? "\(code)（不在股票或 ETF 名單）"
+        return store.funds.first { $0.id == code }?.name ?? store.stock(code)?.name ?? "（不在股票或 ETF 名單）"
     }
     /// Reads the chosen screenshots one by one, then lists what was found for the user to check.
     private func read(_ items: [PhotosPickerItem]) async {
         reading = true; preview = nil; table = nil; drafts = []; message = nil
-        let funds = Set(store.funds.map(\.id)), stocks = store.stockSnapshot?.byID ?? [:]
+        let etfs = store.funds.map { (code: $0.id, name: $0.name) }
+        let stocks = (store.stockSnapshot?.stocks ?? []).map { (code: $0.id, name: $0.name) }
+        let listing = ScreenshotImport.Listing(etfs + stocks)
         var pages: [[ScreenshotImport.Row]] = [], failed = 0
         for item in items {
             do {
                 guard let data = try await item.loadTransferable(type: Data.self) else { failed += 1; continue }
                 let lines = try await Task.detached(priority: .userInitiated) { try ScreenshotReader.lines(data) }.value
-                pages.append(ScreenshotImport.parse(lines) { funds.contains($0) || stocks[$0] != nil })
+                pages.append(ScreenshotImport.parse(lines, in: listing))
             } catch { failed += 1 }
         }
         drafts = ScreenshotImport.merge(pages).map { ScreenshotImport.Draft($0) }
         var notes: [String] = []
         if !drafts.isEmpty { notes.append("已從 \(pages.count) 張截圖讀出 \(drafts.count) 筆，請在上方逐筆對照確認。") }
+        let unresolved = drafts.filter { $0.symbol.isEmpty }.count
+        if unresolved > 0 { notes.append("其中 \(unresolved) 筆只辨識出名稱，請選擇或填入代號。") }
         if failed > 0 { notes.append("有 \(failed) 張圖片無法辨識。") }
-        if drafts.isEmpty && !pages.isEmpty { notes.append("截圖裡沒有找到股票或 ETF 名單中的代號。請確認截圖有顯示代號，或到「持有 › 新增持有」逐筆輸入。") }
+        if drafts.isEmpty && !pages.isEmpty { notes.append("截圖裡沒有找到股票或 ETF 名單中的代號或名稱。請確認截圖有顯示庫存清單，或到「持有 › 新增持有」逐筆輸入。") }
         message = notes.isEmpty ? nil : notes.joined(separator: "\n")
         reading = false; shots = []
     }
