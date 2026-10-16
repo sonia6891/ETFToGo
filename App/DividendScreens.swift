@@ -38,7 +38,6 @@ struct DividendsView: View {
     var body: some View {
         let listed = selectedDay.map { day in entries.filter { Calendar.current.isDate($0.date, inSameDayAs: day) } } ?? entries
         Page {
-            DemoBar()
             MonthSwitcher(month: $month).onChange(of: month) { _, _ in selectedDay = nil }
             HStack(spacing: 10) {
                 tile(.paid, icon: "dollarsign", colors: [Color(red: 1, green: 0.78, blue: 0.3), Color(red: 0.96, green: 0.64, blue: 0.06)], label: "本月已入帳")

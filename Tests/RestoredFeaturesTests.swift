@@ -21,7 +21,7 @@ final class RestoredFeaturesTests: XCTestCase {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         let store = PortfolioStore(url: dir.appendingPathComponent("portfolio.json"))
-        try store.save(Portfolio.demo.holdings[1])
+        try store.save(Portfolio.sample.holdings[1])
         try store.importBackup(Data(legacy.utf8)); try store.importBackup(Data(legacy.utf8))
         XCTAssertEqual(store.data.holdings.count, 2); XCTAssertEqual(store.data.dividends.count, 1)
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: dir.appendingPathComponent("Recovery").path).count, 2)
@@ -67,7 +67,7 @@ final class RestoredFeaturesTests: XCTestCase {
         let b = snapshot("00878", [("2330",20),("2317",5)])
         let rows = ResearchMath.overlap(a,b)
         XCTAssertEqual(rows.count, 1); XCTAssertEqual(rows.reduce(0) { $0 + min($1.left,$1.right) }, 20)
-        var data = Portfolio.demo; data.components = ["0050":a,"00878":b]
+        var data = Portfolio.sample; data.components = ["0050":a,"00878":b]
         let exposure = ResearchMath.exposures(data)
         XCTAssertEqual(exposure.first?.value, 91200)
         data.quotes.removeValue(forKey: "00878")
@@ -104,7 +104,7 @@ final class RestoredFeaturesTests: XCTestCase {
     @MainActor func testBrokerReimportReplacesOnlySelectedAccount() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at:dir) }
-        let store = PortfolioStore(url:dir.appendingPathComponent("p.json")); try store.save(Portfolio.demo.holdings[2])
+        let store = PortfolioStore(url:dir.appendingPathComponent("p.json")); try store.save(Portfolio.sample.holdings[2])
         let table = try CSVTable.parse(Data("code,shares,cost\n0050,2,100000\n00878,1,20000".utf8))
         let mapping = BrokerMapping(symbol:0,name:-1,shares:1,cost:2,lots:true)
         let a = try BrokerPreview.make(table:table,mapping:mapping,broker:"A",account:"主",funds:Fund.starters)
@@ -164,7 +164,7 @@ final class RestoredFeaturesTests: XCTestCase {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at:dir) }
         let store = PortfolioStore(url:dir.appendingPathComponent("p.json"))
-        var incoming = Portfolio.demo
+        var incoming = Portfolio.sample
         try store.importBackup(JSONEncoder().encode(incoming))
         XCTAssertEqual(store.data.quotes["0050"]?.price,55)
         incoming.quotes["0050"]?.price=1

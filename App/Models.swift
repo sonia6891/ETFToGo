@@ -20,7 +20,7 @@ struct Fund: Identifiable, Codable, Hashable {
     var fullName: String? = nil
     var fundType: String? = nil
     var listingDate: String? = nil
-    // Demo-only catalogue; the normal app uses the validated TWSE + TPEx catalogue.
+    // Well-known NT$ ETFs: the currency and market fallback when the catalogue is missing.
     static let starters: [Fund] = [
         .init(id: "0050", name: "元大台灣50", strategy: .saving),
         .init(id: "006208", name: "富邦台50", strategy: .saving),
@@ -193,77 +193,6 @@ struct Portfolio: Codable {
               (value.legacyPrices ?? [:]).values.allSatisfy({ DataChecks.code($0.symbol) && $0.price.isFinite && $0.price >= 0 && DataChecks.date($0.date) != nil }) else { throw StoreError.unsupportedBackup }
         return value
     }
-    static var demo: Portfolio {
-        var value = Portfolio()
-        value.holdings = [
-            .init(symbol: "0050", name: "元大台灣50", shares: 2000, unitCost: 50, broker: "富邦證券", strategy: .saving),
-            .init(symbol: "00878", name: "國泰永續高股息", shares: 6000, unitCost: 20, broker: "富邦證券", strategy: .income),
-            .init(symbol: "00919", name: "群益台灣精選高息", shares: 5000, unitCost: 22, broker: "國泰證券", strategy: .income)
-        ]
-        let prices: [String: Double] = ["0050": 55, "00878": 21, "00919": 22.5]
-        for (symbol, price) in prices { value.quotes[symbol] = Quote(symbol: symbol, price: price, changePercent: 0.42, date: "示範資料", fetchedAt: Date()) }
-        let start = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date()))!
-        value.dividends = [
-            Dividend(symbol: "00878", date: Calendar.current.date(byAdding: .day, value: 7, to: start)!, amount: 2400, status: .paid),
-            Dividend(symbol: "00919", date: Calendar.current.date(byAdding: .day, value: 19, to: start)!, amount: 3600, status: .announced)
-        ]
-        value.favorites = ["0050", "00878", "00919"]
-        return value
-    }
-    /// Explicit `--demo` interface preview only; never written to the user's file.
-    static var demoPreview: Portfolio {
-        var value = Portfolio.demo
-        let calendar = Calendar.current
-        let start = calendar.date(from: calendar.dateComponents([.year, .month], from: Date()))!
-        func day(_ offset: Int, months: Int = 0) -> Date { calendar.date(byAdding: .day, value: offset, to: calendar.date(byAdding: .month, value: months, to: start)!)! }
-        value.dividends += [
-            Dividend(symbol: "0050", date: day(21), amount: 2000, status: .estimated),
-            Dividend(symbol: "00878", date: day(15, months: -3), amount: 2280, status: .paid),
-            Dividend(symbol: "00919", date: day(18, months: -3), amount: 3450, status: .paid),
-            Dividend(symbol: "0050", date: day(20, months: -4), amount: 1900, status: .paid)
-        ]
-        for (symbol, name, shares, fallback) in [("2330", "台積電", 40.0, 2000.0), ("6488", "環球晶", 50.0, 800.0)] {
-            var quote = StockSnapshot.bundled?.close(symbol) ?? Quote(symbol: symbol, price: fallback, changePercent: 0.5, date: "", fetchedAt: Date(), currency: "TWD")
-            quote.date = "示範資料"; quote.fetchedAt = Date()
-            value.quotes[symbol] = quote
-            value.holdings.append(Holding(symbol: symbol, name: name, shares: shares, unitCost: (quote.price * 0.85 * 100).rounded() / 100, broker: "富邦證券", strategy: .unclassified))
-            value.favorites.insert(symbol)
-        }
-        let moves: [String: (Double, Double)] = ["0050": (0.65, 186), "00878": (0.54, 12458), "00919": (-0.22, 8730)]
-        for (symbol, move) in moves {
-            guard var quote = value.quotes[symbol] else { continue }
-            quote.changePercent = move.0
-            quote.open = quote.price * 0.995; quote.high = quote.price * 1.004; quote.low = quote.price * 0.992; quote.volume = move.1
-            value.quotes[symbol] = quote
-        }
-        var histories: [String: PriceHistory] = [:]
-        for (index, holding) in value.holdings.enumerated() {
-            guard let price = value.quotes[holding.symbol]?.price else { continue }
-            var points: [PricePoint] = []
-            var cursor = calendar.date(byAdding: .day, value: -400, to: Date())!
-            var step = 0
-            while cursor <= Date() {
-                if !calendar.isDateInWeekend(cursor) {
-                    let wave = sin(Double(step) / (9 + Double(index) * 3)) * 0.018
-                    points.append(PricePoint(date: DataChecks.day(cursor), close: price * (0.9 + 0.1 * Double(step) / 280 + wave)))
-                    step += 1
-                }
-                cursor = calendar.date(byAdding: .day, value: 1, to: cursor)!
-            }
-            var unique: [PricePoint] = []
-            for point in points where unique.last?.date != point.date { unique.append(point) }
-            histories[holding.symbol] = PriceHistory(symbol: holding.symbol, adjusted: true, points: unique, fetchedDay: DataChecks.day(), source: "示範資料")
-        }
-        value.histories = histories
-        value.trades = value.holdings.enumerated().map { index, holding in
-            Trade(date: day(3 + index * 4, months: -6 + index), action: .buy, holding: holding)
-        }
-        if var top = value.holdings.first {
-            top.shares += 1000
-            value.trades?.append(Trade(date: day(10, months: -1), action: .adjust, holding: top))
-        }
-        return value
-    }
 }
 enum StoreError: LocalizedError {
     case invalidHolding, unsupportedBackup, missingKey, invalidQuote, keychain(OSStatus), http(Int)
@@ -300,16 +229,13 @@ enum StoreError: LocalizedError {
     /// The stock or ETF page on screen, streamed first.
     @Published var liveFocus: String?
     lazy var live = LiveFeed(store: self)
-    var funds: [Fund] { isDemo ? Fund.starters : (catalog?.funds ?? []) }
-    let isDemo: Bool
+    var funds: [Fund] { catalog?.funds ?? [] }
     private let url: URL
-    init(url: URL? = nil, demo: Bool = false, reset: Bool = false) {
-        isDemo = demo
+    init(url: URL? = nil, reset: Bool = false) {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         self.url = url ?? base.appendingPathComponent("ETFToGo/portfolio.json")
         if let bytes = try? Data(contentsOf: self.url.appendingPathExtension("catalog")), let cached = try? JSONDecoder().decode(CatalogSnapshot.self, from: bytes), (try? cached.validate()) != nil { catalog = cached }
         if let bytes = try? Data(contentsOf: self.url.appendingPathExtension("official")), let cached = try? JSONDecoder().decode(OfficialDividends.self, from: bytes), cached.isNewer(than: official) { official = cached }
-        if demo { data = .demoPreview; return }
         if reset { try? FileManager.default.removeItem(at: self.url) }
         if FileManager.default.fileExists(atPath: self.url.path) {
             do { data = try Portfolio.decodeBackup(Data(contentsOf: self.url)) }
@@ -321,10 +247,8 @@ enum StoreError: LocalizedError {
         guard !readFailure else { throw StoreError.unsupportedBackup }
         let encoded = try JSONEncoder().encode(next)
         _ = try Portfolio.decodeBackup(encoded)
-        if !isDemo {
-            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try encoded.write(to: url, options: [.atomic, .completeFileProtection])
-        }
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try encoded.write(to: url, options: [.atomic, .completeFileProtection])
         data = next
     }
     func save(_ holding: Holding) throws {
@@ -423,10 +347,8 @@ enum StoreError: LocalizedError {
         do {
             let markets = Dictionary(uniqueKeysWithValues: (catalog?.funds ?? Fund.starters).map { ($0.id, $0.market ?? "") })
             let fresh = try await OfficialDividends.fetch(merging: official, markets: markets)
-            if !isDemo {
-                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-                try JSONEncoder().encode(fresh).write(to: url.appendingPathExtension("official"), options: .atomic)
-            }
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try JSONEncoder().encode(fresh).write(to: url.appendingPathExtension("official"), options: .atomic)
             official = fresh; officialMessage = "已更新官方配息資料。"
         } catch { officialMessage = error.localizedDescription }
     }
@@ -467,14 +389,14 @@ enum StoreError: LocalizedError {
     }
     func saveRecovery() throws {
         guard !readFailure else { throw StoreError.unsupportedBackup }
-        if !isDemo, FileManager.default.fileExists(atPath: url.path) {
+        if FileManager.default.fileExists(atPath: url.path) {
             let directory = url.deletingLastPathComponent().appendingPathComponent("Recovery")
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             try Data(contentsOf: url).write(to: directory.appendingPathComponent("before-import-\(UUID().uuidString).json"), options: [.atomic, .completeFileProtection])
         }
     }
     func refreshCatalog() async {
-        guard !isDemo, !catalogRefreshing else { return }
+        guard !catalogRefreshing else { return }
         catalogRefreshing = true; defer { catalogRefreshing = false }
         do {
             let next = try await CatalogAPI.fetch()
@@ -493,7 +415,6 @@ enum StoreError: LocalizedError {
     func saveHistory(_ value: PriceHistory) throws { try value.validate(); var next = data; if next.histories == nil { next.histories = [:] }; next.histories?[value.symbol] = value; try commit(next) }
     func saveFee(_ value: FeeRecord) throws { try value.validate(); var next = data; if next.fees == nil { next.fees = [:] }; next.fees?[value.symbol] = value; try commit(next) }
     func refresh(symbols: [String]? = nil) async {
-        if isDemo { message = "這是介面示範資料，沒有連線取得市場價格。"; return }
         guard !refreshing else { return }
         refreshing = true; defer { refreshing = false }
         message = nil

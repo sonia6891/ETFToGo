@@ -65,7 +65,7 @@ extension Strategy {
 extension Fund {
     var isActive: Bool { id.hasSuffix("A") || name.contains("主動") || (fundType ?? "").contains("主動") }
     var managementStyle: String { isActive ? "主動式" : "被動式" }
-    var marketName: String { market == "TPEx" ? "上櫃" : (market == "TWSE" ? "上市" : "示範") }
+    var marketName: String { market == "TPEx" ? "上櫃" : (market == "TWSE" ? "上市" : "上市櫃") }
     var assetClass: String {
         let type = fundType ?? ""
         if type.contains("債") || name.contains("債") { return "債券" }
@@ -819,20 +819,6 @@ struct TintPill: View {
             .padding(.horizontal, 8).padding(.vertical, 4)
             .foregroundStyle(color)
             .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
-    }
-}
-struct DemoBar: View {
-    @EnvironmentObject var store: PortfolioStore
-    var body: some View {
-        if store.isDemo {
-            HStack(spacing: 8) {
-                Text("示範資料").font(.caption.bold()).foregroundStyle(Palette.orange)
-                Text("不是你的資產・金額及報價均為示範").font(.caption).foregroundStyle(Palette.muted)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Palette.orange.opacity(0.14), in: RoundedRectangle(cornerRadius: 14))
-        }
     }
 }
 /// A labelled number field with a unit, as in the design's forms.

@@ -3,7 +3,7 @@ import XCTest
 
 final class PortfolioTests: XCTestCase {
     func testNoMarketValueWithoutCompleteQuotes() {
-        var data = Portfolio.demo
+        var data = Portfolio.sample
         XCTAssertEqual(data.marketValue, 348500)
         data.quotes.removeValue(forKey: "0050")
         XCTAssertNil(data.marketValue, "Missing prices must not silently use cost as market value")
@@ -13,7 +13,7 @@ final class PortfolioTests: XCTestCase {
         XCTAssertLessThan(Projection.value(initial: 100000, monthly: 0, years: 10, annualPercent: -5), 100000)
     }
     func testBackupRejectsInvalidData() throws {
-        var data = Portfolio.demo
+        var data = Portfolio.sample
         data.holdings[0].shares = -1
         XCTAssertThrowsError(try Portfolio.decodeBackup(JSONEncoder().encode(data)))
         data = .demo; data.schema = 99
@@ -26,11 +26,11 @@ final class PortfolioTests: XCTestCase {
         let url = directory.appendingPathComponent("data.json")
         defer { try? FileManager.default.removeItem(at: directory) }
         let store = PortfolioStore(url: url)
-        let holding = Portfolio.demo.holdings[0]
+        let holding = Portfolio.sample.holdings[0]
         try store.save(holding)
         let reopened = PortfolioStore(url: url)
         XCTAssertEqual(reopened.data.holdings.first?.shares, holding.shares)
-        let bytes = try JSONEncoder().encode(Portfolio.demo)
+        let bytes = try JSONEncoder().encode(Portfolio.sample)
         try reopened.importBackup(bytes)
         let count = reopened.data.holdings.count
         try reopened.importBackup(bytes)
@@ -42,7 +42,7 @@ final class PortfolioTests: XCTestCase {
         let url = directory.appendingPathComponent("data.json")
         defer { try? FileManager.default.removeItem(at: directory) }
         let store = PortfolioStore(url: url)
-        var holding = Portfolio.demo.holdings[0]
+        var holding = Portfolio.sample.holdings[0]
         try store.save(holding); try store.save(holding)
         holding.shares += 1000; try store.save(holding)
         try store.remove(holding)
@@ -51,8 +51,9 @@ final class PortfolioTests: XCTestCase {
         XCTAssertEqual(PortfolioStore(url: url).data.trades?.count, 3)
     }
     @MainActor func testBuyAndSellAdjustHolding() throws {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("data.json")
-        let store = PortfolioStore(url: url, demo: true)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = PortfolioStore(url: directory.appendingPathComponent("data.json"))
         let before = store.data.holdings.count
         try store.applyTrade(.buy, symbol: "0056", date: Date(), shares: 1000, amount: 30000, broker: "測試")
         XCTAssertEqual(store.data.holdings.count, before + 1)
@@ -80,7 +81,7 @@ final class PortfolioTests: XCTestCase {
         try original.write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
         let store = PortfolioStore(url: url)
-        XCTAssertThrowsError(try store.save(Portfolio.demo.holdings[0]))
+        XCTAssertThrowsError(try store.save(Portfolio.sample.holdings[0]))
         XCTAssertEqual(try Data(contentsOf: url), original)
         let exported = try store.export()
         defer { try? FileManager.default.removeItem(at: exported) }

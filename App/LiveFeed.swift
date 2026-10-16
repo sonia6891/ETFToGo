@@ -214,7 +214,7 @@ struct LiveStatus: Equatable {
     init(store: PortfolioStore) { self.store = store }
 
     private var wanted: Bool {
-        active && !store.isDemo && TaiwanMarket.isOpen() && !ProcessInfo.processInfo.arguments.contains("--ui-testing")
+        active && TaiwanMarket.isOpen() && !ProcessInfo.processInfo.arguments.contains("--ui-testing")
     }
     private var keyless: Bool { apiKey.isEmpty }
     private var limit: Int { min(cap, paid == true ? 280 : 5) }
@@ -593,7 +593,7 @@ struct LiveStatus: Equatable {
             next.quotes[symbol] = quote
             changed = true
         }
-        if changed, !store.isDemo { try? store.commit(next) }
+        if changed { try? store.commit(next) }
         // Trial-match prices are not shown once the feed stops: the saved real trade (or the last one seen) takes over.
         let shown = store.liveQuotes
         var kept = shown.filter { $0.value.trial != true }

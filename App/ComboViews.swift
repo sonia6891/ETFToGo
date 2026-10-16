@@ -211,7 +211,7 @@ struct ComboView: View {
                         .buttonStyle(.plain).foregroundStyle(Palette.blue)
                 }
             }
-            Text("估值快照：\(store.isDemo ? "示例 " : "")\(ymdText(at)) \(at.formatted(date: .omitted, time: .shortened))").font(.caption2).foregroundStyle(Palette.muted).frame(maxWidth: .infinity, alignment: .trailing).padding(.top, 8)
+            Text("估值快照：\(ymdText(at)) \(at.formatted(date: .omitted, time: .shortened))").font(.caption2).foregroundStyle(Palette.muted).frame(maxWidth: .infinity, alignment: .trailing).padding(.top, 8)
         }
     }
     private func importHoldings(_ c: ComboSettings) {
@@ -346,7 +346,7 @@ struct ComboSettingsView: View {
         Page {
             Card(padding: 14) {
                 NumberedHeading(number: 1, title: "基本設定")
-                FieldRow(title: "目前資產（估值快照）", bar: true) { HStack { Spacer(); Text(money(starts.stock + starts.etf)).font(.headline).monospacedDigit(); if store.isDemo { Text("示例").font(.caption2).foregroundStyle(Palette.muted) } } }.padding(.top, 6)
+                FieldRow(title: "目前資產（估值快照）", bar: true) { HStack { Spacer(); Text(money(starts.stock + starts.etf)).font(.headline).monospacedDigit() } }.padding(.top, 6)
                 FieldRow(title: "每月投資金額", bar: true) { UnitField(placeholder: "10,000", text: $monthly, unit: "元", identifier: "combo-monthly") }
             }
             Card(padding: 14) {
@@ -362,7 +362,7 @@ struct ComboSettingsView: View {
                 FieldRow(title: "試算年數", bar: true) { Picker("試算年數", selection: $years) { Text("3年").tag(3); Text("5年").tag(5); Text("10年").tag(10) }.pickerStyle(.segmented) }
             }
             Card(padding: 14) {
-                HStack { NumberedHeading(number: 4, title: "報酬與其他假設"); Spacer(); Text("示例，可調整").font(.caption2).foregroundStyle(Palette.muted) }
+                HStack { NumberedHeading(number: 4, title: "報酬與其他假設"); Spacer(); Text("預設值，可調整").font(.caption2).foregroundStyle(Palette.muted) }
                 FieldRow(title: "個股年總報酬", bar: true) { UnitField(placeholder: "5", text: $stockReturn, unit: "%", identifier: "combo-stock-return") }.padding(.top, 6)
                 FieldRow(title: "ETF 年總報酬", bar: true) { UnitField(placeholder: "5", text: $etfReturn, unit: "%", identifier: "combo-etf-return") }
                 Toggle(isOn: $reinvest) { Text("股息再投入").font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink) }.padding(.vertical, 6)
@@ -455,7 +455,6 @@ struct ComboResultView: View {
                         Text("目前資產").font(.headline).foregroundStyle(Palette.ink)
                         Text("（估值快照）").font(.caption).foregroundStyle(Palette.muted)
                         Text(money(starts.stock + starts.etf)).font(.system(size: 30, weight: .heavy, design: .rounded)).monospacedDigit().foregroundStyle(Palette.ink).minimumScaleFactor(0.6).lineLimit(1)
-                        if store.isDemo { Text("示例").font(.caption2).foregroundStyle(Palette.muted) }
                     }
                     Spacer()
                     Artwork(name: "div-coins", size: 96)

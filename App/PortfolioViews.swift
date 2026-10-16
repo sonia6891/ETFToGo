@@ -31,7 +31,6 @@ struct HoldingsView: View {
                     Label("新增持有", systemImage: "plus").font(.subheadline.bold()).foregroundStyle(.white).padding(.horizontal, 14).padding(.vertical, 8).background(Palette.hero, in: Capsule())
                 }.accessibilityIdentifier("add-holding")
             }.padding(.top, 6)
-            DemoBar()
             SegmentBar(items: ["全部", "個股", "ETF"], selection: $kind, pill: true, filled: true)
             hero(stockValue: stockValue, etfValue: etfValue)
             if holdings.isEmpty {
@@ -67,7 +66,7 @@ struct HoldingsView: View {
         return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: "wallet.pass").font(.title3).frame(width: 40, height: 40).background(Color.white.opacity(0.22), in: RoundedRectangle(cornerRadius: 12))
-                Text(store.isDemo ? "總市值（示例）" : "總市值").font(.subheadline.weight(.semibold))
+                Text("總市值").font(.subheadline.weight(.semibold))
                 Text("(TWD)").font(.caption).opacity(0.8)
                 Spacer()
                 Button { hidden.toggle() } label: { Image(systemName: hidden ? "eye.slash" : "eye") }.accessibilityLabel(hidden ? "顯示金額" : "隱藏金額")
@@ -95,11 +94,11 @@ struct HoldingsView: View {
         .background { RoundedRectangle(cornerRadius: 16).fill(Palette.card).overlay(RoundedRectangle(cornerRadius: 16).fill(tint.opacity(0.12))) }
     }
     private func dataRow(_ holdings: [Holding]) -> some View {
-        let dates = holdings.compactMap { store.quote($0.symbol)?.date }.filter { $0 != "示範資料" }.sorted()
+        let dates = holdings.compactMap { store.quote($0.symbol)?.date }.sorted()
         return HStack {
-            Text("資料日期：\(store.isDemo ? "示範資料" : (dates.last?.replacingOccurrences(of: "-", with: "/") ?? "—"))")
+            Text("資料日期：\(dates.last?.replacingOccurrences(of: "-", with: "/") ?? "—")")
             Spacer()
-            Button(store.refreshing ? "更新中…" : "更新報價") { Task { await store.refresh() } }.disabled(store.refreshing || store.isDemo)
+            Button(store.refreshing ? "更新中…" : "更新報價") { Task { await store.refresh() } }.disabled(store.refreshing)
         }
         .font(.caption).foregroundStyle(Palette.muted)
     }

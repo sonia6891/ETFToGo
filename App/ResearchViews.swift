@@ -17,8 +17,8 @@ struct ComponentsContent: View {
         VStack(alignment: .leading, spacing: 16) {
             Card {
                 Text("\(symbol) 成分股").font(.title3.bold()).foregroundStyle(Palette.ink)
-                Button(busy ? "取得中…" : "更新成分股") { Task { busy = true; error = nil; defer { busy = false }; do { try store.saveComponents(await Fugle.components(symbol: symbol)) } catch { self.error = error.localizedDescription } } }.buttonStyle(.borderedProminent).disabled(busy || store.isDemo).padding(.vertical, 12)
-                Button("匯入成分股 JSON") { importing = true }.disabled(store.isDemo)
+                Button(busy ? "取得中…" : "更新成分股") { Task { busy = true; error = nil; defer { busy = false }; do { try store.saveComponents(await Fugle.components(symbol: symbol)) } catch { self.error = error.localizedDescription } } }.buttonStyle(.borderedProminent).disabled(busy).padding(.vertical, 12)
+                Button("匯入成分股 JSON") { importing = true }
                 Text("連線需要富果成分股資料權限；也可匯入有來源及日期的成分檔。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 12)
             }
             if let error { Text(error).foregroundStyle(Palette.red) }
@@ -53,7 +53,7 @@ struct ExposureView: View {
             SegmentBar(items: ["持股集中度", "重疊成分"], selection: $tab, pill: true, filled: true)
             if tab == 0 { concentration } else { overlaps }
             if !missing.isEmpty {
-                Button(busy ? "取得中…" : "取得 \(missing.count) 檔持有 ETF 的成分股") { Task { await load(missing) } }.buttonStyle(.bordered).disabled(busy || store.isDemo)
+                Button(busy ? "取得中…" : "取得 \(missing.count) 檔持有 ETF 的成分股") { Task { await load(missing) } }.buttonStyle(.bordered).disabled(busy)
                 if let error { Text(error).font(.caption).foregroundStyle(Palette.red) }
             }
         }
@@ -148,7 +148,7 @@ struct HistoryContent: View {
         VStack(alignment: .leading, spacing: 16) {
             Card {
                 Picker("查詢期間", selection: $years) { Text("1 年").tag(1); Text("3 年").tag(3); Text("5 年").tag(5); Text("10 年").tag(10); Text("最長 16 年").tag(16) }.pickerStyle(.menu)
-                Button(busy ? "分段取得歷史資料…" : "更新歷史績效") { Task { busy = true; error = nil; defer { busy = false }; do { try store.saveHistory(await Fugle.history(symbol: symbol, years: years)) } catch { self.error = error.localizedDescription } } }.buttonStyle(.borderedProminent).disabled(busy || store.isDemo)
+                Button(busy ? "分段取得歷史資料…" : "更新歷史績效") { Task { busy = true; error = nil; defer { busy = false }; do { try store.saveHistory(await Fugle.history(symbol: symbol, years: years)) } catch { self.error = error.localizedDescription } } }.buttonStyle(.borderedProminent).disabled(busy)
                 Text("取實際還原日收盤價，最早自 2010 年或基金上市日開始。長區間會分段查詢，約需數十秒。").font(.caption).foregroundStyle(Palette.muted).padding(.top, 12)
             }
             if let error { Text(error).foregroundStyle(Palette.red) }

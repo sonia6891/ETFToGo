@@ -232,10 +232,10 @@ struct DiscoverView: View {
         }.buttonStyle(.plain).accessibilityLabel(on ? "取消自選 \(symbol)" : "加入自選 \(symbol)")
     }
     @ViewBuilder private var footer: some View {
-        Text(store.isDemo ? "示範清單；正式模式使用上市與上櫃名單。" : "上市 \(store.funds.filter { $0.market == "TWSE" }.count) · 上櫃 \(store.funds.filter { $0.market == "TPEx" }.count) 個代碼。配息頻率依證交所近一年除息次數推算，上櫃 ETF 未收錄；產業依名稱歸類。").font(.caption).foregroundStyle(Palette.muted)
-        if let catalog = store.catalog, !store.isDemo { Text("上市資料日 \(catalog.listedDate) · 上櫃取得日 \(catalog.fetchedDay)").font(.caption).foregroundStyle(Palette.muted) }
+        Text("上市 \(store.funds.filter { $0.market == "TWSE" }.count) · 上櫃 \(store.funds.filter { $0.market == "TPEx" }.count) 個代碼。配息頻率依證交所近一年除息次數推算，上櫃 ETF 未收錄；產業依名稱歸類。").font(.caption).foregroundStyle(Palette.muted)
+        if let catalog = store.catalog { Text("上市資料日 \(catalog.listedDate) · 上櫃取得日 \(catalog.fetchedDay)").font(.caption).foregroundStyle(Palette.muted) }
         if let message = store.catalogMessage { Text(message).font(.caption).foregroundStyle(Palette.muted) }
-        Button(store.catalogRefreshing ? "更新中…" : "更新上市櫃名單") { Task { await store.refreshCatalog() } }.font(.subheadline).disabled(store.catalogRefreshing || store.isDemo)
+        Button(store.catalogRefreshing ? "更新中…" : "更新上市櫃名單") { Task { await store.refreshCatalog() } }.font(.subheadline).disabled(store.catalogRefreshing)
     }
 }
 struct FundRow: View {
@@ -444,14 +444,13 @@ struct FundDetail: View {
     }
     private var updatedText: String {
         guard let quote else { return "更新時間 --/-- --:--・按「更新報價」取得" }
-        if store.isDemo { return "示範報價，非即時市場資訊" }
         let source = quote.isExchangeLive ? "證交所即時 · " : ""
         return "\(source)報價日期 \(quote.date) · 取得於 \(quote.fetchedAt.formatted(date: .abbreviated, time: .shortened))"
     }
     private var overview: some View {
         let strategy = fund.strategy, color = Palette.strategy(strategy)
         return VStack(alignment: .leading, spacing: 16) {
-            SectionHeading(title: store.isDemo ? "價格走勢（示例）" : "價格走勢")
+            SectionHeading(title: "價格走勢")
             chartCard
             SectionHeading(title: strategy == .unclassified ? "系統分類（待分析）" : "系統分類")
             ScrollView(.horizontal, showsIndicators: false) {
@@ -505,7 +504,7 @@ struct FundDetail: View {
             } else {
                 Label("尚無歷史走勢", systemImage: "chart.xyaxis.line").font(.subheadline.bold()).foregroundStyle(Palette.ink)
                 Text("使用你的富果金鑰取得近 5 年還原日收盤價，約需 10 秒；不以試算資料代替。").font(.caption).foregroundStyle(Palette.muted).padding(.vertical, 6)
-                Button(busy ? "取得中…" : "取得歷史走勢") { Task { await loadHistory() } }.buttonStyle(.borderedProminent).disabled(busy || store.isDemo)
+                Button(busy ? "取得中…" : "取得歷史走勢") { Task { await loadHistory() } }.buttonStyle(.borderedProminent).disabled(busy)
                 if let error { Text(error).font(.caption).foregroundStyle(Palette.red).padding(.top, 6) }
             }
         }

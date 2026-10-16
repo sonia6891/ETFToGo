@@ -6,7 +6,7 @@ import SwiftUI
     init() {
         let args = ProcessInfo.processInfo.arguments
         let testURL = args.contains("--ui-testing") ? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("ETFToGo/ui-test.json") : nil
-        _store = StateObject(wrappedValue: PortfolioStore(url: testURL, demo: args.contains("--demo"), reset: args.contains("--reset")))
+        _store = StateObject(wrappedValue: PortfolioStore(url: testURL, reset: args.contains("--reset")))
     }
     var body: some Scene {
         WindowGroup {
@@ -80,7 +80,6 @@ struct HomeView: View {
     var body: some View {
         Page {
             header
-            DemoBar()
             MarketSection()
             WatchSection()
             hero

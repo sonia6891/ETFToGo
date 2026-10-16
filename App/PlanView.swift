@@ -102,7 +102,7 @@ struct PlanView: View {
         do {
             try next.validate()
             plan = next
-            if !store.isDemo { var data = store.data; data.legacyPlan = next; try store.commit(data); message = "已試算並儲存設定。" } else { message = "已試算（示範模式不儲存）。" }
+            var data = store.data; data.legacyPlan = next; try store.commit(data); message = "已試算並儲存設定。"
         } catch { message = error.localizedDescription }
     }
 }

@@ -49,7 +49,7 @@ jobs:
           xcrun simctl install "$DEVICE" build/DerivedData/Build/Products/Debug-iphonesimulator/ETFToGo.app
           for TAB in 0 1 2 3 4; do
             xcrun simctl terminate "$DEVICE" tw.sonia.etftogo.uireview || true
-            xcrun simctl launch "$DEVICE" tw.sonia.etftogo.uireview --demo --tab "$TAB"
+            xcrun simctl launch "$DEVICE" tw.sonia.etftogo.uireview --ui-testing --tab "$TAB"
             sleep 4
             xcrun simctl io "$DEVICE" screenshot "build/screens/screen-$TAB.png"
           done

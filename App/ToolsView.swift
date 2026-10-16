@@ -126,7 +126,7 @@ struct ComparisonView: View {
             }
             if !missing.isEmpty {
                 Button(busy ? "取得中…" : "取得 \(missing.joined(separator: "、")) 的一年績效資料") { Task { await loadYear(missing) } }
-                    .buttonStyle(.bordered).disabled(busy || store.isDemo)
+                    .buttonStyle(.bordered).disabled(busy)
                 if let error { Text(error).font(.caption).foregroundStyle(Palette.red) }
             }
             if !pairs.isEmpty {
@@ -329,7 +329,7 @@ struct ReminderCenterView: View {
                         Text("配息入帳提醒").font(.headline).foregroundStyle(Palette.ink)
                         Text("在已公告／預估配息的預計入帳日早上 9 點通知").font(.caption).foregroundStyle(Palette.muted)
                     }
-                }.tint(Palette.blue).disabled(working || store.isDemo)
+                }.tint(Palette.blue).disabled(working)
                 if let note { Text(note).font(.caption).foregroundStyle(Palette.muted).padding(.top, 10) }
             }
             SectionHeading(title: "即將入帳", subtitle: "依你的配息紀錄")
@@ -365,8 +365,8 @@ struct ConnectionView: View {
     @State private var hasKey = false
     @State private var message = ""
     var body: some View { Form {
-        Section { Label(hasKey ? "已儲存金鑰" : "尚未設定金鑰", systemImage: hasKey ? "key.fill" : "key").foregroundStyle(hasKey ? Palette.green : .secondary); SecureField("貼上富果 API Key", text: $key).textInputAutocapitalization(.never).autocorrectionDisabled(); Button("安全儲存金鑰") { do { guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { message = "請先輸入金鑰。"; return }; try SecureKey.save(key); key = ""; hasKey = true; store.live.restart(); message = "已存入這台 iPhone 的 Keychain；尚未驗證行情權限。" } catch { message = error.localizedDescription } }.disabled(store.isDemo) }
-        Section { Button(store.refreshing ? "連線中…" : "驗證連線並取得 0050 報價") { Task { await store.refresh(symbols: ["0050"]); if store.message == nil, let quote = store.quote("0050") { message = "已取得 \(quote.date) \(quote.trial == true ? "試撮價" : "報價")：\(decimal(quote.price)) 元。" } } }.disabled(!hasKey || store.refreshing || store.isDemo); if hasKey { Button("移除金鑰", role: .destructive) { do { try SecureKey.remove(); hasKey = false; store.live.restart(); message = "已移除金鑰。" } catch { message = error.localizedDescription } }.disabled(store.isDemo) } }
+        Section { Label(hasKey ? "已儲存金鑰" : "尚未設定金鑰", systemImage: hasKey ? "key.fill" : "key").foregroundStyle(hasKey ? Palette.green : .secondary); SecureField("貼上富果 API Key", text: $key).textInputAutocapitalization(.never).autocorrectionDisabled(); Button("安全儲存金鑰") { do { guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { message = "請先輸入金鑰。"; return }; try SecureKey.save(key); key = ""; hasKey = true; store.live.restart(); message = "已存入這台 iPhone 的 Keychain；尚未驗證行情權限。" } catch { message = error.localizedDescription } } }
+        Section { Button(store.refreshing ? "連線中…" : "驗證連線並取得 0050 報價") { Task { await store.refresh(symbols: ["0050"]); if store.message == nil, let quote = store.quote("0050") { message = "已取得 \(quote.date) \(quote.trial == true ? "試撮價" : "報價")：\(decimal(quote.price)) 元。" } } }.disabled(!hasKey || store.refreshing); if hasKey { Button("移除金鑰", role: .destructive) { do { try SecureKey.remove(); hasKey = false; store.live.restart(); message = "已移除金鑰。" } catch { message = error.localizedDescription } } } }
         if !message.isEmpty { Section { Text(message).font(.subheadline) } }
         Section { Link("申請或管理富果行情金鑰", destination: URL(string: "https://developer.fugle.tw/docs/key/")!); Text("金鑰只傳送給富果官方 API，且不寫入備份。是否即時、可用商品與請求額度依你的富果方案而定。沒有金鑰時，報價改用證交所基本市況報導（約 5 秒延遲），開盤時間每分鐘自動更新持有與自選。").font(.footnote).foregroundStyle(.secondary); Link("查看富果行情 API 說明", destination: URL(string: "https://developer.fugle.tw/docs/data/http-api/getting-started/")!) }
     }.navigationTitle("行情連線").navigationBarTitleDisplayMode(.inline).onAppear { do { hasKey = !(try SecureKey.read()).isEmpty } catch { message = error.localizedDescription } } }

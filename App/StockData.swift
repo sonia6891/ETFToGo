@@ -146,12 +146,10 @@ extension PortfolioStore {
     /// The freshest price for a symbol: the user's own Fugle quote, else the bundled last close when it is newer.
     func quote(_ symbol: String) -> Quote? {
         var own = data.quotes[symbol]
-        if isDemo, own != nil { return own }
         // A trial-match price only while its auction can still be running (each lasts at most half an hour).
         if let live = liveQuotes[symbol], live.trial != true || live.fetchedAt.timeIntervalSinceNow > -1800, live.fetchedAt > (own?.fetchedAt ?? .distantPast) { own = live }
         guard let close = StockSnapshot.bundled?.close(symbol) else { return own }
         guard let own else { return close }
-        if own.date == "示範資料" { return own }
         return own.fetchedAt.addingTimeInterval(3600) < close.fetchedAt ? close : own
     }
     /// The portfolio with every holding priced by `quote(_:)`, for totals and charts.
@@ -163,7 +161,6 @@ extension PortfolioStore {
     var summary: PortfolioSummary { PortfolioSummary(effectiveData) }
     /// Live index quotes with the viewer's key: IX0001 (加權) and IX0043 (櫃買); without one, from the exchange.
     func refreshIndices() async {
-        guard !isDemo else { return }
         guard let key = try? SecureKey.read(), !key.isEmpty else {
             if let fresh = try? await ExchangeLive.indices() { indices.merge(fresh) { _, new in new } }
             return

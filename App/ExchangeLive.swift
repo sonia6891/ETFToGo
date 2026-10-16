@@ -91,7 +91,7 @@ extension PortfolioStore {
     /// Exchange prices for these codes when no Fugle key is saved. Quiet: on failure the last good quotes stay.
     func refreshLive(_ symbols: [String]) async {
         // During the session the live feed asks for the open page on its next round.
-        guard !isDemo, !hasFugleKey, !liveStatus.running, !symbols.isEmpty,
+        guard !hasFugleKey, !liveStatus.running, !symbols.isEmpty,
               let fetched = try? await ExchangeLive.quotes(symbols, markets: markets(symbols)), !fetched.isEmpty else { return }
         var next = data
         next.quotes.merge(fetched) { _, refreshed in refreshed }
@@ -109,7 +109,7 @@ extension PortfolioStore {
     /// On every return to the app: indices and prices once, also outside the session so the day's closes show.
     /// During the session LiveFeed keeps them moving (Fugle streaming with a key, the exchange every 10 s without).
     func followMarket() async {
-        guard !isDemo, !TaiwanMarket.isOpen() else { return }
+        guard !TaiwanMarket.isOpen() else { return }
         await refreshIndices()
         if !hasFugleKey { await refreshLive(liveSymbols) }
     }

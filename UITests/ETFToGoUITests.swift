@@ -37,7 +37,7 @@ final class ETFToGoUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["尚無歷史資料"].exists); capture(app,"history-empty-state")
     }
     func testAllTabsAndSearch() {
-        let app = XCUIApplication(); app.launchArguments = ["--demo"]; app.launch()
+        let app = XCUIApplication(); app.launchArguments = ["--ui-testing", "--reset"]; app.launch()
         XCTAssertTrue(app.staticTexts["portfolio-value"].waitForExistence(timeout: 10)); capture(app,"screen-0")
         app.buttons["tab-探索"].tap(); capture(app,"screen-1")
         let search = app.textFields["fund-search"]
@@ -53,7 +53,7 @@ final class ETFToGoUITests: XCTestCase {
         XCTAssertTrue(app.buttons["tool-backup"].waitForExistence(timeout: 5))
     }
     func testStockDetailAndComboSimulation() {
-        let app = XCUIApplication(); app.launchArguments = ["--demo", "--tab", "1"]; app.launch()
+        let app = XCUIApplication(); app.launchArguments = ["--ui-testing", "--reset", "--tab", "1"]; app.launch()
         XCTAssertTrue(app.buttons["個股"].waitForExistence(timeout: 10))
         app.buttons["個股"].tap()
         let search = app.textFields["fund-search"]; XCTAssertTrue(search.waitForExistence(timeout: 5))
