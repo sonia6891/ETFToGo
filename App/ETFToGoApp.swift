@@ -24,7 +24,7 @@ struct RootView: View {
     @State private var minimized = false
     var body: some View {
         TabView(selection: $tab) {
-            stack(0) { HomeView(tab: $tab) }
+            stack(0) { HomeView(tab: $tab, resetDiscover: { resets[1] += 1 }) }
             stack(1) { DiscoverView() }
             stack(2) { HoldingsView() }
             stack(3) { DividendsView() }

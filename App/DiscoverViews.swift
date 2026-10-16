@@ -126,6 +126,7 @@ struct DiscoverView: View {
         Page {
             SegmentBar(items: ["ETF", "個股"], selection: $mode, pill: true, filled: true)
             searchField
+            if mode == 0 { stockMatches }
             if mode == 1 {
                 StockDiscoverContent(query: $query)
             } else {
@@ -144,8 +145,30 @@ struct DiscoverView: View {
     private func applyRequest() {
         guard let request = store.discoverRequest else { return }
         store.discoverRequest = nil
-        mode = request.stocks ? 1 : 0
-        if request.search { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { searchFocused = true } }
+        mode = request.stocks == true ? 1 : 0
+        if request.search {
+            // A search from the home page starts clean, so an earlier ETF filter cannot hide its results.
+            filter = FundFilter(); query = ""
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { searchFocused = true }
+        }
+    }
+    /// While searching ETFs, companies whose code or name match are listed too, with a way to the full stock results.
+    @ViewBuilder private var stockMatches: some View {
+        let text = query.trimmingCharacters(in: .whitespaces)
+        let matches: [String] = text.isEmpty ? [] : Array((store.stockSnapshot?.stocks ?? []).filter { $0.id.hasPrefix(text) || $0.name.localizedCaseInsensitiveContains(text) }.prefix(5).map(\.id))
+        if !matches.isEmpty {
+            Card(padding: 12) {
+                HStack {
+                    Text("個股").font(.headline).foregroundStyle(Palette.ink)
+                    Spacer()
+                    Button("看全部個股結果") { mode = 1 }.font(.caption.bold())
+                }
+                ForEach(matches, id: \.self) { symbol in
+                    SymbolRow(symbol: symbol)
+                    if symbol != matches.last { Divider() }
+                }
+            }
+        }
     }
     @ViewBuilder private func etfContent(_ items: [Fund]) -> some View {
             HStack(alignment: .firstTextBaseline) { NumberedHeading(number: 1, title: "系統用途分類"); Spacer(); Text("依名稱規則整理，點選即可篩選").font(.caption2).foregroundStyle(Palette.muted) }

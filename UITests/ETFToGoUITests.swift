@@ -76,6 +76,9 @@ final class ETFToGoUITests: XCTestCase {
         app.buttons["home-search"].tap()
         let search = app.textFields["fund-search"]
         XCTAssertTrue(search.waitForExistence(timeout: 5), "The home search opens 探索")
+        let done = app.buttons["完成搜尋"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5), "The home search focuses the field")
+        done.tap()
         app.buttons["tab-首頁"].tap()
         XCTAssertTrue(app.buttons["home-add-favorite"].waitForExistence(timeout: 5))
         app.swipeUp()

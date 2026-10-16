@@ -382,7 +382,7 @@ struct ComboSettingsView: View {
         }
         .navigationTitle("試算設定").navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: load)
-        .navigationDestination(isPresented: $showResult) { ComboResultView().tabBarSpace() }
+        .navigationDestination(isPresented: $showResult) { ComboResultView(fromSettings: true).tabBarSpace() }
     }
     @State private var etfPercentText = ""
     private var draft: ComboSettings {
@@ -438,6 +438,8 @@ struct ComboSettingsView: View {
 }
 struct ComboResultView: View {
     @EnvironmentObject var store: PortfolioStore
+    /// Opened from the settings page (調整假設 goes back) rather than straight from the home page.
+    var fromSettings = false
     @Environment(\.dismiss) private var dismiss
     @State private var scenario: ComboScenario?
     @State private var part: Int?
@@ -491,7 +493,10 @@ struct ComboResultView: View {
                     }
                     Spacer(minLength: 0)
                 }
-                Button("調整假設") { dismiss() }.font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.vertical, 10).overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.blue, lineWidth: 1.2)).padding(.top, 10)
+                Group {
+                    if fromSettings { Button("調整假設") { dismiss() } }
+                    else { NavigationLink(value: AppRoute.comboSettings) { Text("調整假設") }.buttonStyle(.plain).foregroundStyle(Palette.blue) }
+                }.font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.vertical, 10).overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.blue, lineWidth: 1.2)).padding(.top, 10)
             }
             Text("這是依你設定的假設計算的情境，不是預測或保證；個股風險集中在單一公司，實際報酬可能為負。").font(.caption).foregroundStyle(Palette.muted)
         }
