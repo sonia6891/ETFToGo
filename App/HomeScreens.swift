@@ -285,7 +285,7 @@ struct SettingsView: View {
                 Divider()
                 link("checkmark.shield.fill", Palette.green, "隱私與安全", "資料存放與金鑰保存", .privacy)
                 Divider()
-                link("info.circle.fill", Palette.deepBlue, "關於 ETF 袋著走", "版本・資料來源・使用說明", .about)
+                link("info.circle.fill", Palette.deepBlue, "關於 投資袋著走", "版本・資料來源・使用說明", .about)
             }
         }
         .navigationTitle("設定").navigationBarTitleDisplayMode(.inline)
@@ -371,7 +371,7 @@ struct AboutView: View {
             Card {
                 VStack(spacing: 8) {
                     Image("Pocket").resizable().scaledToFit().frame(width: 72, height: 72).clipShape(RoundedRectangle(cornerRadius: 18))
-                    Text("ETF 袋著走").font(.title3.bold()).foregroundStyle(Palette.ink)
+                    Text("投資袋著走").font(.title3.bold()).foregroundStyle(Palette.ink)
                     Text("版本 \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")").font(.caption).foregroundStyle(Palette.muted)
                 }.frame(maxWidth: .infinity)
             }
@@ -384,6 +384,6 @@ struct AboutView: View {
             }.font(.subheadline)
             Card { Text("使用說明").font(.headline).foregroundStyle(Palette.ink); Text("策略分類依 ETF 名稱規則整理，不是投資建議或收益保證。沒有可靠來源的欄位不顯示估計值；試算結果是情境假設。").font(.subheadline).foregroundStyle(Palette.muted).padding(.top, 6) }
         }
-        .navigationTitle("關於 ETF 袋著走").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("關於 投資袋著走").navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -50,7 +50,7 @@ struct RootView: View {
             let args = ProcessInfo.processInfo.arguments
             if let i = args.firstIndex(of: "--tab"), args.indices.contains(i + 1), let value = Int(args[i + 1]) { tab = value }
         }
-        .alert("ETF 袋著走", isPresented: Binding(get: { store.message != nil }, set: { if !$0 { store.message = nil } })) { Button("知道了", role: .cancel) { store.message = nil } } message: { Text(store.message ?? "") }
+        .alert("投資袋著走", isPresented: Binding(get: { store.message != nil }, set: { if !$0 { store.message = nil } })) { Button("知道了", role: .cancel) { store.message = nil } } message: { Text(store.message ?? "") }
     }
     private func stack<Content: View>(_ index: Int, @ViewBuilder content: () -> Content) -> some View {
         NavigationStack { content().appRoutes() }

@@ -267,7 +267,7 @@ struct StockDetailView: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button { store.favorite(symbol) } label: { Image(systemName: store.data.favorites.contains(symbol) ? "star.fill" : "star").foregroundStyle(Palette.orange) }.accessibilityLabel("切換自選")
-                ShareLink(item: "\(symbol) \(store.name(for: symbol))｜ETF 袋著走") { Image(systemName: "square.and.arrow.up") }
+                ShareLink(item: "\(symbol) \(store.name(for: symbol))｜投資袋著走") { Image(systemName: "square.and.arrow.up") }
             }
         }
     }

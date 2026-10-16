@@ -424,7 +424,7 @@ struct FundDetail: View {
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button { store.favorite(fund.id) } label: { Image(systemName: store.data.favorites.contains(fund.id) ? "star.fill" : "star").foregroundStyle(Palette.orange) }.accessibilityLabel("切換收藏")
-                ShareLink(item: "\(fund.id) \(fund.name)｜ETF 袋著走") { Image(systemName: "square.and.arrow.up") }
+                ShareLink(item: "\(fund.id) \(fund.name)｜投資袋著走") { Image(systemName: "square.and.arrow.up") }
             }
         }
     }

@@ -1,4 +1,4 @@
-# ETF 袋著走：功能延續核對
+# 投資袋著走：功能延續核對
 
 更新日期：2026-10-15。實際建置、測試及 TestFlight 狀態以 RELEASE_STATUS.md 與 Evidence 為準。
 
