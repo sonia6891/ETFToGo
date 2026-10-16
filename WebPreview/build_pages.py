@@ -113,6 +113,7 @@ profile = {
 }
 (out / "ETFToGo.mobileconfig").write_bytes(plistlib.dumps(profile))
 shutil.copyfile(here / "etf-data.json", out / "etf-data.json")
+shutil.copyfile(here / "stock-data.json", out / "stock-data.json")
 # Illustrations (made with Figma AI, prepared by prepare_art.py) are referenced as assets/<name>.png.
 shutil.copytree(here / "assets", out / "assets", dirs_exist_ok=True)
 (out / ".nojekyll").write_text("", encoding="utf-8")
