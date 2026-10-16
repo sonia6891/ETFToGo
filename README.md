@@ -1,6 +1,6 @@
 # ETF 袋著走 · 原生 iPhone App
 
-> **0.3.0 尚未發佈到 TestFlight。** 2026-10-16 在 GitHub macOS 建置機[編譯成功，29 項單元測試與 4 項 UI 測試全部通過](https://github.com/sonia6891/ETFToGo/actions/runs/38792912016)；簽署上傳等 2026-11-01 Actions 額度重置後進行。使用者目前可安裝、已回報可開啟的版本仍為 **0.2.0（2.3）**。GitHub 原始碼提交不代表測試或發佈完成。
+> **0.3.0 尚未發佈到 TestFlight。** 2026-10-16 加入台股個股、大盤與個股＋ETF 組合試算後，在 GitHub macOS 建置機[編譯成功，32 項單元測試與 5 項 UI 測試全部通過](https://github.com/sonia6891/ETFToGo/actions/runs/38843830883)；簽署上傳等 2026-11-01 Actions 額度重置後進行。使用者目前可安裝、已回報可開啟的版本仍為 **0.2.0（2.3）**。GitHub 原始碼提交不代表測試或發佈完成。
 
 本工程是唯一持續開發來源，藍白 SwiftUI 五分頁：首頁、探索、持有、配息、工具。當前原始碼版本 0.3.0；發佈狀態與實際測試證據以 RELEASE_STATUS.md 為準，不以這份 README 代表已上傳。
 

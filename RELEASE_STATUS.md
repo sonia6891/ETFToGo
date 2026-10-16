@@ -4,6 +4,9 @@
 
 ## 0.3.0 介面改版（ui/pocket-redesign 分支），已編譯並通過測試，尚未上傳
 
+- 2026-10-16 依新範本加入台股個股與大盤、個股＋ETF 組合試算、新 App 圖示（口袋金幣）。[native-ui run 38843830883](https://github.com/sonia6891/ETFToGo/actions/runs/38843830883) 使用來源 `83731b854b3fb6c4151f0fd91b3e6f74928cbf36`：**編譯成功、32 項單元測試與 5 項 UI 測試全部通過**。新增測試：組合試算公式與範本數字一致（734,181／1,061,022／2,032,300）、壓力測試與股息不再投入、內建個股資料讀取、個股以收盤價估值與試算設定保存；UI 測試走完「探索個股 › 個股詳情（財務、股利）› 加入試算 › 試算設定 › 試算結果」。
+- 個股資料由 `WebPreview/build_stocks.py` 從證交所、櫃買中心開放資料產生 `stock-data.json`（網頁版與 App 共用）：公司名單、最近交易日收盤、加權／櫃買指數、月營收、EPS、股利。沒有富果金鑰時顯示收盤價並標資料日；有金鑰時用富果即時報價與 IX0001／IX0043 指數。這份資料目前由人工執行更新，尚未每日自動更新。
+- 修正：推入的畫面先前沒有避開懸浮導覽列，ETF／個股詳情底部按鈕被導覽列蓋住；現在每個推入畫面都保留導覽列的空間。
 - 2026-10-16 使用者同意把本程式庫改為公開，改用 GitHub 的 `macos-26` 建置機（公開程式庫免費）。[native-ui run 38792912016](https://github.com/sonia6891/ETFToGo/actions/runs/38792912016) 使用來源 `e5fc6a1333e98193ec25c18900d141585eebbd4e`：Xcode 26.6 **編譯成功**、**29 項單元測試與 4 項 UI 測試全部通過**，五個分頁的模擬器截圖已查看，與範本一致。
 - App 圖示改用 `AppIcon.appiconset/AppIcon.png`（藍底口袋圖，即 0.2.0 在 TestFlight 上的圖示）；兩個 workflow 不再用 `pocket.png` 覆蓋 AppIcon.png。網頁版主畫面圖示也改用同一張。外觀預設淺色。
 - **尚未簽署上傳。** 本程式庫沒有 Apple 簽署 Secrets（testflight.yml 的 prerequisites 列出 7 項缺少）；0.2.0 是由私人程式庫 meow-work-app 的 `etftogo-archive.yml`（分支 `codex/etftogo-signing-check-20261015`）簽署上傳，該流程仍受帳戶 Actions 月預算限制。使用者選擇等 2026-11-01 額度重置後再上傳；屆時須更新該流程的來源壓縮檔與釘選 commit，並移除其中用 `pocket.png` 覆蓋 AppIcon.png 的 `sips` 那一行。
