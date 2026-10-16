@@ -182,6 +182,11 @@ final class PortfolioTests: XCTestCase {
         XCTAssertEqual(OpenData.expectedDay(friday.addingTimeInterval(10 * 3600)), "2026-10-15")
         XCTAssertEqual(OpenData.expectedDay(friday.addingTimeInterval(27 * 3600)), "2026-10-16", "Saturday")
         XCTAssertEqual(OpenData.expectedDay(friday.addingTimeInterval(3 * 86400 + 9 * 3600)), "2026-10-16", "Monday morning")
+        // TWSE's open data can lag TPEx's: the older exchange decides whether to fetch again.
+        let day = OpenData.Day(quotes: listed.merging(otc) { a, _ in a }, indices: ["taiex": try XCTUnwrap(OpenData.decodeTAIEX(index)), "tpex": otcIndex], fetchedAt: Date())
+        XCTAssertEqual(day.day, "2026-10-16")
+        var lagging = day; lagging.indices["taiex"]?.date = "2026-10-15"
+        XCTAssertEqual(lagging.settledDay, "2026-10-15"); XCTAssertEqual(day.settledDay, "2026-10-16")
     }
     func testLiveProtocolMessages() throws {
         XCTAssertEqual(LiveProtocol.parse(#"{"event":"authenticated","data":{"message":"Authenticated successfully"}}"#), .authenticated)

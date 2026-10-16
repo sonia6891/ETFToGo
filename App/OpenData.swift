@@ -12,6 +12,8 @@ enum OpenData {
         var fetchedAt: Date
         /// The latest trading day in the data (TWSE and TPEx may be a day apart while one has not published yet).
         var day: String { (Array(quotes.values) + Array(indices.values)).map(\.date).max() ?? "" }
+        /// The older of the two exchanges' latest days, by their indices: TWSE's open data can lag TPEx's by a day or more.
+        var settledDay: String { min(indices["taiex"]?.date ?? "", indices["tpex"]?.date ?? "") }
     }
     private static let twseQuotes = URL(string: "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL")!
     private static let twseIndices = URL(string: "https://openapi.twse.com.tw/v1/exchangeReport/MI_INDEX")!
@@ -110,13 +112,13 @@ enum OpenData {
 
 extension PortfolioStore {
     var hasFugleKey: Bool { !((try? SecureKey.read()) ?? "").isEmpty }
-    /// The latest trading day's prices from the open data, fetched only while the cached day is behind the one that
+    /// The latest trading day's prices from the open data, fetched only while either exchange is behind the day that
     /// should be out: on its own at most every 20 minutes (the exchanges publish some time after the close), when the
     /// viewer asks (`manual`) at most once a minute. Returns whether data is at hand.
     @discardableResult
     func refreshDaily(manual: Bool = false) async -> Bool {
         if ProcessInfo.processInfo.arguments.contains("--ui-testing") { return daily != nil }
-        let behind = (daily?.day ?? "") < OpenData.expectedDay()
+        let behind = (daily?.settledDay ?? "") < OpenData.expectedDay()
         let since = dailyAttemptAt.map { Date().timeIntervalSince($0) } ?? .infinity
         guard behind, since >= (manual ? 60 : 20 * 60) else { return daily != nil }
         dailyAttemptAt = Date()
