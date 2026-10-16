@@ -228,6 +228,8 @@ enum StoreError: LocalizedError {
     @Published var liveStatus = LiveStatus()
     /// The stock or ETF page on screen, streamed first.
     @Published var liveFocus: String?
+    /// Set by the home page: open 探索 on stocks or ETFs, optionally with the search field focused.
+    @Published var discoverRequest: DiscoverRequest?
     lazy var live = LiveFeed(store: self)
     var funds: [Fund] { catalog?.funds ?? [] }
     private let url: URL

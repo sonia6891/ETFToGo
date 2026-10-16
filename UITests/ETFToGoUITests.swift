@@ -70,6 +70,19 @@ final class ETFToGoUITests: XCTestCase {
         app.buttons["combo-run"].tap()
         XCTAssertTrue(app.navigationBars["試算結果"].waitForExistence(timeout: 5)); capture(app, "combo-result")
     }
+    func testHomeSearchWatchlistAndCombo() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-testing", "--reset"]; app.launch()
+        XCTAssertTrue(app.buttons["home-search"].waitForExistence(timeout: 10)); capture(app, "home-empty")
+        app.buttons["home-search"].tap()
+        let search = app.textFields["fund-search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5), "The home search opens 探索")
+        app.buttons["tab-首頁"].tap()
+        XCTAssertTrue(app.buttons["home-add-favorite"].waitForExistence(timeout: 5))
+        app.swipeUp()
+        app.buttons["試算 10 年"].tap()
+        app.buttons["home-combo"].tap()
+        XCTAssertTrue(app.buttons["combo-settings"].waitForExistence(timeout: 5), "The combined simulation opens from the home page")
+    }
     func testHoldingSurvivesRelaunch() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-testing", "--reset"]; app.launch()
         app.buttons["home-add-holding"].tap()
@@ -82,7 +95,8 @@ final class ETFToGoUITests: XCTestCase {
         app.buttons["save-holding"].tap()
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.buttons["save-holding"])
         waitForExpectations(timeout: 5)
-        XCTAssertFalse(app.buttons["home-add-holding"].exists, "The empty-portfolio prompt disappears once a holding is saved")
+        XCTAssertTrue(app.staticTexts["portfolio-value"].waitForExistence(timeout: 5))
+        XCTAssertNotEqual(app.staticTexts["portfolio-value"].label, "—", "The asset card shows the saved holding")
         app.terminate(); app.launchArguments = ["--ui-testing", "--tab", "2"]; app.launch()
         XCTAssertTrue(app.staticTexts["0050"].waitForExistence(timeout: 10))
         app.buttons["holdings-trades"].tap()

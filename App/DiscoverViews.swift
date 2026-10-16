@@ -138,6 +138,14 @@ struct DiscoverView: View {
             ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("完成搜尋") { searchFocused = false } }
         }
         .sheet(isPresented: $showFilter) { FilterSheet(filter: $filter) }
+        .onAppear(perform: applyRequest)
+        .onChange(of: store.discoverRequest) { _, _ in applyRequest() }
+    }
+    private func applyRequest() {
+        guard let request = store.discoverRequest else { return }
+        store.discoverRequest = nil
+        mode = request.stocks ? 1 : 0
+        if request.search { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { searchFocused = true } }
     }
     @ViewBuilder private func etfContent(_ items: [Fund]) -> some View {
             HStack(alignment: .firstTextBaseline) { NumberedHeading(number: 1, title: "系統用途分類"); Spacer(); Text("依名稱規則整理，點選即可篩選").font(.caption2).foregroundStyle(Palette.muted) }
