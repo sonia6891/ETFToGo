@@ -28,9 +28,32 @@ enum DataChecks {
         return try Data(contentsOf: url)
     }
 }
+/// Spaces requests to one service across the whole app: a request waits until it fits `limit` per `window`.
+actor RequestPace {
+    private let limit: Int
+    private let window: TimeInterval
+    private var slots: [Date] = []
+    init(limit: Int, window: TimeInterval) { self.limit = limit; self.window = window }
+    /// Seconds to wait before sending. Slots are handed out in order, so they stay sorted.
+    func reserve(now: Date = Date()) -> TimeInterval {
+        var start = max(now, slots.last ?? now)
+        slots.removeAll { $0 <= start.addingTimeInterval(-window) }
+        if slots.count >= limit { start = slots[slots.count - limit].addingTimeInterval(window) }
+        slots.append(start)
+        return start.timeIntervalSince(now)
+    }
+}
 enum PublicHTTP {
+    /// Fugle's free plan allows 60 requests a minute, shared by live polling and manual refreshes.
+    static let fugle = RequestPace(limit: 55, window: 60)
+    /// The exchange's quote service blocks addresses that ask several times within a few seconds.
+    static let exchange = RequestPace(limit: 1, window: 5)
     static func get(_ url: URL, key: String? = nil) async throws -> Data {
         guard url.scheme == "https" else { throw AppDataError("只接受安全的資料連線。") }
+        if let pace = url.host == "api.fugle.tw" ? fugle : (url.host == "mis.twse.com.tw" ? exchange : nil) {
+            let wait = await pace.reserve()
+            if wait > 0 { try await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000)) }
+        }
         var request = URLRequest(url: url); request.timeoutInterval = 25; request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let key {

@@ -53,15 +53,18 @@ enum LiveProtocol {
     static func unsubscribe(_ ids: [String]) -> String { text(["event": "unsubscribe", "data": ["ids": ids]]) }
     static func ping() -> String { text(["event": "ping", "data": ["state": "etftogo"]]) }
 
+    /// A JSON number. `is Bool` cannot tell them apart, because NSNumber 0 and 1 bridge to Bool; the CF type can.
+    private static func numeric(_ value: Any?) -> NSNumber? {
+        guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
+        return number
+    }
     private static func number(_ value: Any?) -> Double? {
-        guard let value, !(value is Bool), let number = value as? NSNumber else { return nil }
-        let double = number.doubleValue
-        return double.isFinite ? double : nil
+        guard let double = numeric(value)?.doubleValue, double.isFinite else { return nil }
+        return double
     }
     private static func identifier(_ value: Any?) -> String? {
         if let text = value as? String, !text.isEmpty { return text }
-        if let number = value as? NSNumber, !(value is Bool) { return number.stringValue }
-        return nil
+        return numeric(value)?.stringValue
     }
     static func parse(_ raw: String) -> LiveEvent {
         guard let bytes = raw.data(using: .utf8), let root = (try? JSONSerialization.jsonObject(with: bytes)) as? [String: Any], let event = root["event"] as? String else { return .other }
@@ -101,9 +104,11 @@ enum LiveProtocol {
         let total = data["total"] as? [String: Any]
         return LiveTick(symbol: symbol, price: price, change: number(data["change"]), changePercent: number(data["changePercent"]), open: number(data["openPrice"]), high: number(data["highPrice"]), low: number(data["lowPrice"]), volume: number(total?["tradeVolume"]), date: data["date"] as? String, trial: trial)
     }
-    /// Field by field, because a push does not carry everything a REST quote does.
+    /// Field by field, because a push does not carry everything a REST quote does. Only the same trading day's
+    /// figures carry over; the currency always does.
     static func merge(_ previous: Quote?, _ tick: LiveTick, now: Date = Date()) -> Quote {
-        var quote = previous ?? Quote(symbol: tick.symbol, price: tick.price, changePercent: nil, date: tick.date ?? DataChecks.day(), fetchedAt: now)
+        let sameDay = previous.map { tick.date == nil || tick.date == $0.date } ?? false
+        var quote = sameDay ? previous! : Quote(symbol: tick.symbol, price: tick.price, changePercent: nil, date: tick.date ?? DataChecks.day(), fetchedAt: now, currency: previous?.currency)
         quote.symbol = tick.symbol
         quote.price = tick.price
         quote.change = tick.change ?? quote.change
@@ -157,7 +162,10 @@ struct LiveStatus: Equatable {
     private var paid: Bool?
     private var retry = 0
     private var fails = 0
-    private var noStream = false
+    /// Fugle refused the key (stream error 1000 or HTTP 401): no streaming until the key changes.
+    private var keyRejected = false
+    /// Streaming rests for a while after connections that never authenticated (no network, captive portal).
+    private var pausedUntil = Date.distantPast
     private var note = ""
     private var busyUntil = Date.distantPast
     private var backoffUntil = Date.distantPast
@@ -176,6 +184,9 @@ struct LiveStatus: Equatable {
     private var lastUpdate: Date?
     private var exchangeFails = 0
     private var wasWanted = false
+
+    private static let pausedNote = "連不上富果即時串流，先改為定時更新，稍後自動再試。"
+    private var exchangeOffset = 0
 
     init(store: PortfolioStore) { self.store = store }
 
@@ -211,7 +222,7 @@ struct LiveStatus: Equatable {
     }
     /// A new or removed key, or a new plan: start over.
     func restart() {
-        noStream = false; fails = 0; cap = .max; paid = nil; note = ""; busyUntil = .distantPast; backoffUntil = .distantPast
+        keyRejected = false; fails = 0; cap = .max; paid = nil; note = ""; busyUntil = .distantPast; backoffUntil = .distantPast
         stop(); start()
     }
     /// Which symbols matter changed (a detail page opened, holdings or watchlist edited).
@@ -225,6 +236,9 @@ struct LiveStatus: Equatable {
     private func resume() {
         retry = 0; closeSocket(); reconnectAt = nil
         indicesAt = .distantPast; pollAt = .distantPast; lastLoop = Date()
+        // Each return to the app tries streaming again, unless Fugle refused the key.
+        fails = 0; pausedUntil = .distantPast
+        if note == Self.pausedNote { note = "" }
         wasWanted = wanted
         guard wanted else { publish(); return }
         // The stream may not resend current prices, so the most important symbols are fetched once first.
@@ -234,8 +248,9 @@ struct LiveStatus: Equatable {
     }
     private func step() async {
         let now = Date()
+        // Measured from the end of the previous step, so a slow request is not taken for a suspended app.
         let gap = lastLoop.map { now.timeIntervalSince($0) } ?? 0
-        lastLoop = now
+        defer { lastLoop = Date() }
         let want = wanted
         // The session just ended: save the day's last prices of holdings and watchlist.
         if wasWanted, !want { keepLastPrices() }
@@ -252,14 +267,15 @@ struct LiveStatus: Equatable {
         } else if socket == nil, (reconnectAt ?? .distantPast) <= now {
             connect()
         }
-        guard now >= backoffUntil, !polling else { return }
+        // A manual refresh draws on the same request allowance, so polling waits for it.
+        guard now >= backoffUntil, !polling, !store.refreshing else { return }
         if now.timeIntervalSince(indicesAt) >= 15 { indicesAt = now; await pollIndices() }
         else if now >= pollAt { await poll() }
     }
 
     /* ---------- stream ---------- */
     private func connect() {
-        guard socket == nil, !keyless, !noStream, Date() >= busyUntil, wanted else { return }
+        guard socket == nil, !keyless, !keyRejected, Date() >= busyUntil, Date() >= pausedUntil, wanted else { return }
         reconnectAt = nil
         generation += 1
         let current = generation
@@ -310,7 +326,7 @@ struct LiveStatus: Equatable {
     }
     private func failed(code: Int, message: String) {
         if code == 1000 {
-            noStream = true; note = "富果拒絕這把金鑰，請到「富果行情連線」重新確認。"; closeSocket()
+            keyRejected = true; note = "富果拒絕這把金鑰，請到「富果行情連線」重新確認。"; closeSocket()
         } else if code == 1003 || message.localizedCaseInsensitiveContains("maximum number of connections") {
             busy()
         } else if code == 1001 {
@@ -328,11 +344,11 @@ struct LiveStatus: Equatable {
         let reason = task.closeReason.flatMap { String(data: $0, encoding: .utf8) } ?? ""
         socket = nil; authed = false; subs = [:]; pending = [:]
         if task.closeCode.rawValue == 1013 || reason.localizedCaseInsensitiveContains("maximum number of connections") { busy(); publish(); return }
-        if noStream { publish(); return }
+        if keyRejected { publish(); return }
         if !wasAuthed {
             fails += 1
-            // Three connections in a row that never authenticated: stop trying for this session.
-            if fails >= 3 { noStream = true; note = "連不上富果即時串流，改為定時更新。"; publish(); return }
+            // Three connections in a row that never authenticated: rest for five minutes, polling meanwhile.
+            if fails >= 3 { fails = 0; retry = 0; reconnectAt = nil; pausedUntil = Date().addingTimeInterval(300); note = Self.pausedNote; publish(); return }
         }
         scheduleReconnect()
     }
@@ -453,22 +469,22 @@ struct LiveStatus: Equatable {
             pollAt = Date().addingTimeInterval(15)
         }
     }
-    /// No key: the open page, holdings, watchlist and the home page's lists (up to 200 codes, 100 a request), then both
-    /// indices, every 10 s. The exchange's service is not a documented API, so failures back off and the last good prices stay.
+    /// No key: one request every 10 s with both indices, the open page, holdings and watchlist, and as many of the
+    /// home page's lists as fit (those take turns). The exchange's service is not a documented API and blocks addresses
+    /// that ask too often, so failures back off and the last good prices stay.
     private func pollExchange() async {
         polling = true
         defer { polling = false }
-        var symbols = targets()
-        for symbol in store.liveSymbols where !symbols.contains(symbol) { symbols.append(symbol) }
-        symbols = Array(symbols.prefix(200))
+        let first = targets()
+        var extra = store.liveSymbols.filter { !first.contains($0) }
+        if !extra.isEmpty { let shift = exchangeOffset % extra.count; extra = Array(extra[shift...] + extra[..<shift]) }
+        let symbols = first + extra
         do {
-            if !symbols.isEmpty {
-                let quotes = try await ExchangeLive.quotes(symbols, markets: store.markets(symbols))
-                for (symbol, quote) in quotes { buffer[symbol] = quote }
-                if !quotes.isEmpty { queueFlush() }
-            }
-            let indices = try await ExchangeLive.indices()
-            store.indices.merge(indices) { _, new in new }
+            let got = try await ExchangeLive.market(symbols, markets: store.markets(symbols))
+            for (symbol, quote) in got.quotes { buffer[symbol] = quote }
+            if !got.quotes.isEmpty { queueFlush() }
+            store.indices.merge(got.indices) { _, new in new }
+            exchangeOffset += got.asked.filter { !first.contains($0) }.count
             exchangeFails = 0
             if note.hasPrefix("證交所") { note = "" }
         } catch {
@@ -483,7 +499,7 @@ struct LiveStatus: Equatable {
     private func restFailed(_ error: Error) -> Bool {
         guard let failure = error as? StoreError, case .http(let code) = failure else { return false }
         if code == 429 { backoffUntil = Date().addingTimeInterval(60); note = "富果請求次數已達上限，1 分鐘後再更新。"; publish(); return true }
-        if code == 401 { noStream = true; closeSocket(); note = "金鑰無效或已失效，請重新確認。"; publish(); return true }
+        if code == 401 { keyRejected = true; closeSocket(); note = "金鑰無效或已失效，請重新確認。"; publish(); return true }
         return false
     }
 
@@ -528,8 +544,8 @@ struct LiveStatus: Equatable {
         var next = store.data
         var changed = false
         for symbol in keep {
-            guard var quote = store.liveQuotes[symbol], quote.isValid, (next.quotes[symbol]?.fetchedAt ?? .distantPast) < quote.fetchedAt else { continue }
-            quote.trial = nil
+            // A trial-match price is not a trade, so the last real one stays saved.
+            guard let quote = store.liveQuotes[symbol], quote.trial != true, quote.isValid, (next.quotes[symbol]?.fetchedAt ?? .distantPast) < quote.fetchedAt else { continue }
             next.quotes[symbol] = quote
             changed = true
         }

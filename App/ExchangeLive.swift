@@ -6,27 +6,39 @@ import Foundation
 /// unexpected counts as no quote and the last good one is kept.
 enum ExchangeLive {
     static let source = "證交所"
-    /// Codes per request; the service has answered 150 in one.
+    /// Channels per request; the service has answered 150 in one. PublicHTTP spaces the requests.
     private static let batch = 100
+    private static func channels(_ code: String, _ market: String?) -> [String] {
+        switch market {
+        case "TWSE": return ["tse_\(code).tw"]
+        case "TPEx": return ["otc_\(code).tw"]
+        default: return ["tse_\(code).tw", "otc_\(code).tw"]
+        }
+    }
 
     /// Quotes for shares and ETFs, keyed by code. `markets` maps codes to "TWSE" or "TPEx";
     /// a code missing from it is asked of both exchanges.
     static func quotes(_ symbols: [String], markets: [String: String]) async throws -> [String: Quote] {
         let codes = Set(symbols.filter(DataChecks.code))
-        let channels = codes.sorted().flatMap { code -> [String] in
-            switch markets[code] {
-            case "TWSE": return ["tse_\(code).tw"]
-            case "TPEx": return ["otc_\(code).tw"]
-            default: return ["tse_\(code).tw", "otc_\(code).tw"]
-            }
-        }
+        let list = codes.sorted().flatMap { channels($0, markets[$0]) }
         var result: [String: Quote] = [:]
-        for start in stride(from: 0, to: channels.count, by: batch) {
-            if start > 0 { try await Task.sleep(nanoseconds: 1_000_000_000) }
-            let got = try await fetch(Array(channels[start..<min(start + batch, channels.count)]))
+        for start in stride(from: 0, to: list.count, by: batch) {
+            let got = try await fetch(Array(list[start..<min(start + batch, list.count)]))
             result.merge(got) { _, new in new }
         }
         return result.filter { codes.contains($0.key) }
+    }
+    /// Both indices and as many codes as fit in one request, in the order given. `asked` lists the codes included.
+    static func market(_ symbols: [String], markets: [String: String]) async throws -> (quotes: [String: Quote], indices: [String: Quote], asked: [String]) {
+        var list = ["tse_t00.tw", "otc_o00.tw"], asked: [String] = [], seen = Set<String>()
+        for code in symbols where DataChecks.code(code) && seen.insert(code).inserted {
+            let more = channels(code, markets[code])
+            if list.count + more.count > batch { continue }
+            list += more; asked.append(code)
+        }
+        let got = try await fetch(list)
+        let included = Set(asked)
+        return (got.filter { included.contains($0.key) }, ["taiex": got["t00"], "tpex": got["o00"]].compactMapValues { $0 }, asked)
     }
     /// 加權指數 (t00) and 櫃買指數 (o00), keyed "taiex" and "tpex".
     static func indices() async throws -> [String: Quote] {
@@ -96,7 +108,7 @@ extension PortfolioStore {
     /// On every return to the app: indices and prices once, also outside the session so the day's closes show.
     /// During the session LiveFeed keeps them moving (Fugle streaming with a key, the exchange every 10 s without).
     func followMarket() async {
-        guard !isDemo else { return }
+        guard !isDemo, !TaiwanMarket.isOpen() else { return }
         await refreshIndices()
         if !hasFugleKey { await refreshLive(liveSymbols) }
     }

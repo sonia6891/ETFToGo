@@ -507,10 +507,14 @@ enum StoreError: LocalizedError {
                 fetched = try await ExchangeLive.quotes(targets, markets: markets(targets))
                 guard !fetched.isEmpty else { throw AppDataError("證交所目前沒有這些代號的成交資料，保留上次報價。") }
             } else {
-                for symbol in targets {
-                    let quote = try await Fugle.quote(symbol: symbol, key: key)
-                    fetched[symbol] = quote
-                    if symbol != targets.last { try await Task.sleep(nanoseconds: 2_100_000_000) }
+                // In a list, prices streamed in the last minute are already current. PublicHTTP spaces the requests so
+                // they stay within the plan together with live polling; what arrived before an error is still kept.
+                let stale = targets.count == 1 ? targets : targets.filter { (liveQuotes[$0]?.fetchedAt.timeIntervalSinceNow ?? -.infinity) < -60 }
+                do {
+                    for symbol in stale { fetched[symbol] = try await Fugle.quote(symbol: symbol, key: key, currency: data.quotes[symbol]?.currency) }
+                } catch {
+                    if !fetched.isEmpty { var next = data; next.quotes.merge(fetched) { _, refreshed in refreshed }; try? commit(next) }
+                    throw error
                 }
             }
             // The user may have edited holdings while the requests were running.
@@ -542,11 +546,13 @@ enum SecureKey {
 }
 enum Fugle {
     struct Total: Decodable { let tradeVolume: Double? }
-    struct Response: Decodable { let symbol: String; let date: String; let closePrice: Double?; let lastPrice: Double?; let changePercent: Double?; let change: Double?; let openPrice: Double?; let highPrice: Double?; let lowPrice: Double?; let total: Total? }
-    static func quote(symbol: String, key: String) async throws -> Quote {
+    struct Response: Decodable { let symbol: String; let date: String; let closePrice: Double?; let lastPrice: Double?; let changePercent: Double?; let change: Double?; let openPrice: Double?; let highPrice: Double?; let lowPrice: Double?; let total: Total?; let isTrial: Bool? }
+    /// The ticker request for the trading currency is skipped when it is already known.
+    static func quote(symbol: String, key: String, currency known: String? = nil) async throws -> Quote {
         guard symbol.range(of: "^[0-9A-Z]{4,8}$", options: .regularExpression) != nil else { throw StoreError.invalidQuote }
         let url = URL(string: "https://api.fugle.tw/marketdata/v1.0/stock/intraday/quote/\(symbol)")!
         let bytes = try await PublicHTTP.get(url, key: key)
+        if let known, known != "UNKNOWN" { var quote = try decode(bytes, expectedSymbol: symbol); quote.currency = known; return quote }
         struct Ticker: Decodable { let symbol: String; let tradingCurrency: String? }
         let ticker = try JSONDecoder().decode(Ticker.self, from: await PublicHTTP.get(URL(string: "https://api.fugle.tw/marketdata/v1.0/stock/intraday/ticker/\(symbol)")!, key: key))
         guard ticker.symbol == symbol else { throw StoreError.invalidQuote }
@@ -556,8 +562,10 @@ enum Fugle {
     }
     static func decode(_ bytes: Data, expectedSymbol: String) throws -> Quote {
         let value = try JSONDecoder().decode(Response.self, from: bytes)
-        guard value.symbol == expectedSymbol, let price = value.closePrice ?? value.lastPrice, price.isFinite, price > 0 else { throw StoreError.invalidQuote }
-        let quote = Quote(symbol: value.symbol, price: price, changePercent: value.changePercent, date: value.date, fetchedAt: Date(), change: value.change, open: value.openPrice, high: value.highPrice, low: value.lowPrice, volume: value.total?.tradeVolume)
+        // During a trial match only lastPrice moves (closePrice is the last real trade), as in the stream.
+        let trial = value.isTrial == true
+        guard value.symbol == expectedSymbol, let price = trial ? (value.lastPrice ?? value.closePrice) : (value.closePrice ?? value.lastPrice), price.isFinite, price > 0 else { throw StoreError.invalidQuote }
+        let quote = Quote(symbol: value.symbol, price: price, changePercent: value.changePercent, date: value.date, fetchedAt: Date(), change: value.change, open: value.openPrice, high: value.highPrice, low: value.lowPrice, volume: value.total?.tradeVolume, trial: trial ? true : nil)
         guard quote.isValid else { throw StoreError.invalidQuote }
         return quote
     }
