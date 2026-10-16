@@ -442,7 +442,7 @@ struct FundDetail: View {
             }
         }
         .safeAreaInset(edge: .bottom) { actionBar }
-        .task { await store.refreshLive([fund.id]) }
+        .task { await store.refreshDaily() }
         .onAppear { store.liveFocus = fund.id; store.live.syncSoon() }
         .onDisappear { if store.liveFocus == fund.id { store.liveFocus = nil; store.live.syncSoon() } }
         .navigationBarTitleDisplayMode(.inline)
@@ -454,6 +454,7 @@ struct FundDetail: View {
                 }
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
+                LiveQuoteButton(symbol: fund.id, market: fund.market)
                 Button { store.favorite(fund.id) } label: { Image(systemName: store.data.favorites.contains(fund.id) ? "star.fill" : "star").foregroundStyle(Palette.orange) }.accessibilityLabel("切換收藏")
                 ShareLink(item: "\(fund.id) \(fund.name)｜投資袋著走") { Image(systemName: "square.and.arrow.up") }
             }
@@ -475,6 +476,7 @@ struct FundDetail: View {
     }
     private var updatedText: String {
         guard let quote else { return "更新時間 --/-- --:--・按「更新報價」取得" }
+        if quote.isDailyClose { return "\(quote.date.replacingOccurrences(of: "-", with: "/")) 收盤價" }
         return "報價日期 \(quote.date) · 取得於 \(quote.fetchedAt.formatted(date: .abbreviated, time: .shortened))"
     }
     private var overview: some View {

@@ -124,23 +124,26 @@ struct StockDetailView: View {
             }
         }
         .safeAreaInset(edge: .bottom) { actionBar }
-        .task { await store.refreshLive([symbol]) }
+        .task { await store.refreshDaily() }
         .onAppear { store.liveFocus = symbol; store.live.syncSoon() }
         .onDisappear { if store.liveFocus == symbol { store.liveFocus = nil; store.live.syncSoon() } }
         .navigationTitle("個股詳情").navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
+                LiveQuoteButton(symbol: symbol, market: store.stock(symbol)?.market)
                 Button { store.favorite(symbol) } label: { Image(systemName: store.data.favorites.contains(symbol) ? "star.fill" : "star").foregroundStyle(Palette.orange) }.accessibilityLabel("切換自選")
                 ShareLink(item: "\(symbol) \(store.name(for: symbol))｜投資袋著走") { Image(systemName: "square.and.arrow.up") }
             }
         }
     }
+    /// 盤中即時 while the viewer's key streams today's trades; otherwise the trading day the price closed on.
     private func sourceInfo(_ quote: Quote?) -> some View {
-        var live = false
-        if let quote, let own = store.liveQuotes[symbol] ?? store.data.quotes[symbol], own.fetchedAt == quote.fetchedAt { live = quote.fetchedAt.timeIntervalSinceNow > -86400 }
-        let updated: String = quote.map { $0.date.replacingOccurrences(of: "-", with: "/") + (live ? " " + $0.fetchedAt.formatted(date: .omitted, time: .shortened) : "") } ?? "—"
+        let live = quote.map { !$0.isDailyClose && store.liveStatus.running && $0.fetchedAt.timeIntervalSinceNow > -600 } ?? false
+        let state: (String, Color) = live ? ("盤中即時", Palette.green)
+            : (quote == nil ? ("尚無報價", Palette.pink) : (quote!.isDailyClose || !TaiwanMarket.isOpen() ? ("收盤價", Palette.blue) : ("最近報價", Palette.orange)))
+        let updated: String = quote.map { $0.date.replacingOccurrences(of: "-", with: "/") + (live ? " " + $0.fetchedAt.formatted(date: .omitted, time: .shortened) : ($0.isDailyClose ? " 收盤" : "")) } ?? "—"
         return VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 5) { Circle().fill(live ? Palette.green : Palette.pink).frame(width: 8, height: 8); Text(live ? "已連線" : "未連線").font(.caption.bold()) }.foregroundStyle(live ? Palette.green : Palette.pink)
+            HStack(spacing: 5) { Circle().fill(state.1).frame(width: 8, height: 8); Text(state.0).font(.caption.bold()) }.foregroundStyle(state.1)
             Text("更新時間：\(updated)").font(.caption2)
         }.foregroundStyle(Palette.muted)
     }

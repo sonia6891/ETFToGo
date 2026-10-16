@@ -317,7 +317,7 @@ struct SourcesView: View {
         let latestQuote = store.data.quotes.values.map(\.fetchedAt).max()
         Page {
             Card(padding: 12) {
-                row("chart.bar.fill", Palette.blue, "市場報價（台股）", status: hasKey ? ("已連線", Palette.green) : ("免金鑰", Palette.green), lines: ["最後更新：\(latestQuote.map { $0.formatted(date: .numeric, time: .shortened) } ?? "—")"]) {
+                row("chart.bar.fill", Palette.blue, "市場報價（台股）", status: hasKey ? ("盤中即時", Palette.green) : ("每日收盤", Palette.blue), lines: hasKey ? ["最後更新：\(latestQuote.map { $0.formatted(date: .numeric, time: .shortened) } ?? "—")"] : ["收盤資料日：\(store.daily?.day.replacingOccurrences(of: "-", with: "/") ?? "—")", "看盤中即時價：在「行情連線」貼上自己的金鑰"]) {
                     Button(store.refreshing ? "更新中…" : "立即更新") { Task { await store.refresh() } }.disabled(store.refreshing)
                 }
                 Divider()
@@ -376,6 +376,15 @@ struct AboutView: View {
                 }.frame(maxWidth: .infinity)
             }
             Card { Text("使用說明").font(.headline).foregroundStyle(Palette.ink); Text("策略分類依 ETF 名稱規則整理，不是投資建議或收益保證。沒有可靠資料的欄位不顯示估計值；試算結果是情境假設。").font(.subheadline).foregroundStyle(Palette.muted).padding(.top, 6) }
+            Card {
+                Text("資料來源與授權").font(.headline).foregroundStyle(Palette.ink)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("每日開盤、收盤價與指數衍生自臺灣證券交易所「上市個股日成交資訊」「每日收盤行情」及證券櫃檯買賣中心「上櫃股票收盤行情」「櫃買指數」，該資料係依據政府資料開放授權條款（Open Government Data License）進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。")
+                    Link("政府資料開放授權條款：data.gov.tw/license", destination: URL(string: "https://data.gov.tw/license")!).font(.subheadline.bold())
+                    Text("公司基本資料、ETF 名單與配息資訊取自臺灣證券交易所與證券櫃檯買賣中心公開資訊。使用你自己的富果金鑰時，盤中行情由富果提供；資訊來源：臺灣證券交易所、證券櫃檯買賣中心。")
+                    Text("本 App 與上述機構沒有合作或背書關係；資料僅供參考，交易請以券商與交易所公告為準。")
+                }.font(.subheadline).foregroundStyle(Palette.muted).padding(.top, 6)
+            }
         }
         .navigationTitle("關於 投資袋著走").navigationBarTitleDisplayMode(.inline)
     }

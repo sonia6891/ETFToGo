@@ -318,8 +318,8 @@ struct HomeView: View {
     }
 }
 
-/// Whether prices are moving: live in the session, the last fetch otherwise. Re-checked every 15 s, since a
-/// stalled feed publishes nothing.
+/// Whether prices are moving: live in the session with the viewer's key, the last fetch otherwise, and each day's
+/// close without a key. Re-checked every 15 s, since a stalled feed publishes nothing.
 struct ConnectionPill: View {
     @EnvironmentObject var store: PortfolioStore
     var body: some View {
@@ -328,7 +328,7 @@ struct ConnectionPill: View {
             let fresh = status.lastUpdate.map { context.date.timeIntervalSince($0) < 45 } ?? false
             let state: (String, Color) = status.running
                 ? (fresh || !status.subscribed.isEmpty ? ("盤中即時", Palette.green) : (status.lastUpdate == nil ? ("連線中", Palette.blue) : ("連線異常", Palette.orange)))
-                : (store.indices["taiex"] != nil ? ("已連線", Palette.green) : ("未連線", Palette.pink))
+                : (!status.hasKey ? ("每日收盤", Palette.blue) : (store.indices["taiex"] != nil ? ("已連線", Palette.green) : ("未連線", Palette.pink)))
             HStack(spacing: 5) {
                 Circle().fill(state.1).frame(width: 9, height: 9).overlay(Circle().stroke(state.1.opacity(0.25), lineWidth: 4))
                 Text(state.0).font(.caption.bold())

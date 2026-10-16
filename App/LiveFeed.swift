@@ -4,7 +4,7 @@ import Foundation
    With the viewer's Fugle key: streaming (aggregates channel) for the symbols that matter most, the key sent only in
    the auth message, never in a URL; REST within the plan's rate limit for the rest and for both indices. Free plan:
    1 connection, 5 subscriptions, 60 intraday requests a minute; paid plans: whole-market snapshot every 5 seconds.
-   Without a key: the exchange's own live prices (ExchangeLive) every 10 seconds.
+   Without a key there is no intraday feed: prices are each trading day's close from the exchanges' open data (OpenData).
    It runs only while the app is active and the Taiwan market is open, and stops when the app goes to the background. */
 
 /// Taiwan regular session in Asia/Taipei, with a few minutes either side for the opening trial match and closing prints.
@@ -162,8 +162,8 @@ struct LiveStatus: Equatable {
     var subscribed: Set<String> = []
     var pollSeconds = 0
     var paidPlan = false
-    /// No Fugle key: prices come from the exchange.
-    var exchange = false
+    /// A Fugle key is saved; without one there is no intraday feed, only each day's close.
+    var hasKey = false
     var note = ""
     var lastUpdate: Date?
 }
@@ -202,22 +202,17 @@ struct LiveStatus: Equatable {
     private var buffer: [String: Quote] = [:]
     private var flushQueued = false
     private var lastUpdate: Date?
-    private var exchangeFails = 0
     private var wasWanted = false
 
     private static let pausedNote = "連不上即時串流，先改為定時更新，稍後自動再試。"
-    private static let exchangeNote = "即時報價暫時取不到，稍後自動重試。"
-    private var exchangeOffset = 0
-    private var targetOffset = 0
     /// The last real trade of each symbol, saved instead of a trial-match price when the app leaves.
     private var lastReal: [String: Quote] = [:]
 
     init(store: PortfolioStore) { self.store = store }
 
     private var wanted: Bool {
-        active && TaiwanMarket.isOpen() && !ProcessInfo.processInfo.arguments.contains("--ui-testing")
+        active && !apiKey.isEmpty && TaiwanMarket.isOpen() && !ProcessInfo.processInfo.arguments.contains("--ui-testing")
     }
-    private var keyless: Bool { apiKey.isEmpty }
     private var limit: Int { min(cap, paid == true ? 280 : 5) }
 
     /// The app became active: start the loop and connect if the market is open. Coming back from a brief
@@ -255,7 +250,6 @@ struct LiveStatus: Equatable {
             try? await Task.sleep(nanoseconds: 1_000_000_000)
             guard let self else { return }
             self.sync()
-            if self.keyless, self.exchangeFails == 0 { self.pollAt = min(self.pollAt, Date()) }
         }
     }
 
@@ -268,7 +262,7 @@ struct LiveStatus: Equatable {
         wasWanted = wanted
         guard wanted else { publish(); return }
         // The stream may not resend current prices, so the most important symbols are fetched once first.
-        catchUp = paid == true || keyless ? [] : Array(targets().prefix(5))
+        catchUp = paid == true ? [] : Array(targets().prefix(5))
         connect()
         publish()
     }
@@ -283,10 +277,6 @@ struct LiveStatus: Equatable {
         wasWanted = want
         guard want else { if socket != nil { closeSocket() }; publish(); return }
         if gap > 15 { resume(); return } // the app was suspended and its timers froze
-        if keyless {
-            if now >= pollAt, !polling { await pollExchange() }
-            return
-        }
         if let socket, authed {
             if now.timeIntervalSince(lastMessage) > 35 { closeSocket(); scheduleReconnect() }
             else if now.timeIntervalSince(lastPing) > 25 { lastPing = now; send(LiveProtocol.ping(), on: socket) }
@@ -301,7 +291,7 @@ struct LiveStatus: Equatable {
 
     /* ---------- stream ---------- */
     private func connect() {
-        guard socket == nil, !keyless, !keyRejected, Date() >= busyUntil, Date() >= pausedUntil, wanted else { return }
+        guard socket == nil, !keyRejected, Date() >= busyUntil, Date() >= pausedUntil, wanted else { return }
         reconnectAt = nil
         generation += 1
         let current = generation
@@ -503,42 +493,6 @@ struct LiveStatus: Equatable {
             pollAt = Date().addingTimeInterval(15)
         }
     }
-    /// No key: one request every 10 s with both indices, the open page, holdings and watchlist, and as many of the
-    /// home page's lists as fit (those take turns). The exchange's service is not a documented API and blocks addresses
-    /// that ask too often, so failures back off and the last good prices stay.
-    private func pollExchange() async {
-        polling = true
-        defer { polling = false }
-        // The open page and the largest holdings every time; the other holdings and the watchlist take turns, then the
-        // home page's lists, so every code is asked within a few rounds.
-        let all = targets(), known = Set(all)
-        let head = Array(all.prefix(20))
-        let tail = Self.rotated(Array(all.dropFirst(20)), by: targetOffset)
-        let extra = Self.rotated(store.liveSymbols.filter { !known.contains($0) }, by: exchangeOffset)
-        let symbols = head + tail + extra
-        do {
-            let got = try await ExchangeLive.market(symbols, markets: store.markets(symbols))
-            for (symbol, quote) in got.quotes { buffer[symbol] = quote }
-            if !got.quotes.isEmpty { queueFlush() }
-            store.indices.merge(got.indices) { _, new in new }
-            let asked = Set(got.asked)
-            targetOffset += tail.filter(asked.contains).count
-            exchangeOffset += extra.filter(asked.contains).count
-            exchangeFails = 0
-            if note == Self.exchangeNote { note = "" }
-        } catch {
-            exchangeFails += 1
-            if exchangeFails >= 3 { note = Self.exchangeNote }
-        }
-        pollAt = Date().addingTimeInterval(exchangeFails == 0 ? 10 : min(60, 10 * Double(exchangeFails + 1)))
-        lastUpdate = Date()
-        publish()
-    }
-    private static func rotated(_ list: [String], by offset: Int) -> [String] {
-        guard !list.isEmpty else { return list }
-        let shift = offset % list.count
-        return Array(list[shift...] + list[..<shift])
-    }
     /// Returns true when requests should stop for now.
     private func restFailed(_ error: Error) -> Bool {
         guard let failure = error as? StoreError, case .http(let code) = failure else { return false }
@@ -576,7 +530,7 @@ struct LiveStatus: Equatable {
         status.subscribed = Set(subs.keys)
         status.pollSeconds = pollSeconds
         status.paidPlan = paid == true
-        status.exchange = keyless
+        status.hasKey = !apiKey.isEmpty
         status.note = note
         status.lastUpdate = lastUpdate
         if store.liveStatus != status { store.liveStatus = status }

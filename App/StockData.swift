@@ -13,8 +13,8 @@ struct StockInfo: Identifiable, Hashable {
 }
 
 /// Taiwan stocks, last closes, both market indices and company figures, bundled from the exchanges' open data
-/// by WebPreview/build_stocks.py (the same file the web app uses). Live prices come from the viewer's Fugle key,
-/// else from the exchange (ExchangeLive).
+/// by WebPreview/build_stocks.py (the same file the web app uses). Newer closes come from OpenData; live prices
+/// only from the viewer's own Fugle key.
 final class StockSnapshot {
     struct IndexDay { let date: String; let close: Double }
     struct MarketIndex {
@@ -148,7 +148,9 @@ extension PortfolioStore {
         var own = data.quotes[symbol]
         // A trial-match price only while its auction can still be running (each lasts at most half an hour).
         if let live = liveQuotes[symbol], live.trial != true || live.fetchedAt.timeIntervalSinceNow > -1800, live.fetchedAt > (own?.fetchedAt ?? .distantPast) { own = live }
-        guard let close = StockSnapshot.bundled?.close(symbol) else { return own }
+        // The latest close: the open data fetched on the device, else the bundled snapshot.
+        let closes = [daily?.quotes[symbol], StockSnapshot.bundled?.close(symbol)].compactMap { $0 }
+        guard let close = closes.max(by: { $0.fetchedAt < $1.fetchedAt }) else { return own }
         guard let own else { return close }
         return own.fetchedAt.addingTimeInterval(3600) < close.fetchedAt ? close : own
     }
@@ -159,12 +161,9 @@ extension PortfolioStore {
         return value
     }
     var summary: PortfolioSummary { PortfolioSummary(effectiveData) }
-    /// Live index quotes with the viewer's key: IX0001 (加權) and IX0043 (櫃買); without one, from the exchange.
+    /// Live index quotes with the viewer's key: IX0001 (加權) and IX0043 (櫃買); without one, the latest closes.
     func refreshIndices() async {
-        guard let key = try? SecureKey.read(), !key.isEmpty else {
-            if let fresh = try? await ExchangeLive.indices() { indices.merge(fresh) { _, new in new } }
-            return
-        }
+        guard let key = try? SecureKey.read(), !key.isEmpty else { await refreshDaily(manual: true); return }
         for (name, symbol) in [("taiex", "IX0001"), ("tpex", "IX0043")] {
             do {
                 let bytes = try await PublicHTTP.get(URL(string: "https://api.fugle.tw/marketdata/v1.0/stock/intraday/quote/\(symbol)")!, key: key)

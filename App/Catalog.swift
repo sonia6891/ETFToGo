@@ -48,11 +48,9 @@ actor RequestPace {
 enum PublicHTTP {
     /// Fugle's free plan allows 60 requests a minute, shared by live polling and manual refreshes.
     static let fugle = RequestPace(limit: 55, window: 60)
-    /// The exchange's quote service blocks addresses that ask several times within a few seconds.
-    static let exchange = RequestPace(limit: 1, window: 5)
     static func get(_ url: URL, key: String? = nil) async throws -> Data {
         guard url.scheme == "https" else { throw AppDataError("只接受安全的資料連線。") }
-        if let pace = url.host == "api.fugle.tw" ? fugle : (url.host == "mis.twse.com.tw" ? exchange : nil) {
+        if let pace = url.host == "api.fugle.tw" ? fugle : nil {
             while true {
                 let wait = await pace.take()
                 if wait == 0 { break }

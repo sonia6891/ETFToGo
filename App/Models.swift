@@ -124,11 +124,12 @@ struct Quote: Codable {
     var low: Double? = nil
     /// Trading volume in lots (張), as reported by Fugle intraday quotes.
     var volume: Double? = nil
-    /// `ExchangeLive.source` for keyless exchange quotes; nil for Fugle and older saved quotes.
+    /// `OpenData.source` for a trading day's close from the exchanges' open data; nil for Fugle and older saved quotes.
     var source: String? = nil
     /// True while the price is a trial match (before the open or in the closing call) rather than a trade; never saved.
     var trial: Bool? = nil
-    var isExchangeLive: Bool { source == ExchangeLive.source }
+    /// A trading day's close (the open data, or the bundled snapshot stamped 13:30 that day) rather than a live price.
+    var isDailyClose: Bool { source == OpenData.source || DataChecks.date(date).map { $0.addingTimeInterval(13.5 * 3600) == fetchedAt } ?? false }
     var isTWD: Bool { currency == "TWD" || (currency == nil && Fund.starters.contains { $0.id == symbol }) }
     var isValid: Bool {
         price.isFinite && price > 0 && [change, changePercent].allSatisfy { $0?.isFinite ?? true }
@@ -221,7 +222,7 @@ enum StoreError: LocalizedError {
     @Published private(set) var official = OfficialDividends.bundled()
     @Published var officialRefreshing = false
     @Published var officialMessage: String?
-    /// Live 加權 / 櫃買 index quotes (the viewer's Fugle key, else the exchange), keyed "taiex" and "tpex".
+    /// 加權 / 櫃買 index quotes, keyed "taiex" and "tpex": live with the viewer's Fugle key, else the latest close.
     @Published var indices: [String: Quote] = [:]
     /// Prices pushed or polled during the trading session; kept in memory and saved for holdings and watchlist when the app leaves.
     @Published var liveQuotes: [String: Quote] = [:]
@@ -230,6 +231,9 @@ enum StoreError: LocalizedError {
     @Published var liveFocus: String?
     /// Set by the home page: open 探索 on stocks or ETFs, optionally with the search field focused.
     @Published var discoverRequest: DiscoverRequest?
+    /// The latest trading day's prices from the exchanges' open data (OpenData), cached on the device.
+    @Published var daily: OpenData.Day?
+    var dailyAttemptAt: Date?
     lazy var live = LiveFeed(store: self)
     var funds: [Fund] { catalog?.funds ?? [] }
     private let url: URL
@@ -238,6 +242,8 @@ enum StoreError: LocalizedError {
         self.url = url ?? base.appendingPathComponent("ETFToGo/portfolio.json")
         if let bytes = try? Data(contentsOf: self.url.appendingPathExtension("catalog")), let cached = try? JSONDecoder().decode(CatalogSnapshot.self, from: bytes), (try? cached.validate()) != nil { catalog = cached }
         if let bytes = try? Data(contentsOf: self.url.appendingPathExtension("official")), let cached = try? JSONDecoder().decode(OfficialDividends.self, from: bytes), cached.isNewer(than: official) { official = cached }
+        if let bytes = try? Data(contentsOf: self.url.appendingPathExtension("daily")), let cached = try? JSONDecoder().decode(OpenData.Day.self, from: bytes),
+           cached.quotes.allSatisfy({ $0.key == $0.value.symbol && $0.value.isValid }), cached.indices.values.allSatisfy(\.isValid) { daily = cached; indices = cached.indices }
         if reset { try? FileManager.default.removeItem(at: self.url) }
         if FileManager.default.fileExists(atPath: self.url.path) {
             do { data = try Portfolio.decodeBackup(Data(contentsOf: self.url)) }
@@ -354,6 +360,11 @@ enum StoreError: LocalizedError {
             official = fresh; officialMessage = "已更新官方配息資料。"
         } catch { officialMessage = error.localizedDescription }
     }
+    func saveDaily() {
+        guard let daily else { return }
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? JSONEncoder().encode(daily).write(to: url.appendingPathExtension("daily"), options: .atomic)
+    }
     func export() throws -> URL {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("ETFToGo-backup-\(UUID().uuidString.prefix(8)).json")
         // Preserve recoverable bytes when decoding failed; never export an empty replacement.
@@ -427,9 +438,11 @@ enum StoreError: LocalizedError {
             guard !targets.isEmpty else { message = "請先新增持有，或到單檔 ETF 頁面更新報價。"; return }
             var fetched: [String: Quote] = [:]
             if key.isEmpty {
-                // No Fugle key: the exchange's own live prices, all codes in one or two requests.
-                fetched = try await ExchangeLive.quotes(targets, markets: markets(targets))
-                guard !fetched.isEmpty else { throw AppDataError("目前沒有這些代號的成交資料，保留上次報價。") }
+                // No Fugle key: the latest trading day's closes from the exchanges' open data, saved where newer.
+                guard await refreshDaily(manual: true), let closes = daily?.quotes else { throw AppDataError("暫時取不到收盤資料，保留上次報價。") }
+                let wanted = Set(targets)
+                guard wanted.contains(where: { closes[$0] != nil }) else { throw AppDataError("目前沒有這些代號的收盤資料，保留上次報價。") }
+                fetched = closes.filter { wanted.contains($0.key) && $0.value.fetchedAt > (data.quotes[$0.key]?.fetchedAt ?? .distantPast) }
             } else {
                 // In a list, prices streamed in the last minute are already current. PublicHTTP spaces the requests so
                 // they stay within the plan together with live polling; what arrived before an error is still kept.

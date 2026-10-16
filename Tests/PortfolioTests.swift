@@ -137,25 +137,51 @@ final class PortfolioTests: XCTestCase {
         XCTAssertThrowsError(try Fugle.decode(bytes, expectedSymbol: "00878"))
         XCTAssertThrowsError(try Fugle.decode(Data(#"{"symbol":"0050","date":"2026-10-15"}"#.utf8), expectedSymbol: "0050"))
     }
-    func testExchangeLiveQuotes() throws {
-        // Shape of mis.twse.com.tw getStockInfo.jsp on 2026-10-16: an index, a share with a trade in the current
-        // tick, one without (last trade under "trade"), one with no trade today, and an unknown code.
-        let bytes = Data(#"""
-        {"rtcode":"0000","rtmessage":"OK","msgArray":[
-         {"c":"t00","ex":"tse","d":"20261016","z":"47268.85","y":"46969.87","o":"46995.03","h":"47520.60","l":"46995.03"},
-         {"c":"0050","ex":"tse","d":"20261016","z":"109.3000","y":"108.9000","o":"109.4500","h":"109.7000","l":"108.9000","v":"85139","trade":{"t":"12:04:04","v":13,"z":"109.3000"}},
-         {"c":"6488","ex":"otc","d":"20261016","z":"-","y":"923.0000","o":"936.0000","h":"936.0000","l":"890.0000","v":"11007","trade":{"t":"12:03:40","v":2,"z":"905.0000"}},
-         {"c":"00679B","ex":"otc","d":"20261016","z":"-","y":"25.5600","o":"-","h":"-","l":"-","v":"0"},
-         {"tv":"-","s":"-","c":"","z":"-"}]}
+    func testOpenDataQuotes() throws {
+        // Shapes of the exchanges' open data in October 2026: TWSE 上市個股日成交資訊 (ROC date, volume in shares,
+        // with a byte order mark), TPEx 上櫃股票收盤行情 (signed change), the TAIEX row of 每日收盤行情 (sign apart
+        // from the size) and the TPEx index history (yyyyMMdd, latest last).
+        let twse = Data([0xEF, 0xBB, 0xBF]) + Data(#"""
+        [{"Date":"1151015","Code":"2330","Name":"台積電","TradeVolume":"35000123","TradeValue":"50750178350","OpeningPrice":"1460.00","HighestPrice":"1470.00","LowestPrice":"1440.00","ClosingPrice":"1450.00","Change":"-15.0000","Transaction":"80123"},
+         {"Date":"1151015","Code":"0050","Name":"元大台灣50","TradeVolume":"85139000","OpeningPrice":"60.10","HighestPrice":"60.50","LowestPrice":"59.80","ClosingPrice":"60.20","Change":"0.3000"},
+         {"Date":"1151015","Code":"9999","Name":"沒有成交","TradeVolume":"0","OpeningPrice":"","HighestPrice":"","LowestPrice":"","ClosingPrice":"","Change":""},
+         {"Date":"1151015","Code":"00700K","Name":"外幣","TradeVolume":"1000","OpeningPrice":"12.00","HighestPrice":"12.00","LowestPrice":"12.00","ClosingPrice":"12.00","Change":"0.0000"}]
         """#.utf8)
-        let quotes = try ExchangeLive.decode(bytes)
-        XCTAssertEqual(Set(quotes.keys), ["t00", "0050", "6488"])
-        let etf = try XCTUnwrap(quotes["0050"])
-        XCTAssertEqual(etf.price, 109.3); XCTAssertEqual(etf.change ?? 0, 0.4, accuracy: 0.0001); XCTAssertEqual(etf.changePercent ?? 0, 0.37, accuracy: 0.001)
-        XCTAssertEqual(etf.date, "2026-10-16"); XCTAssertEqual(etf.volume, 85139); XCTAssertTrue(etf.isTWD); XCTAssertTrue(etf.isExchangeLive)
-        XCTAssertEqual(quotes["6488"]?.price, 905, "Without a trade in the current tick, the last trade is used")
-        XCTAssertEqual(quotes["t00"]?.change ?? 0, 298.98, accuracy: 0.001)
-        XCTAssertThrowsError(try ExchangeLive.decode(Data(#"{"rtcode":"5001","msgArray":[]}"#.utf8)))
+        let listed = try OpenData.decodeTWSE(twse)
+        XCTAssertEqual(Set(listed.keys), ["2330", "0050", "00700K"])
+        let tsmc = try XCTUnwrap(listed["2330"])
+        XCTAssertEqual(tsmc.price, 1450); XCTAssertEqual(tsmc.change, -15); XCTAssertEqual(tsmc.changePercent ?? 0, -1.02, accuracy: 0.001)
+        XCTAssertEqual(tsmc.open, 1460); XCTAssertEqual(tsmc.high, 1470); XCTAssertEqual(tsmc.low, 1440); XCTAssertEqual(tsmc.volume, 35000)
+        XCTAssertEqual(tsmc.date, "2026-10-15"); XCTAssertEqual(tsmc.fetchedAt, DataChecks.date("2026-10-15")!.addingTimeInterval(13.5 * 3600))
+        XCTAssertTrue(tsmc.isTWD); XCTAssertTrue(tsmc.isDailyClose); XCTAssertEqual(tsmc.source, OpenData.source)
+        XCTAssertEqual(listed["0050"]?.changePercent ?? 0, 0.5, accuracy: 0.001)
+        XCTAssertEqual(listed["00700K"]?.isTWD, false, "K codes trade in a foreign currency")
+        let tpex = Data(#"""
+        [{"Date":"1151016","SecuritiesCompanyCode":"6488","CompanyName":"環球晶","Close":"430.50","Change":"-21.00","Open":"450.00","High":"452.00","Low":"428.00","TradingShares":"3,210,000"},
+         {"Date":"1151016","SecuritiesCompanyCode":"00679B","CompanyName":"元大美債20年","Close":"28.15","Change":"+0.05","Open":"28.10","High":"28.20","Low":"28.05","TradingShares":"12000000"},
+         {"Date":"1151016","SecuritiesCompanyCode":"1234","CompanyName":"暫停交易","Close":"----","Change":"0.00"}]
+        """#.utf8)
+        let otc = try OpenData.decodeTPEx(tpex)
+        XCTAssertEqual(Set(otc.keys), ["6488", "00679B"])
+        XCTAssertEqual(otc["6488"]?.changePercent ?? 0, -4.65, accuracy: 0.001); XCTAssertEqual(otc["6488"]?.volume, 3210); XCTAssertEqual(otc["6488"]?.date, "2026-10-16")
+        XCTAssertEqual(otc["00679B"]?.change ?? 0, 0.05, accuracy: 0.0001)
+        let index = Data(#"""
+        [{"日期":"1151016","指數":"寶島股價指數","收盤指數":"51000.00","漲跌":"+","漲跌點數":"10.00","漲跌百分比":"0.02","特殊處理註記":""},
+         {"日期":"1151016","指數":"發行量加權股價指數","收盤指數":"46,969.87","漲跌":"-","漲跌點數":"1,655.96","漲跌百分比":"-3.41","特殊處理註記":""}]
+        """#.utf8)
+        let taiex = try XCTUnwrap(OpenData.decodeTAIEX(index))
+        XCTAssertEqual(taiex.price, 46969.87); XCTAssertEqual(taiex.change ?? 0, -1655.96, accuracy: 0.001); XCTAssertEqual(taiex.changePercent ?? 0, -3.41, accuracy: 0.001)
+        XCTAssertEqual(taiex.date, "2026-10-16")
+        let history = Data(#"[{"Date":"20261015","Open":"299.00","High":"301.00","Low":"298.00","Close":"300.10","Change":"3.36"},{"Date":"20261016","Open":"300.00","High":"301.00","Low":"275.00","Close":"276.87","Change":"-23.23"}]"#.utf8)
+        let otcIndex = try XCTUnwrap(OpenData.decodeTPExIndex(history))
+        XCTAssertEqual(otcIndex.date, "2026-10-16"); XCTAssertEqual(otcIndex.price, 276.87); XCTAssertEqual(otcIndex.changePercent ?? 0, -7.74, accuracy: 0.001)
+        XCTAssertThrowsError(try OpenData.decodeTWSE(Data("<html>維護中</html>".utf8)))
+        // The close expected by now: the same weekday after 14:30, else the weekday before.
+        let friday = DataChecks.date("2026-10-16")!
+        XCTAssertEqual(OpenData.expectedDay(friday.addingTimeInterval(15 * 3600)), "2026-10-16")
+        XCTAssertEqual(OpenData.expectedDay(friday.addingTimeInterval(10 * 3600)), "2026-10-15")
+        XCTAssertEqual(OpenData.expectedDay(friday.addingTimeInterval(27 * 3600)), "2026-10-16", "Saturday")
+        XCTAssertEqual(OpenData.expectedDay(friday.addingTimeInterval(3 * 86400 + 9 * 3600)), "2026-10-16", "Monday morning")
     }
     func testLiveProtocolMessages() throws {
         XCTAssertEqual(LiveProtocol.parse(#"{"event":"authenticated","data":{"message":"Authenticated successfully"}}"#), .authenticated)
@@ -229,12 +255,12 @@ final class PortfolioTests: XCTestCase {
         XCTAssertEqual(parsed.lastTrade, 1460)
     }
     func testLiveMergeKeepsMissingFields() {
-        let saved = Quote(symbol: "0050", price: 100, changePercent: 1, date: "2026-10-16", fetchedAt: Date(timeIntervalSince1970: 0), currency: "TWD", change: 1, open: 99, high: 101, low: 98, volume: 5000, source: ExchangeLive.source)
+        let saved = Quote(symbol: "0050", price: 100, changePercent: 1, date: "2026-10-16", fetchedAt: Date(timeIntervalSince1970: 0), currency: "TWD", change: 1, open: 99, high: 101, low: 98, volume: 5000, source: OpenData.source)
         let now = Date()
         let tick = LiveTick(symbol: "0050", price: 102, change: 2, changePercent: 2, open: nil, high: 102, low: nil, volume: nil, date: "2026-10-16", trial: false)
         let merged = LiveProtocol.merge(saved, tick, now: now)
         XCTAssertEqual(merged.price, 102); XCTAssertEqual(merged.open, 99); XCTAssertEqual(merged.high, 102); XCTAssertEqual(merged.volume, 5000)
-        XCTAssertEqual(merged.date, "2026-10-16"); XCTAssertEqual(merged.fetchedAt, now); XCTAssertNil(merged.trial); XCTAssertFalse(merged.isExchangeLive); XCTAssertEqual(merged.currency, "TWD")
+        XCTAssertEqual(merged.date, "2026-10-16"); XCTAssertEqual(merged.fetchedAt, now); XCTAssertNil(merged.trial); XCTAssertFalse(merged.isDailyClose); XCTAssertEqual(merged.currency, "TWD")
         var yesterday = saved; yesterday.date = "2026-10-15"
         let fresh = LiveProtocol.merge(yesterday, tick, now: now)
         XCTAssertNil(fresh.open, "Yesterday's open, low and volume do not carry into today"); XCTAssertNil(fresh.low); XCTAssertNil(fresh.volume)
