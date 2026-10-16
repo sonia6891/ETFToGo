@@ -130,7 +130,8 @@ enum LiveProtocol {
     /// else one rebuilt from the push's closePrice (the change measured from the same reference price).
     static func realTrade(_ quote: Quote, _ tick: LiveTick, known: Quote?) -> Quote? {
         guard tick.trial else { return quote }
-        if let known, known.date == quote.date, known.trial != true { return known }
+        // The earlier one only while it is still the latest trade; the push says otherwise once the auction moved on.
+        if let known, known.date == quote.date, known.trial != true, tick.lastTrade == nil || tick.lastTrade == known.price { return known }
         guard let trade = tick.lastTrade, trade > 0 else { return nil }
         var real = quote
         real.price = trade; real.trial = nil
@@ -593,5 +594,10 @@ struct LiveStatus: Equatable {
             changed = true
         }
         if changed, !store.isDemo { try? store.commit(next) }
+        // Trial-match prices are not shown once the feed stops: the saved real trade (or the last one seen) takes over.
+        let shown = store.liveQuotes
+        var kept = shown.filter { $0.value.trial != true }
+        for (symbol, quote) in shown where quote.trial == true { if let real = lastReal[symbol], real.date == quote.date { kept[symbol] = real } }
+        if kept.count != shown.count || shown.contains(where: { $0.value.trial == true }) { store.liveQuotes = kept }
     }
 }

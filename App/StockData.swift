@@ -147,7 +147,8 @@ extension PortfolioStore {
     func quote(_ symbol: String) -> Quote? {
         var own = data.quotes[symbol]
         if isDemo, own != nil { return own }
-        if let live = liveQuotes[symbol], live.fetchedAt > (own?.fetchedAt ?? .distantPast) { own = live }
+        // A trial-match price only while its auction can still be running (each lasts at most half an hour).
+        if let live = liveQuotes[symbol], live.trial != true || live.fetchedAt.timeIntervalSinceNow > -1800, live.fetchedAt > (own?.fetchedAt ?? .distantPast) { own = live }
         guard let close = StockSnapshot.bundled?.close(symbol) else { return own }
         guard let own else { return close }
         if own.date == "示範資料" { return own }

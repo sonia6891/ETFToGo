@@ -218,10 +218,12 @@ final class PortfolioTests: XCTestCase {
         let rebuilt = try XCTUnwrap(LiveProtocol.realTrade(shown, tick, known: nil))
         XCTAssertEqual(rebuilt.price, 1460); XCTAssertNil(rebuilt.trial)
         XCTAssertEqual(rebuilt.change ?? 0, 20, accuracy: 0.0001); XCTAssertEqual(rebuilt.changePercent ?? 0, 1.39, accuracy: 0.001)
-        let earlier = Quote(symbol: "2330", price: 1458, changePercent: 1.25, date: "2026-10-16", fetchedAt: Date(), currency: "TWD", change: 18)
-        XCTAssertEqual(LiveProtocol.realTrade(shown, tick, known: earlier)?.price, 1458, "The day's earlier real trade is kept")
+        let same = Quote(symbol: "2330", price: 1460, changePercent: 1.39, date: "2026-10-16", fetchedAt: Date(), currency: "TWD", change: 20, volume: 5000)
+        XCTAssertEqual(LiveProtocol.realTrade(shown, tick, known: same)?.volume, 5000, "The day's real trade is kept while it is still the latest")
+        let morning = Quote(symbol: "2330", price: 1450, changePercent: 0.69, date: "2026-10-16", fetchedAt: Date(), currency: "TWD", change: 10)
+        XCTAssertEqual(LiveProtocol.realTrade(shown, tick, known: morning)?.price, 1460, "A later trade from the push replaces an earlier one")
         var trade = tick; trade.trial = false; trade.lastTrade = nil
-        XCTAssertEqual(LiveProtocol.realTrade(LiveProtocol.merge(nil, trade), trade, known: earlier)?.price, 1455)
+        XCTAssertEqual(LiveProtocol.realTrade(LiveProtocol.merge(nil, trade), trade, known: morning)?.price, 1455)
         guard case .tick(let parsed) = LiveProtocol.parse(#"{"event":"data","channel":"aggregates","data":{"symbol":"2330","lastPrice":1455,"closePrice":1460,"isTrial":true}}"#) else { return XCTFail("trial push") }
         XCTAssertEqual(parsed.lastTrade, 1460)
     }
@@ -267,6 +269,9 @@ final class PortfolioTests: XCTestCase {
         let kept = try XCTUnwrap(reopened.data.quotes["2330"], "Holdings keep their last live price")
         XCTAssertEqual(kept.price, close.price + 5); XCTAssertNil(kept.trial)
         XCTAssertNil(reopened.data.quotes["0050"], "A trial-match price is not saved as the day's price")
+        XCTAssertNil(store.liveQuotes["0050"], "Nor shown once the feed stops")
+        store.liveQuotes["0056"] = Quote(symbol: "0056", price: 40, changePercent: nil, date: DataChecks.day(), fetchedAt: Date().addingTimeInterval(-3600), currency: "TWD", trial: true)
+        XCTAssertNotEqual(store.quote("0056")?.price, 40, "An hour-old trial-match price is over")
         XCTAssertNil(reopened.data.quotes["9999"], "Only holdings and the watchlist are saved")
     }
 }
