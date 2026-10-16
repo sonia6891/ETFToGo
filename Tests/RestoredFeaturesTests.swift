@@ -118,6 +118,7 @@ final class RestoredFeaturesTests: XCTestCase {
         var fee = FeeRecord(symbol:"0050",effectiveDate:"2026-01-01",management:"級距費率",custody:"級距費率",annualExpensePercent:0.2,expenseYear:nil,sourceURL:"https://example.com",note:"")
         XCTAssertThrowsError(try fee.validate()); fee.expenseYear=2025; XCTAssertNoThrow(try fee.validate())
         fee.sourceURL="javascript:alert(1)"; XCTAssertThrowsError(try fee.validate())
+        fee.sourceURL=""; XCTAssertNoThrow(try fee.validate(), "The reference address is optional")
     }
     func testSchemaOneStillDecodesWithoutNewFields() throws {
         let bytes = Data(#"{"schema":1,"holdings":[],"dividends":[],"favorites":[],"quotes":{}}"#.utf8)

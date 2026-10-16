@@ -502,7 +502,7 @@ struct FundDetail: View {
                 Text("還原日收盤價 · 資料至 \(store.data.histories?[fund.id]?.points.last?.date ?? "")").font(.caption2).foregroundStyle(Palette.muted).padding(.top, 8)
             } else {
                 Label("尚無歷史走勢", systemImage: "chart.xyaxis.line").font(.subheadline.bold()).foregroundStyle(Palette.ink)
-                Text("使用你的富果金鑰取得近 5 年還原日收盤價，約需 10 秒；不以試算資料代替。").font(.caption).foregroundStyle(Palette.muted).padding(.vertical, 6)
+                Text("使用你的行情金鑰取得近 5 年還原日收盤價，約需 10 秒；不以試算資料代替。").font(.caption).foregroundStyle(Palette.muted).padding(.vertical, 6)
                 Button(busy ? "取得中…" : "取得歷史走勢") { Task { await loadHistory() } }.buttonStyle(.borderedProminent).disabled(busy)
                 if let error { Text(error).font(.caption).foregroundStyle(Palette.red).padding(.top, 6) }
             }

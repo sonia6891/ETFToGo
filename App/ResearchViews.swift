@@ -166,8 +166,8 @@ struct HistoryContent: View {
                     stat("最大回撤", stats.drawdown); Divider().padding(.vertical, 12)
                     stat("年化波動率", stats.volatility)
                 }
-                Text("資料：\(history.source)，取得日 \(history.fetchedDay)。依供應商還原價格計算，並非你的交易損益；未另計稅費、匯率或個人配息再投入。年化報酬至少需一年，波動率至少需 20 個報酬樣本。無資料期間不補造價格。").font(.caption).foregroundStyle(Palette.muted)
-            } else { ContentUnavailableView("尚無歷史資料", systemImage: "chart.xyaxis.line", description: Text("使用你的富果金鑰取得資料後才計算，不使用情境試算代替。")) }
+                Text("資料取得日 \(history.fetchedDay)。依還原價格計算，並非你的交易損益；未另計稅費、匯率或個人配息再投入。年化報酬至少需一年，波動率至少需 20 個報酬樣本。無資料期間不補造價格。").font(.caption).foregroundStyle(Palette.muted)
+            } else { ContentUnavailableView("尚無歷史資料", systemImage: "chart.xyaxis.line", description: Text("使用你的行情金鑰取得資料後才計算，不使用情境試算代替。")) }
         }
     }
     private func stat(_ title: String, _ value: Double?) -> some View { LabeledContent(title, value: value.map { "\(decimal($0 * 100))%" } ?? "資料期間不足") }
@@ -229,7 +229,7 @@ struct FeeEditor: View {
     @State private var note = ""
     @State private var error: String?
     var body: some View { NavigationStack { Form {
-        Section("依公開說明書或投信公告填寫") { DatePicker("有效／查核日期", selection: $date, in: ...Date(), displayedComponents: .date); TextField("經理費與完整級距", text: $management, axis: .vertical); TextField("保管費與完整級距", text: $custody, axis: .vertical); TextField("資料來源網址 HTTPS", text: $source).textInputAutocapitalization(.never).keyboardType(.URL) }
+        Section("依公開說明書或投信公告填寫") { DatePicker("有效／查核日期", selection: $date, in: ...Date(), displayedComponents: .date); TextField("經理費與完整級距", text: $management, axis: .vertical); TextField("保管費與完整級距", text: $custody, axis: .vertical) }
         Section("選填：已公布的年度實際費用") { TextField("總費用率 %", text: $expense).keyboardType(.decimalPad); TextField("西元統計年度", text: $year).keyboardType(.numberPad); TextField("備註", text: $note, axis: .vertical) }
         if let error { Text(error).foregroundStyle(.red) }
     }.navigationTitle("記錄費用資料").toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("儲存") { do {

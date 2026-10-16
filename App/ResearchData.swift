@@ -107,8 +107,11 @@ struct FeeRecord: Codable {
     var note: String
     func validate() throws {
         guard DataChecks.code(symbol), DataChecks.date(effectiveDate) != nil, effectiveDate <= DataChecks.day(),
-              !management.isEmpty, management.count <= 2000, !custody.isEmpty, custody.count <= 2000, note.count <= 2000,
-              let url = URL(string: sourceURL), url.scheme == "https", url.host != nil, url.user == nil, url.password == nil else { throw AppDataError("請填寫費率級距、有效日期及 HTTPS 資料來源。") }
+              !management.isEmpty, management.count <= 2000, !custody.isEmpty, custody.count <= 2000, note.count <= 2000 else { throw AppDataError("請填寫費率級距及有效日期。") }
+        // A reference address is optional (older records have one); when present it must be a plain https link.
+        if !sourceURL.isEmpty {
+            guard let url = URL(string: sourceURL), url.scheme == "https", url.host != nil, url.user == nil, url.password == nil else { throw AppDataError("參考網址須為 https 開頭。") }
+        }
         if let rate = annualExpensePercent {
             guard rate.isFinite, (0...100).contains(rate), let year = expenseYear, (1990...Calendar.current.component(.year, from: Date())).contains(year) else { throw AppDataError("總費用率須附統計年度，且數值應為 0～100%。") }
         } else if expenseYear != nil { throw AppDataError("費用年度與總費用率須一起填寫。") }

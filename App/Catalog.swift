@@ -68,7 +68,11 @@ enum PublicHTTP {
         let session = URLSession(configuration: .ephemeral, delegate: NoRedirect(), delegateQueue: nil)
         defer { session.finishTasksAndInvalidate() }
         let (bytes, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw StoreError.http((response as? HTTPURLResponse)?.statusCode ?? 0) }
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            if key == nil, code == 401 || code == 403 { throw AppDataError("資料服務暫時拒絕連線（\(code)），保留上次成功資料。") }
+            throw StoreError.http(code)
+        }
         guard bytes.count <= 10_000_000 else { throw AppDataError("資料超過大小上限，保留原資料。") }
         return bytes
     }

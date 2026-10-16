@@ -292,7 +292,7 @@ struct StockDetailView: View {
                     ValueChart(points: visible, showAxes: true, height: 170)
                 } else {
                     Text("尚無歷史走勢").font(.subheadline.bold()).foregroundStyle(Palette.ink)
-                    Text("使用你的富果金鑰取得近 5 年還原日收盤價，約需 10 秒；不以試算資料代替。").font(.caption).foregroundStyle(Palette.muted).padding(.vertical, 6)
+                    Text("使用你的行情金鑰取得近 5 年還原日收盤價，約需 10 秒；不以試算資料代替。").font(.caption).foregroundStyle(Palette.muted).padding(.vertical, 6)
                     Button(busy ? "取得中…" : "取得歷史走勢") { Task { busy = true; error = nil; defer { busy = false }; do { try store.saveHistory(await Fugle.history(symbol: symbol, years: 5)) } catch { self.error = error.localizedDescription } } }.buttonStyle(.borderedProminent).disabled(busy)
                     if let error { Text(error).font(.caption).foregroundStyle(Palette.red).padding(.top, 6) }
                 }
@@ -487,7 +487,7 @@ struct StockDiscoverContent: View {
                 if items.count > visible.count { Button("顯示全部 \(items.count) 檔") { showAll = true }.font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.top, 10) }
             }
             if let snapshot = store.stockSnapshot {
-                Text("上市 \(all.filter { $0.market == "TWSE" }.count) · 上櫃 \(all.filter { $0.market == "TPEx" }.count) 家公司（資料日 \(snapshot.fetchedDay)）。持有、自選與看過的個股會即時更新，其餘顯示 \(snapshot.closeDate["twse"] ?? "") 收盤價。").font(.caption).foregroundStyle(Palette.muted)
+                Text("上市 \(all.filter { $0.market == "TWSE" }.count) · 上櫃 \(all.filter { $0.market == "TPEx" }.count) 家公司（資料日 \(snapshot.fetchedDay)）。開盤時間會即時更新報價，尚未更新的顯示 \(snapshot.closeDate["twse"] ?? "") 收盤價。").font(.caption).foregroundStyle(Palette.muted)
             }
         }
     }
