@@ -145,8 +145,9 @@ extension PortfolioStore {
     }
     /// The freshest price for a symbol: the user's own Fugle quote, else the bundled last close when it is newer.
     func quote(_ symbol: String) -> Quote? {
-        let own = data.quotes[symbol]
+        var own = data.quotes[symbol]
         if isDemo, own != nil { return own }
+        if let live = liveQuotes[symbol], live.fetchedAt > (own?.fetchedAt ?? .distantPast) { own = live }
         guard let close = StockSnapshot.bundled?.close(symbol) else { return own }
         guard let own else { return close }
         if own.date == "示範資料" { return own }

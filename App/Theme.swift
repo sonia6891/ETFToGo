@@ -323,7 +323,9 @@ struct QuoteChange: View {
     let quote: Quote?
     var font: Font = .caption
     var body: some View {
-        if let quote, let percent = quote.changePercent {
+        if let quote, quote.trial == true {
+            Text("試撮 \(quote.changePercent.map(percentText) ?? "")").font(font.weight(.semibold)).monospacedDigit().lineLimit(1).foregroundStyle(Palette.muted)
+        } else if let quote, let percent = quote.changePercent {
             let arrow = percent > 0 ? "▲" : (percent < 0 ? "▼" : "－")
             let amount = quote.changeAmount.map { signed($0, priceText) } ?? ""
             Text("\(arrow) \(amount) (\(percentText(percent)))")

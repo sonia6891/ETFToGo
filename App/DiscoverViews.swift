@@ -412,6 +412,8 @@ struct FundDetail: View {
         }
         .safeAreaInset(edge: .bottom) { actionBar }
         .task { await store.refreshLive([fund.id]) }
+        .onAppear { store.liveFocus = fund.id; store.live.syncSoon() }
+        .onDisappear { if store.liveFocus == fund.id { store.liveFocus = nil; store.live.syncSoon() } }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {

@@ -126,6 +126,8 @@ struct Quote: Codable {
     var volume: Double? = nil
     /// `ExchangeLive.source` for keyless exchange quotes; nil for Fugle and older saved quotes.
     var source: String? = nil
+    /// True while the price is the opening trial match rather than a trade (streamed quotes only).
+    var trial: Bool? = nil
     var isExchangeLive: Bool { source == ExchangeLive.source }
     var isTWD: Bool { currency == "TWD" || (currency == nil && Fund.starters.contains { $0.id == symbol }) }
     var isValid: Bool {
@@ -292,6 +294,12 @@ enum StoreError: LocalizedError {
     @Published var officialMessage: String?
     /// Live 加權 / 櫃買 index quotes (the viewer's Fugle key, else the exchange), keyed "taiex" and "tpex".
     @Published var indices: [String: Quote] = [:]
+    /// Prices pushed or polled during the trading session; kept in memory and saved for holdings and watchlist when the app leaves.
+    @Published var liveQuotes: [String: Quote] = [:]
+    @Published var liveStatus = LiveStatus()
+    /// The stock or ETF page on screen, streamed first.
+    @Published var liveFocus: String?
+    lazy var live = LiveFeed(store: self)
     var funds: [Fund] { isDemo ? Fund.starters : (catalog?.funds ?? []) }
     let isDemo: Bool
     private let url: URL

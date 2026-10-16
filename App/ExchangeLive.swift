@@ -93,13 +93,6 @@ extension PortfolioStore {
         for symbol in data.holdings.map(\.symbol) + data.favorites.sorted() + hot + seen where added.insert(symbol).inserted { list.append(symbol) }
         return Array(list.prefix(300))
     }
-    /// Weekdays 08:55–13:40 Taipei time, the trading session with a margin either side.
-    static func marketOpen(_ now: Date = Date()) -> Bool {
-        var calendar = Calendar(identifier: .gregorian); calendar.timeZone = TimeZone(identifier: "Asia/Taipei")!
-        let parts = calendar.dateComponents([.weekday, .hour, .minute], from: now)
-        let minutes = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
-        return (2...6).contains(parts.weekday ?? 1) && minutes >= 8 * 60 + 55 && minutes <= 13 * 60 + 40
-    }
     /// On every return to the app: indices and prices once, also outside the session so the day's closes show.
     /// During the session LiveFeed keeps them moving (Fugle streaming with a key, the exchange every 10 s without).
     func followMarket() async {

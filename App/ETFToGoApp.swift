@@ -37,8 +37,14 @@ struct RootView: View {
         .environment(\.tabBarMinimize) { value in if minimized != value { minimized = value } }
         .onChange(of: tab) { _, _ in minimized = false }
         .task { if !ProcessInfo.processInfo.arguments.contains("--ui-testing") { await store.refreshCatalog() } }
-        // Indices and prices on every return to the app, and each minute of the trading session without a Fugle key.
-        .task(id: phase) { if phase == .active, !ProcessInfo.processInfo.arguments.contains("--ui-testing") { await store.followMarket() } }
+        // Live prices while the app is in front during the trading session; stopped in the background, where iOS
+        // would suspend the connection anyway. Indices and prices are also refreshed once on every return.
+        .task(id: phase) {
+            guard phase == .active, !ProcessInfo.processInfo.arguments.contains("--ui-testing") else { return }
+            store.live.start()
+            await store.followMarket()
+        }
+        .onChange(of: phase) { _, value in if value == .background { store.live.stop() } }
         .task(id: store.data.dividends.map(\.id)) { await DividendReminders.syncIfEnabled(store.data.dividends) }
         .onAppear {
             let args = ProcessInfo.processInfo.arguments

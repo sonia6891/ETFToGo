@@ -156,4 +156,61 @@ final class PortfolioTests: XCTestCase {
         XCTAssertEqual(quotes["t00"]?.change ?? 0, 298.98, accuracy: 0.001)
         XCTAssertThrowsError(try ExchangeLive.decode(Data(#"{"rtcode":"5001","msgArray":[]}"#.utf8)))
     }
+    func testLiveProtocolMessages() throws {
+        XCTAssertEqual(LiveProtocol.parse(#"{"event":"authenticated","data":{"message":"Authenticated successfully"}}"#), .authenticated)
+        XCTAssertEqual(LiveProtocol.parse(#"{"event":"subscribed","data":{"id":"abc","channel":"aggregates","symbol":"2330"}}"#), .subscribed(["2330": "abc"]))
+        XCTAssertEqual(LiveProtocol.parse(#"{"event":"subscribed","data":[{"id":"a","channel":"aggregates","symbol":"2330"},{"id":"b","channel":"aggregates","symbol":"0050"}]}"#), .subscribed(["2330": "a", "0050": "b"]))
+        XCTAssertEqual(LiveProtocol.parse(#"{"event":"error","data":{"code":1001,"message":"Subscription limit exceeded"}}"#), .error(code: 1001, message: "Subscription limit exceeded"))
+        XCTAssertEqual(LiveProtocol.parse(#"{"event":"heartbeat","data":{"time":1}}"#), .heartbeat)
+        XCTAssertEqual(LiveProtocol.parse("not json"), .other)
+        let push = #"{"event":"data","channel":"aggregates","data":{"date":"2026-10-16","symbol":"2330","openPrice":1450,"highPrice":1465,"lowPrice":1445,"closePrice":1460,"lastPrice":1460,"change":15,"changePercent":1.04,"total":{"tradeVolume":21034},"isTrial":false}}"#
+        guard case .tick(let tick) = LiveProtocol.parse(push) else { return XCTFail("aggregates push") }
+        XCTAssertEqual(tick.price, 1460); XCTAssertEqual(tick.volume, 21034); XCTAssertEqual(tick.date, "2026-10-16"); XCTAssertFalse(tick.trial)
+        let trial = #"{"event":"data","channel":"aggregates","data":{"symbol":"2330","lastPrice":1455,"closePrice":1440,"isTrial":true}}"#
+        guard case .tick(let early) = LiveProtocol.parse(trial) else { return XCTFail("trial push") }
+        XCTAssertEqual(early.price, 1455, "During the trial match the matched price is shown"); XCTAssertTrue(early.trial)
+        XCTAssertEqual(LiveProtocol.parse(#"{"event":"data","channel":"aggregates","data":{"symbol":"../x","closePrice":1}}"#), .other)
+        // The key only ever travels in the auth message, never in the address.
+        let auth = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(LiveProtocol.auth(key: "k-123").utf8)) as? [String: Any])
+        XCTAssertEqual((auth["data"] as? [String: String])?["apikey"], "k-123")
+        XCTAssertFalse(LiveProtocol.endpoint.absoluteString.contains("k-123"))
+        XCTAssertEqual(LiveProtocol.backoff(attempt: 1, random: 0), 0.5)
+        XCTAssertEqual(LiveProtocol.backoff(attempt: 20, random: 1), 60)
+    }
+    func testLiveMergeKeepsMissingFields() {
+        let saved = Quote(symbol: "0050", price: 100, changePercent: 1, date: "2026-10-15", fetchedAt: Date(timeIntervalSince1970: 0), currency: "TWD", change: 1, open: 99, high: 101, low: 98, volume: 5000, source: ExchangeLive.source)
+        let now = Date()
+        let merged = LiveProtocol.merge(saved, LiveTick(symbol: "0050", price: 102, change: 2, changePercent: 2, open: nil, high: 102, low: nil, volume: nil, date: "2026-10-16", trial: false), now: now)
+        XCTAssertEqual(merged.price, 102); XCTAssertEqual(merged.open, 99); XCTAssertEqual(merged.high, 102); XCTAssertEqual(merged.volume, 5000)
+        XCTAssertEqual(merged.date, "2026-10-16"); XCTAssertEqual(merged.fetchedAt, now); XCTAssertNil(merged.trial); XCTAssertFalse(merged.isExchangeLive); XCTAssertEqual(merged.currency, "TWD")
+        let foreign = LiveProtocol.merge(nil, LiveTick(symbol: "00953K", price: 10, change: nil, changePercent: nil, open: nil, high: nil, low: nil, volume: nil, date: nil, trial: true))
+        XCTAssertEqual(foreign.currency, "UNKNOWN"); XCTAssertEqual(foreign.trial, true)
+    }
+    func testTaiwanTradingHours() {
+        let format = DateFormatter()
+        format.dateFormat = "yyyy-MM-dd HH:mm"; format.timeZone = TaiwanMarket.zone; format.locale = Locale(identifier: "en_US_POSIX")
+        func at(_ text: String) -> Date { format.date(from: text)! }
+        XCTAssertFalse(TaiwanMarket.isOpen(at("2026-10-16 08:54")))
+        XCTAssertTrue(TaiwanMarket.isOpen(at("2026-10-16 08:55")), "Friday, opening trial match")
+        XCTAssertTrue(TaiwanMarket.isOpen(at("2026-10-16 13:40")))
+        XCTAssertFalse(TaiwanMarket.isOpen(at("2026-10-16 13:41")))
+        XCTAssertFalse(TaiwanMarket.isOpen(at("2026-10-17 10:00")), "Saturday")
+    }
+    @MainActor func testLiveQuotesWinWhenFresherAndAreKept() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let url = directory.appendingPathComponent("data.json")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = PortfolioStore(url: url)
+        try store.save(Holding(symbol: "2330", name: "台積電", shares: 10, unitCost: 100, broker: "", strategy: .unclassified))
+        let close = try XCTUnwrap(StockSnapshot.bundled?.close("2330"))
+        XCTAssertEqual(store.quote("2330")?.price, close.price)
+        store.liveQuotes["2330"] = Quote(symbol: "2330", price: close.price + 5, changePercent: 0.3, date: DataChecks.day(), fetchedAt: Date(), currency: "TWD", trial: true)
+        XCTAssertEqual(store.quote("2330")?.price, close.price + 5, "A pushed price newer than the bundled close is shown")
+        store.liveQuotes["9999"] = Quote(symbol: "9999", price: 1, changePercent: nil, date: "2020-01-02", fetchedAt: .distantPast)
+        XCTAssertNil(store.data.quotes["9999"])
+        store.live.stop()
+        let kept = try XCTUnwrap(PortfolioStore(url: url).data.quotes["2330"], "Holdings keep their last live price")
+        XCTAssertEqual(kept.price, close.price + 5); XCTAssertNil(kept.trial)
+        XCTAssertNil(store.data.quotes["9999"], "Only holdings and the watchlist are saved")
+    }
 }

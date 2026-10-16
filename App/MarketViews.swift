@@ -66,6 +66,7 @@ struct SymbolRow: View {
                     Spacer(minLength: 4)
                     VStack(alignment: .trailing, spacing: 4) {
                         Text(quote.map { priceText($0.price) } ?? "—").font(.subheadline.bold()).monospacedDigit().foregroundStyle(Palette.ink)
+                            .contentTransition(.numericText(value: quote?.price ?? 0)).animation(.snappy, value: quote?.price)
                         QuoteChange(quote: quote, font: .caption2)
                     }
                 }.contentShape(Rectangle())
@@ -121,6 +122,7 @@ struct IndexCard: View {
         VStack(alignment: .leading, spacing: 3) {
             Label(title, systemImage: "chart.bar.fill").font(.subheadline.bold()).foregroundStyle(Palette.ink).labelStyle(TintedIconLabel(tint: tint))
             Text(value.map(priceText) ?? "—").font(.system(size: 21, weight: .heavy, design: .rounded)).monospacedDigit().foregroundStyle(Palette.ink).minimumScaleFactor(0.6).lineLimit(1).padding(.top, 6)
+                .contentTransition(.numericText(value: value ?? 0)).animation(.snappy, value: value)
             if let change {
                 Text(changeLine(change, percent)).font(.caption.bold()).monospacedDigit().foregroundStyle(Palette.trend(change)).lineLimit(1).minimumScaleFactor(0.7)
             } else {
@@ -160,13 +162,20 @@ struct SourceCard: View {
     @State private var busy = false
     var body: some View {
         let day: String? = store.stockSnapshot?.closeDate["twse"]?.replacingOccurrences(of: "-", with: "/")
-        let connected = hasKey || store.indices["taiex"] != nil
-        let source: String = hasKey ? "富果行情 API" : (connected ? "證交所即時（免金鑰）" : (day.map { "證交所・櫃買中心收盤（\($0)）" } ?? "待設定"))
-        let updated: String = store.indices["taiex"]?.fetchedAt.formatted(date: .omitted, time: .shortened) ?? "—"
+        let status = store.liveStatus
+        let connected = hasKey || store.indices["taiex"] != nil || status.running
+        let closed: String = hasKey ? "富果行情 API" : (connected ? "證交所即時（免金鑰）" : (day.map { "證交所・櫃買中心收盤（\($0)）" } ?? "待設定"))
+        let source: String = status.running ? liveLine(status) : closed
+        let stamp = status.lastUpdate ?? store.indices["taiex"]?.fetchedAt
+        let updated: String = stamp.map { $0.formatted(date: .omitted, time: .standard) } ?? "—"
         HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("資料來源：\(source)")
+                HStack(spacing: 5) {
+                    if status.running { Image(systemName: "circle.fill").font(.system(size: 7)).foregroundStyle(Palette.green).symbolEffect(.pulse) }
+                    Text(status.running ? source : "資料來源：\(source)").fixedSize(horizontal: false, vertical: true)
+                }
                 Text("更新時間：\(updated)")
+                if !status.note.isEmpty { Text(status.note).fixedSize(horizontal: false, vertical: true) }
             }.font(.caption).foregroundStyle(Palette.muted)
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 6) {
@@ -178,6 +187,17 @@ struct SourceCard: View {
         .background(Palette.card, in: RoundedRectangle(cornerRadius: 18))
         .shadow(color: Palette.blue.opacity(0.06), radius: 10, y: 3)
         .onAppear { hasKey = ((try? SecureKey.read()) ?? "").isEmpty == false && !store.isDemo }
+    }
+    private func liveLine(_ status: LiveStatus) -> String {
+        if status.exchange { return "證交所即時・每 10 秒更新（約 5 秒延遲）" }
+        var parts: [String] = []
+        if !status.subscribed.isEmpty { parts.append("富果即時串流 \(status.subscribed.count) 檔") }
+        else if status.connecting { parts.append("正在連線富果即時串流") }
+        else if status.reconnecting { parts.append("串流中斷，稍後自動重連") }
+        if status.paidPlan { parts.append("全市場每 5 秒") }
+        else if status.pollSeconds > 0 { parts.append("其餘約每 \(status.pollSeconds) 秒") }
+        parts.append("指數每 15 秒")
+        return parts.joined(separator: "・")
     }
 }
 struct WatchSection: View {
@@ -226,6 +246,7 @@ struct StockDetailView: View {
             HStack(alignment: .top, spacing: 10) {
                 Card(padding: 14) {
                     Text(quote.map { priceText($0.price) } ?? "—").font(.system(size: 30, weight: .heavy, design: .rounded)).monospacedDigit().foregroundStyle(Palette.ink).minimumScaleFactor(0.6).lineLimit(1)
+                        .contentTransition(.numericText(value: quote?.price ?? 0)).animation(.snappy, value: quote?.price)
                     QuoteChange(quote: quote, font: .subheadline).padding(.top, 4)
                 }
                 Card(padding: 12) { sourceInfo(quote) }
@@ -240,6 +261,8 @@ struct StockDetailView: View {
         }
         .safeAreaInset(edge: .bottom) { actionBar }
         .task { await store.refreshLive([symbol]) }
+        .onAppear { store.liveFocus = symbol; store.live.syncSoon() }
+        .onDisappear { if store.liveFocus == symbol { store.liveFocus = nil; store.live.syncSoon() } }
         .navigationTitle("個股詳情").navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -250,9 +273,10 @@ struct StockDetailView: View {
     }
     private func sourceInfo(_ quote: Quote?) -> some View {
         var live = false
-        if let quote, quote.date != "示範資料", let own = store.data.quotes[symbol], own.fetchedAt == quote.fetchedAt { live = quote.fetchedAt.timeIntervalSinceNow > -86400 }
+        if let quote, quote.date != "示範資料", let own = store.liveQuotes[symbol] ?? store.data.quotes[symbol], own.fetchedAt == quote.fetchedAt { live = quote.fetchedAt.timeIntervalSinceNow > -86400 }
+        let streaming = store.liveStatus.subscribed.contains(symbol)
         let exchange: String = store.stock(symbol)?.market == "TPEx" ? "櫃買中心收盤" : "證交所收盤"
-        let source: String = quote == nil ? "待設定" : (store.isDemo ? "示範資料" : (live ? (quote?.isExchangeLive == true ? "證交所即時" : "富果行情") : exchange))
+        let source: String = quote == nil ? "待設定" : (store.isDemo ? "示範資料" : (streaming ? "富果即時串流" : (live ? (quote?.isExchangeLive == true ? "證交所即時" : "富果行情") : exchange)))
         let updated: String = quote.map { store.isDemo ? "—" : $0.date.replacingOccurrences(of: "-", with: "/") + (live ? " " + $0.fetchedAt.formatted(date: .omitted, time: .shortened) : "") } ?? "—"
         return VStack(alignment: .leading, spacing: 5) {
             Label("即時／延遲依資料來源", systemImage: "clock").font(.caption2)
@@ -297,7 +321,7 @@ struct StockDetailView: View {
                     LabeledContent("公司全名", value: info.fullName)
                 }.font(.subheadline)
             }
-            if let quote, quote.date != "示範資料", store.data.quotes[symbol] == nil { Text("收盤價・資料日 \(quote.date.replacingOccurrences(of: "-", with: "/"))（證交所／櫃買中心公開資料，非即時）").font(.caption).foregroundStyle(Palette.muted) }
+            if let quote, quote.date != "示範資料", store.data.quotes[symbol] == nil, store.liveQuotes[symbol] == nil { Text("收盤價・資料日 \(quote.date.replacingOccurrences(of: "-", with: "/"))（證交所／櫃買中心公開資料，非即時）").font(.caption).foregroundStyle(Palette.muted) }
             Button(store.refreshing ? "更新中…" : "更新報價") { Task { await store.refresh(symbols: [symbol]) } }.font(.caption.bold()).disabled(store.refreshing || store.isDemo)
         }
     }
