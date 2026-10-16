@@ -29,7 +29,7 @@ enum Palette {
     static let hero = LinearGradient(colors: [Color(red: 0.27, green: 0.58, blue: 1.0), Color(red: 0.08, green: 0.33, blue: 0.93)], startPoint: .topLeading, endPoint: .bottomTrailing)
     static let page = LinearGradient(colors: [Color(light: UIColor(red: 0.88, green: 0.92, blue: 1.0, alpha: 1), dark: UIColor(red: 0.075, green: 0.13, blue: 0.25, alpha: 1)), background], startPoint: .top, endPoint: .bottom)
     /// Allocation groups shown in the design's legends.
-    static func theme(_ value: String) -> Color { switch value { case "市值型": return blue; case "高股息": return purple; case "產業主題": return teal; default: return orange } }
+    static func theme(_ value: String) -> Color { switch value { case "市值型": return blue; case "高股息": return purple; case "產業主題": return teal; case "個股": return pink; default: return orange } }
     static let series: [Color] = [blue, pink, teal, orange, purple, green, Color(red: 0.54, green: 0.63, blue: 0.77)]
 }
 extension Color {
@@ -150,7 +150,7 @@ extension Quote {
 }
 extension PortfolioStore {
     func name(for symbol: String) -> String {
-        funds.first { $0.id == symbol }?.name ?? data.holdings.first { $0.symbol == symbol }?.name ?? symbol
+        funds.first { $0.id == symbol }?.name ?? stock(symbol)?.name ?? data.holdings.first { $0.symbol == symbol }?.name ?? symbol
     }
 }
 
@@ -396,6 +396,7 @@ struct ValueChart: View {
     let points: [ValuePoint]
     var showAxes = false
     var height: CGFloat = 150
+    var tint: Color = Palette.blue
     var body: some View {
         let values = points.map(\.value)
         let low = values.min() ?? 0
@@ -404,10 +405,10 @@ struct ValueChart: View {
         let base = low - pad
         Chart(points) { point in
             AreaMark(x: .value("日期", point.date), yStart: .value("基準", base), yEnd: .value("數值", point.value))
-                .foregroundStyle(LinearGradient(colors: [Palette.blue.opacity(0.26), Palette.blue.opacity(0.02)], startPoint: .top, endPoint: .bottom))
+                .foregroundStyle(LinearGradient(colors: [tint.opacity(0.26), tint.opacity(0.02)], startPoint: .top, endPoint: .bottom))
                 .interpolationMethod(.monotone)
             LineMark(x: .value("日期", point.date), y: .value("數值", point.value))
-                .foregroundStyle(Palette.blue)
+                .foregroundStyle(tint)
                 .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
                 .interpolationMethod(.monotone)
         }

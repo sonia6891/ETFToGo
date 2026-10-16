@@ -8,29 +8,21 @@ enum HoldingSort: String, CaseIterable, Identifiable {
 extension PortfolioStore {
     func fund(for holding: Holding) -> Fund { funds.first { $0.id == holding.symbol } ?? Fund(id: holding.symbol, name: holding.name, strategy: holding.strategy) }
     func marketValue(of holding: Holding) -> Double? {
-        guard let quote = data.quotes[holding.symbol], quote.isTWD else { return nil }
+        guard let quote = quote(holding.symbol), quote.isTWD else { return nil }
         return quote.price * holding.shares
     }
 }
 struct HoldingsView: View {
     @EnvironmentObject var store: PortfolioStore
-    @State private var section = 0
-    @State private var sort = HoldingSort.value
-    @State private var searching = false
-    @State private var query = ""
+    @State private var kind = 0
     @AppStorage("hideAmounts") private var hidden = false
-    private var holdings: [Holding] {
-        let text = query.trimmingCharacters(in: .whitespaces)
-        let items = store.data.holdings.filter { text.isEmpty || $0.symbol.localizedCaseInsensitiveContains(text) || $0.name.localizedCaseInsensitiveContains(text) || $0.broker.localizedCaseInsensitiveContains(text) }
-        let value: (Holding) -> Double = { store.marketValue(of: $0) ?? -1 }
-        switch sort {
-        case .value: return items.sorted { value($0) > value($1) }
-        case .cost: return items.sorted { $0.cost > $1.cost }
-        case .profit: return items.sorted { (value($0) - $0.cost) > (value($1) - $1.cost) }
-        case .symbol: return items.sorted { $0.symbol < $1.symbol }
-        }
-    }
     var body: some View {
+        let holdings = store.data.holdings
+        let stocks = sorted(holdings.filter { store.isStock($0.symbol) })
+        let etfs = sorted(holdings.filter { !store.isStock($0.symbol) })
+        let stockValue = stocks.reduce(0.0) { $0 + (store.marketValue(of: $1) ?? 0) }
+        let etfValue = etfs.reduce(0.0) { $0 + (store.marketValue(of: $1) ?? 0) }
+        let missing = holdings.filter { store.marketValue(of: $0) == nil }.count
         Page {
             HStack {
                 Text("我的持有").font(.title.bold()).foregroundStyle(Palette.ink)
@@ -40,39 +32,51 @@ struct HoldingsView: View {
                 }.accessibilityIdentifier("add-holding")
             }.padding(.top, 6)
             DemoBar()
-            hero
-            SegmentBar(items: ["持有", "交易", "配置"], selection: $section, pill: true, filled: true, icons: ["bag", "arrow.left.arrow.right", "chart.pie"])
-            switch section {
-            case 1: TradeLogSection()
-            case 2: AllocationSection()
-            default: positions
+            SegmentBar(items: ["全部", "個股", "ETF"], selection: $kind, pill: true, filled: true)
+            hero(stockValue: stockValue, etfValue: etfValue)
+            if holdings.isEmpty {
+                Card {
+                    ContentUnavailableView("把股票與 ETF 放進口袋", systemImage: "bag", description: Text("選擇股票或 ETF，填入股數與總成本，之後就能持續追蹤。"))
+                    NavigationLink(value: AppRoute.holdingForm(id: nil, symbol: nil)) { PrimaryButtonLabel(title: "新增持有") }.buttonStyle(.plain)
+                }
+            } else {
+                dataRow(holdings)
+                if kind != 2 && !stocks.isEmpty { table(title: "個股持有", items: stocks, tint: Palette.pink) }
+                if kind != 1 && !etfs.isEmpty { table(title: "ETF 持有", items: etfs, tint: Palette.blue) }
+                if (kind == 1 && stocks.isEmpty) || (kind == 2 && etfs.isEmpty) {
+                    Card { Text(kind == 1 ? "還沒有個股持有，按右上角「新增持有」加入。" : "還沒有 ETF 持有，按右上角「新增持有」加入。").font(.subheadline).foregroundStyle(Palette.muted) }
+                }
+                if missing > 0 { Text("\(missing) 筆持有尚缺報價，未計入總市值。").font(.caption).foregroundStyle(Palette.muted) }
+                NavigationLink(value: AppRoute.combo) { PrimaryButtonLabel(title: "個股 + ETF 組合試算", icon: "function") }.buttonStyle(.plain).accessibilityIdentifier("holdings-combo")
+                Label("行情更新不等於券商持股同步", systemImage: "info.circle").font(.caption).foregroundStyle(Palette.muted).frame(maxWidth: .infinity)
+                Card(padding: 12) {
+                    NavigationLink(value: AppRoute.trades) { ToolRow(title: "交易紀錄", subtitle: "買進、賣出、調整與匯入", icon: "arrow.left.arrow.right") }.buttonStyle(.plain).accessibilityIdentifier("holdings-trades")
+                    Divider()
+                    NavigationLink(value: AppRoute.allocation) { ToolRow(title: "資產配置", subtitle: "類型、產業分佈與持股透視", icon: "chart.pie") }.buttonStyle(.plain).accessibilityIdentifier("holdings-allocation")
+                }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
         .refreshable { await store.refresh() }
     }
-    private var hero: some View {
-        let summary = PortfolioSummary(store.data)
+    private func sorted(_ items: [Holding]) -> [Holding] {
+        items.sorted { (store.marketValue(of: $0) ?? -1) > (store.marketValue(of: $1) ?? -1) }
+    }
+    private func hero(stockValue: Double, etfValue: Double) -> some View {
+        let total = stockValue + etfValue
         return VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("我的總市值").font(.subheadline.weight(.semibold)); Text("(TWD)").font(.caption).opacity(0.8)
+            HStack(spacing: 10) {
+                Image(systemName: "wallet.pass").font(.title3).frame(width: 40, height: 40).background(Color.white.opacity(0.22), in: RoundedRectangle(cornerRadius: 12))
+                Text(store.isDemo ? "總市值（示例）" : "總市值").font(.subheadline.weight(.semibold))
+                Text("(TWD)").font(.caption).opacity(0.8)
                 Spacer()
                 Button { hidden.toggle() } label: { Image(systemName: hidden ? "eye.slash" : "eye") }.accessibilityLabel(hidden ? "顯示金額" : "隱藏金額")
             }
-            Text(shown(summary.marketValue.map(money) ?? "—", hidden: hidden)).font(.system(size: 36, weight: .heavy, design: .rounded)).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1)
-            if let unrealized = summary.unrealized, let percent = summary.unrealizedPercent {
-                Text(shown("\(unrealized >= 0 ? "▲" : "▼") \(signed(unrealized)) (\(percentText(percent)))", hidden: hidden)).font(.headline).monospacedDigit()
-                    .foregroundStyle(unrealized > 0 ? Palette.heroUp : (unrealized < 0 ? Palette.heroDown : Color.white))
+            Text(shown(total > 0 ? money(total) : "—", hidden: hidden)).font(.system(size: 36, weight: .heavy, design: .rounded)).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1).accessibilityIdentifier("holdings-total")
+            HStack(spacing: 10) {
+                splitTile(title: "個股", value: stockValue, total: total, tint: Palette.pink)
+                splitTile(title: "ETF", value: etfValue, total: total, tint: Palette.blue)
             }
-            HStack(spacing: 0) {
-                cell("總成本", shown(money(summary.cost), hidden: hidden), nil, Palette.ink)
-                Divider().frame(height: 34)
-                cell("未實現損益", summary.unrealized.map { shown(signed($0), hidden: hidden) } ?? "尚缺報價", summary.unrealizedPercent.map { shown("(\(percentText($0)))", hidden: hidden) }, summary.unrealized.map(Palette.trend) ?? Palette.muted)
-                Divider().frame(height: 34)
-                cell("持有檔數", "\(summary.symbolCount) 檔", nil, Palette.ink)
-            }
-            .padding(.vertical, 10)
-            .background(Palette.card, in: RoundedRectangle(cornerRadius: 16))
         }
         .padding(18)
         .foregroundStyle(.white)
@@ -80,32 +84,69 @@ struct HoldingsView: View {
         .background(Palette.hero, in: RoundedRectangle(cornerRadius: 22))
         .shadow(color: Palette.blue.opacity(0.25), radius: 12, y: 5)
     }
-    private func cell(_ title: String, _ value: String, _ detail: String?, _ tint: Color) -> some View {
+    private func splitTile(title: String, value: Double, total: Double, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(title).font(.caption).foregroundStyle(Palette.muted)
-            Text(value).font(.headline).monospacedDigit().foregroundStyle(tint).minimumScaleFactor(0.6).lineLimit(1)
-            if let detail { Text(detail).font(.caption2.weight(.semibold)).foregroundStyle(tint) }
-        }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12)
-    }
-    @ViewBuilder private var positions: some View {
-        if store.data.holdings.isEmpty {
-            Card {
-                ContentUnavailableView("把你的 ETF 放進口袋", systemImage: "bag", description: Text("選擇 ETF，填入股數與總成本，之後就能持續追蹤。"))
-                NavigationLink(value: AppRoute.holdingForm(id: nil, symbol: nil)) { PrimaryButtonLabel(title: "新增持有") }.buttonStyle(.plain)
-            }
-        } else {
-            HStack {
-                SectionHeading(title: "持有明細 (\(holdings.count))")
-                Menu { Picker("排序", selection: $sort) { ForEach(HoldingSort.allCases) { Text($0.rawValue).tag($0) } } } label: { HStack(spacing: 3) { Text(sort.rawValue); Image(systemName: "chevron.down") }.font(.caption.weight(.semibold)) }
-                Button { searching.toggle(); if !searching { query = "" } } label: { Image(systemName: searching ? "xmark" : "magnifyingglass") }.accessibilityLabel(searching ? "關閉搜尋" : "搜尋持有").padding(.leading, 6)
-            }
-            if searching {
-                HStack { Image(systemName: "magnifyingglass").foregroundStyle(Palette.muted); TextField("搜尋代號、名稱或券商", text: $query).autocorrectionDisabled().textInputAutocapitalization(.never) }
-                    .padding(12).background(Palette.card, in: RoundedRectangle(cornerRadius: 14))
-            }
-            VStack(spacing: 10) { ForEach(holdings) { holding in NavigationLink(value: AppRoute.holdingDetail(holding.id)) { HoldingRow(holding: holding, hidden: hidden) }.buttonStyle(.plain) } }
-            Text("股數以「股」為單位，成本統一填台幣（含手續費）。未確認幣別或外幣報價不直接加總為台幣市值。").font(.caption).foregroundStyle(Palette.muted)
+            Label(title, systemImage: "chart.bar.fill").font(.subheadline.bold()).foregroundStyle(Palette.ink).labelStyle(TintedIconLabel(tint: tint))
+            Text(shown(money(value), hidden: hidden)).font(.title3.bold()).monospacedDigit().foregroundStyle(Palette.ink).minimumScaleFactor(0.6).lineLimit(1)
+            Text(total > 0 ? "\(decimal(value / total * 100))%" : "—").font(.subheadline.bold()).foregroundStyle(tint)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background { RoundedRectangle(cornerRadius: 16).fill(Palette.card).overlay(RoundedRectangle(cornerRadius: 16).fill(tint.opacity(0.12))) }
+    }
+    private func dataRow(_ holdings: [Holding]) -> some View {
+        let dates = holdings.compactMap { store.quote($0.symbol)?.date }.filter { $0 != "示範資料" }.sorted()
+        return HStack {
+            Text("資料日期：\(store.isDemo ? "示範資料" : (dates.last?.replacingOccurrences(of: "-", with: "/") ?? "—"))")
+            Spacer()
+            Button(store.refreshing ? "更新中…" : "用富果更新報價") { Task { await store.refresh() } }.disabled(store.refreshing || store.isDemo)
+        }
+        .font(.caption).foregroundStyle(Palette.muted)
+    }
+    private func table(title: String, items: [Holding], tint: Color) -> some View {
+        Card(padding: 12) {
+            Label(title, systemImage: "chart.bar.fill").font(.headline).foregroundStyle(Palette.ink).labelStyle(TintedIconLabel(tint: tint))
+            HStack(spacing: 4) {
+                Text("商品").frame(maxWidth: .infinity, alignment: .leading)
+                Text("股數").frame(width: 42, alignment: .trailing)
+                Text("現價").frame(width: 54, alignment: .trailing)
+                Text("市值").frame(width: 58, alignment: .trailing)
+                Text("損益").frame(width: 62, alignment: .trailing)
+                Color.clear.frame(width: 10, height: 1)
+            }
+            .font(.caption2.bold()).foregroundStyle(Palette.muted).padding(.top, 10)
+            ForEach(items) { holding in
+                Divider().padding(.vertical, 6)
+                row(holding)
+            }
+        }
+    }
+    private func row(_ h: Holding) -> some View {
+        let quote = store.quote(h.symbol), value = store.marketValue(of: h)
+        let gain = value.map { $0 - h.cost }
+        let tint = gain.map(Palette.trend) ?? Palette.muted
+        return NavigationLink(value: AppRoute.holdingDetail(h.id)) {
+            HStack(spacing: 4) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) { Text(h.symbol).font(.caption.bold()); Text(h.name).font(.caption).lineLimit(1) }
+                    MarketBadge(symbol: h.symbol)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                Text(decimal(h.shares)).frame(width: 42, alignment: .trailing)
+                Text(quote.map { priceText($0.price) } ?? "—").frame(width: 54, alignment: .trailing)
+                Text(value.map { shown(wanText($0), hidden: hidden) } ?? "—").frame(width: 58, alignment: .trailing)
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(gain.map { shown(signed($0), hidden: hidden) } ?? "—")
+                    if let gain, h.cost > 0 { Text(shown(percentText(gain / h.cost * 100), hidden: hidden)) }
+                }
+                .font(.caption2.bold()).foregroundStyle(tint)
+                .padding(.horizontal, 5).padding(.vertical, 3)
+                .background(tint.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                .frame(width: 62, alignment: .trailing)
+                Image(systemName: "chevron.right").font(.caption2).foregroundStyle(Palette.muted).frame(width: 10)
+            }
+            .font(.caption).monospacedDigit().foregroundStyle(Palette.ink).lineLimit(1).minimumScaleFactor(0.7)
+            .contentShape(Rectangle())
+        }.buttonStyle(.plain)
     }
 }
 struct HoldingRow: View {
@@ -121,7 +162,7 @@ struct HoldingRow: View {
             }
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 3) {
-                Text(value.map { shown(money($0), hidden: hidden) } ?? (store.data.quotes[holding.symbol] == nil ? "尚無報價" : "外幣報價")).font(.headline).monospacedDigit().foregroundStyle(value == nil ? Palette.muted : Palette.ink)
+                Text(value.map { shown(money($0), hidden: hidden) } ?? (store.quote(holding.symbol) == nil ? "尚無報價" : "外幣報價")).font(.headline).monospacedDigit().foregroundStyle(value == nil ? Palette.muted : Palette.ink)
                 if let gain, holding.cost > 0 {
                     Text(shown(signed(gain), hidden: hidden)).font(.caption.bold()).monospacedDigit().foregroundStyle(Palette.trend(gain))
                     Text(shown(percentText(gain / holding.cost * 100), hidden: hidden)).font(.caption2.bold()).monospacedDigit().foregroundStyle(Palette.trend(gain))
@@ -236,21 +277,21 @@ struct AllocationSection: View {
     @State private var tab = 0
     @AppStorage("hideAmounts") private var hidden = false
     var body: some View {
-        let summary = PortfolioSummary(store.data)
+        let summary = store.summary
         let useValue = summary.marketValue != nil
         let value: (Holding) -> Double = { useValue ? (store.marketValue(of: $0) ?? 0) : $0.cost }
         let total = store.data.holdings.reduce(0.0) { $0 + value($1) }
         let bySymbol = makeSlices(store.data.holdings, key: { $0.symbol }, value: value)
         let topTwo = total > 0 ? bySymbol.prefix(2).reduce(0.0) { $0 + $1.amount } / total * 100 : 0
         VStack(alignment: .leading, spacing: 14) {
-            SegmentBar(items: ["ETF 分類", "產業分佈", "持股透視"], selection: $tab, pill: true)
+            SegmentBar(items: ["類型分類", "產業分佈", "持股透視"], selection: $tab, pill: true)
             Card {
                 switch tab {
                 case 0:
-                    let rows = makeSlices(store.data.holdings, key: { store.fund(for: $0).theme }, value: value).map { Slice(label: $0.label, amount: $0.amount, color: Palette.theme($0.label)) }
+                    let rows = makeSlices(store.data.holdings, key: { store.isStock($0.symbol) ? "個股" : store.fund(for: $0).theme }, value: value).map { Slice(label: $0.label, amount: $0.amount, color: Palette.theme($0.label)) }
                     if rows.isEmpty { Text("還沒有持有紀錄。").foregroundStyle(Palette.muted) } else { DonutChart(slices: rows, center: (useValue ? "總市值" : "總成本", shown(wanText(total), hidden: hidden)), showAmounts: true, hidden: hidden) }
                 case 1:
-                    let rows = makeSlices(store.data.holdings, key: { store.fund(for: $0).industry ?? store.fund(for: $0).assetKind }, value: value)
+                    let rows = makeSlices(store.data.holdings, key: { industryKey($0) }, value: value)
                     if rows.isEmpty { Text("還沒有持有紀錄。").foregroundStyle(Palette.muted) } else { DonutChart(slices: rows, center: (useValue ? "總市值" : "總成本", shown(wanText(total), hidden: hidden)), showAmounts: true, hidden: hidden) }
                 default:
                     let rows = ResearchMath.exposures(store.data)
@@ -283,6 +324,15 @@ struct AllocationSection: View {
     }
 }
 
+extension AllocationSection {
+    /// Stocks use the company's industry; ETFs the theme from their name.
+    func industryKey(_ holding: Holding) -> String {
+        if store.isStock(holding.symbol) { return store.stock(holding.symbol)?.industry ?? "個股" }
+        let fund = store.fund(for: holding)
+        return fund.industry ?? fund.assetKind
+    }
+}
+
 /* ---------- holding detail and forms ---------- */
 struct HoldingDetailView: View {
     @EnvironmentObject var store: PortfolioStore
@@ -300,8 +350,8 @@ struct HoldingDetailView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 8) { Text(h.symbol).font(.title3.bold()); Text(h.name).font(.headline).lineLimit(1) }.foregroundStyle(Palette.ink)
                             HStack(spacing: 6) {
-                                if let market = fund.market { TintPill(title: market == "TPEx" ? "台灣上櫃" : "台灣上市", color: Palette.muted) }
-                                TintPill(title: fund.theme, color: Palette.blue)
+                                if let market = fund.market ?? store.stock(h.symbol)?.market { TintPill(title: market == "TPEx" ? "台灣上櫃" : "台灣上市", color: Palette.muted) }
+                                TintPill(title: store.isStock(h.symbol) ? "個股" : fund.theme, color: Palette.blue)
                                 if !h.broker.isEmpty { TintPill(title: h.broker, color: Palette.muted) }
                             }
                         }
@@ -316,7 +366,7 @@ struct HoldingDetailView: View {
                         Divider().frame(height: 40)
                         stat("平均成本", priceText(h.unitCost), "(含手續費)")
                         Divider().frame(height: 40)
-                        stat("市值", value.map { shown(money($0), hidden: hidden) } ?? "—", store.data.quotes[h.symbol].map { "(\(priceText($0.price))/股)" })
+                        stat("市值", value.map { shown(money($0), hidden: hidden) } ?? "—", store.quote(h.symbol).map { "(\(priceText($0.price))/股)" })
                     }.padding(.vertical, 10).background(Palette.cardSoft, in: RoundedRectangle(cornerRadius: 14)).padding(.top, 12)
                     HStack(spacing: 10) {
                         VStack(alignment: .leading, spacing: 3) { Text("未實現損益").font(.caption).foregroundStyle(Palette.muted); Text(gain.map { shown("\(signed($0)) (\(percentText($0 / max(h.cost, 0.000001) * 100)))", hidden: hidden) } ?? "尚缺報價").font(.subheadline.bold()).monospacedDigit().foregroundStyle(gain.map(Palette.trend) ?? Palette.muted) }
@@ -332,7 +382,7 @@ struct HoldingDetailView: View {
                     NavigationLink(value: AppRoute.holdingForm(id: h.id, symbol: nil)) { Label("編輯持有", systemImage: "pencil").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 13).foregroundStyle(.white).background(Palette.hero, in: RoundedRectangle(cornerRadius: 14)) }
                     Button { deleting = true } label: { Label("刪除持有", systemImage: "trash").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 13).foregroundStyle(Palette.red).background(Palette.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 14)) }
                 }.buttonStyle(.plain)
-                HStack { SectionHeading(title: "配息紀錄"); if !divs.isEmpty { NavigationLink(value: fund) { HStack(spacing: 2) { Text("查看全部"); Image(systemName: "chevron.right") }.font(.caption.bold()) } } }
+                HStack { SectionHeading(title: "配息紀錄"); if !divs.isEmpty { SymbolLink(symbol: h.symbol) { HStack(spacing: 2) { Text("查看全部"); Image(systemName: "chevron.right") }.font(.caption.bold()).foregroundStyle(Palette.blue) } } }
                 Card(padding: 12) {
                     if divs.isEmpty { Text("還沒有這檔的配息紀錄。").font(.subheadline).foregroundStyle(Palette.muted).padding(4) }
                     ForEach(divs.prefix(5)) { item in
@@ -386,13 +436,13 @@ struct HoldingFormView: View {
         Page {
             Card {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("搜尋 ETF 代號或名稱").font(.caption.bold()).foregroundStyle(Palette.muted)
+                    Text("搜尋股票或 ETF 代號、名稱").font(.caption.bold()).foregroundStyle(Palette.muted)
                     HStack {
                         Image(systemName: "magnifyingglass").foregroundStyle(Palette.muted)
-                        TextField("例如 0050", text: $symbol).textInputAutocapitalization(.characters).autocorrectionDisabled().accessibilityIdentifier("holding-symbol")
+                        TextField("例如 2330 或 0050", text: $symbol).textInputAutocapitalization(.characters).autocorrectionDisabled().accessibilityIdentifier("holding-symbol")
                         if !symbol.isEmpty { Button { symbol = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Palette.muted) }.accessibilityLabel("清除代號") }
                     }.padding(11).background(Palette.cardSoft, in: RoundedRectangle(cornerRadius: 12))
-                    TextField("ETF 名稱", text: $name).padding(11).background(Palette.cardSoft, in: RoundedRectangle(cornerRadius: 12)).accessibilityIdentifier("holding-name")
+                    TextField("名稱（清單沒有時填寫）", text: $name).padding(11).background(Palette.cardSoft, in: RoundedRectangle(cornerRadius: 12)).accessibilityIdentifier("holding-name")
                 }
                 VStack(spacing: 2) {
                     FieldRow(title: "持有股數") { UnitField(placeholder: "1,000 股 = 1 張", text: $shares, unit: "股", identifier: "holding-shares") }
@@ -420,7 +470,8 @@ struct HoldingFormView: View {
         .navigationTitle(existing == nil ? "新增持有" : "編輯持有").navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: load)
         .onChange(of: symbol) { _, value in
-            if let fund = store.funds.first(where: { $0.id == value.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() }) { name = fund.name }
+            let code = value.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            if let known = store.funds.first(where: { $0.id == code })?.name ?? store.stock(code)?.name { name = known }
         }
         .confirmationDialog("刪除這筆持有？配息紀錄會保留。", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("確認刪除", role: .destructive) { if let existing { do { try store.remove(existing); dismiss() } catch { self.error = error.localizedDescription } } }
@@ -431,16 +482,16 @@ struct HoldingFormView: View {
         if let h = existing {
             symbol = h.symbol; name = h.name; shares = h.shares == h.shares.rounded() ? String(Int(h.shares)) : String(h.shares)
             total = String((h.cost * 100).rounded() / 100); broker = h.broker; date = h.purchaseDate ?? Date()
-        } else if let fund = store.funds.first(where: { $0.id == symbol }) { name = fund.name }
+        } else if let known = store.funds.first(where: { $0.id == symbol })?.name ?? store.stock(symbol)?.name { name = known }
     }
     private func save() {
         let code = symbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         let s = Double(shares.replacingOccurrences(of: ",", with: "")) ?? 0, t = Double(total.replacingOccurrences(of: ",", with: "")) ?? -1
         let fund = store.funds.first { $0.id == code }
-        guard DataChecks.code(code) else { error = "請輸入正確的 ETF 代號，例如 0050。"; return }
+        guard DataChecks.code(code) else { error = "請輸入正確的股票或 ETF 代號，例如 2330、0050。"; return }
         guard s > 0 else { error = "持有股數須大於 0。"; return }
         guard t >= 0 else { error = "請填寫總成本（含手續費）。"; return }
-        let h = Holding(id: existing?.id ?? UUID(), symbol: code, name: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (fund?.name ?? "") : name.trimmingCharacters(in: .whitespacesAndNewlines), shares: s, unitCost: t / s, broker: broker.trimmingCharacters(in: .whitespacesAndNewlines), strategy: existing.map { $0.symbol == code ? $0.strategy : (fund?.strategy ?? .unclassified) } ?? (fund?.strategy ?? .unclassified), sourceAccount: existing?.sourceAccount, purchaseDate: date)
+        let h = Holding(id: existing?.id ?? UUID(), symbol: code, name: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (fund?.name ?? store.stock(code)?.name ?? "") : name.trimmingCharacters(in: .whitespacesAndNewlines), shares: s, unitCost: t / s, broker: broker.trimmingCharacters(in: .whitespacesAndNewlines), strategy: existing.map { $0.symbol == code ? $0.strategy : (fund?.strategy ?? .unclassified) } ?? (fund?.strategy ?? .unclassified), sourceAccount: existing?.sourceAccount, purchaseDate: date)
         do { try store.save(h); dismiss() } catch { self.error = error.localizedDescription }
     }
 }
@@ -459,10 +510,11 @@ struct TradeFormView: View {
             SegmentBar(items: ["買進", "賣出"], selection: $kind, pill: true, filled: true)
             Card {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("ETF 代號").font(.caption.bold()).foregroundStyle(Palette.muted)
+                    Text("股票／ETF 代號").font(.caption.bold()).foregroundStyle(Palette.muted)
                     HStack { Image(systemName: "magnifyingglass").foregroundStyle(Palette.muted); TextField("例如 00878", text: $symbol).textInputAutocapitalization(.characters).autocorrectionDisabled() }
                         .padding(11).background(Palette.cardSoft, in: RoundedRectangle(cornerRadius: 12))
-                    if let fund = store.funds.first(where: { $0.id == symbol.trimmingCharacters(in: .whitespaces).uppercased() }) { Text(fund.name).font(.caption).foregroundStyle(Palette.muted) }
+                    let code = symbol.trimmingCharacters(in: .whitespaces).uppercased()
+                    if let known = store.funds.first(where: { $0.id == code })?.name ?? store.stock(code)?.name { Text(known).font(.caption).foregroundStyle(Palette.muted) }
                 }
                 VStack(spacing: 2) {
                     FieldRow(title: "交易日期") { DatePicker("交易日期", selection: $date, displayedComponents: .date).labelsHidden() }

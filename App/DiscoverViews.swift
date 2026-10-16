@@ -113,6 +113,7 @@ struct DiscoverView: View {
     @State private var query = ""
     @State private var filter = FundFilter()
     @State private var showFilter = false
+    @State private var mode = 0
     @FocusState private var searchFocused: Bool
     private var funds: [Fund] {
         let text = query.trimmingCharacters(in: .whitespaces)
@@ -123,7 +124,22 @@ struct DiscoverView: View {
     var body: some View {
         let items = funds
         Page {
+            SegmentBar(items: ["ETF", "個股"], selection: $mode, pill: true, filled: true)
             searchField
+            if mode == 1 {
+                StockDiscoverContent(query: $query)
+            } else {
+                etfContent(items)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) { VStack(spacing: 0) { Text(mode == 1 ? "探索個股" : "探索 ETF").font(.headline).foregroundStyle(Palette.ink); Text(mode == 1 ? "台灣上市・上櫃股票" : "台灣上市・上櫃 ETF").font(.caption2).foregroundStyle(Palette.muted) } }
+            ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("完成搜尋") { searchFocused = false } }
+        }
+        .sheet(isPresented: $showFilter) { FilterSheet(filter: $filter) }
+    }
+    @ViewBuilder private func etfContent(_ items: [Fund]) -> some View {
             HStack(alignment: .firstTextBaseline) { NumberedHeading(number: 1, title: "系統用途分類"); Spacer(); Text("依名稱規則整理，點選即可篩選").font(.caption2).foregroundStyle(Palette.muted) }
             HStack(spacing: 10) { ForEach([Strategy.saving, .income, .risk]) { categoryCard($0) } }
             NumberedHeading(number: 2, title: "依 ETF 類型找")
@@ -165,18 +181,11 @@ struct DiscoverView: View {
                 }
             }
             footer
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) { VStack(spacing: 0) { Text("探索 ETF").font(.headline).foregroundStyle(Palette.ink); Text("台灣上市・上櫃 ETF").font(.caption2).foregroundStyle(Palette.muted) } }
-            ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("完成搜尋") { searchFocused = false } }
-        }
-        .sheet(isPresented: $showFilter) { FilterSheet(filter: $filter) }
     }
     private var searchField: some View {
         HStack {
             Image(systemName: "magnifyingglass").foregroundStyle(Palette.muted)
-            TextField("搜尋代號或名稱（例：0050）", text: $query)
+            TextField(mode == 1 ? "搜尋股票代號或名稱（例：2330）" : "搜尋代號或名稱（例：0050）", text: $query)
                 .autocorrectionDisabled().textInputAutocapitalization(.never)
                 .focused($searchFocused).submitLabel(.search).onSubmit { searchFocused = false }
                 .accessibilityIdentifier("fund-search")
@@ -233,7 +242,7 @@ struct FundRow: View {
     @EnvironmentObject var store: PortfolioStore
     let fund: Fund
     var body: some View {
-        let quote = store.data.quotes[fund.id]
+        let quote = store.quote(fund.id)
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(fund.id).font(.headline).foregroundStyle(Palette.ink)
@@ -322,34 +331,34 @@ struct WatchlistView: View {
     @State private var selection: [String] = []
     @State private var compare = false
     var body: some View {
-        let favorites = store.data.favorites.sorted().map { code in store.funds.first { $0.id == code } ?? Fund(id: code, name: store.name(for: code), strategy: .unclassified) }
+        let favorites = store.data.favorites.sorted().map { code in store.funds.first { $0.id == code } ?? Fund(id: code, name: store.name(for: code), strategy: .unclassified, market: store.stock(code)?.market) }
         let groups = [favorites, favorites.filter { $0.market == "TWSE" }, favorites.filter { $0.market == "TPEx" }]
         let chosen = selection.isEmpty ? Array(favorites.prefix(3).map(\.id)) : selection
         Page {
             SegmentBar(items: ["全部 (\(groups[0].count))", "台灣上市 (\(groups[1].count))", "台灣上櫃 (\(groups[2].count))"], selection: $tab, pill: true, filled: true)
             Card(padding: 12) {
-                if groups[tab].isEmpty { ContentUnavailableView("還沒有自選 ETF", systemImage: "star", description: Text("在探索清單點星號，就能加入自選。")) }
+                if groups[tab].isEmpty { ContentUnavailableView("還沒有自選", systemImage: "star", description: Text("在探索清單或詳情頁點星號，就能把股票與 ETF 加入自選。")) }
                 VStack(spacing: 0) {
                     if !groups[tab].isEmpty {
                         HStack(spacing: 8) { if editing { Spacer().frame(width: 22) }; Text("代號／名稱"); Spacer(); Text("最新價").frame(width: 64, alignment: .trailing); Text("漲跌").frame(width: 58, alignment: .trailing); Text("自選").frame(width: 30) }
                             .font(.caption2.bold()).foregroundStyle(Palette.muted).padding(.bottom, 6)
                     }
                     ForEach(groups[tab]) { fund in
-                        let quote = store.data.quotes[fund.id], picked = chosen.contains(fund.id)
+                        let quote = store.quote(fund.id), picked = chosen.contains(fund.id)
                         Divider()
                         HStack(spacing: 8) {
                             if editing {
                                 Button { toggle(fund.id, chosen: chosen) } label: { Image(systemName: picked ? "checkmark.circle.fill" : "circle").font(.title3).foregroundStyle(picked ? Palette.blue : Palette.muted) }
                                     .buttonStyle(.plain).frame(width: 22).accessibilityLabel(picked ? "取消選取 \(fund.id)" : "選取 \(fund.id)")
                             }
-                            NavigationLink(value: fund) {
+                            SymbolLink(symbol: fund.id) {
                                 HStack(spacing: 8) {
-                                    VStack(alignment: .leading, spacing: 2) { Text(fund.id).font(.subheadline.bold()); Text(fund.name).font(.caption2).foregroundStyle(Palette.muted).lineLimit(1) }
+                                    VStack(alignment: .leading, spacing: 2) { HStack(spacing: 4) { Text(fund.id).font(.subheadline.bold()); MarketBadge(symbol: fund.id) }; Text(fund.name).font(.caption2).foregroundStyle(Palette.muted).lineLimit(1) }
                                     Spacer(minLength: 4)
                                     Text(quote.map { priceText($0.price) } ?? "--").font(.subheadline.bold()).monospacedDigit().frame(width: 64, alignment: .trailing)
                                     Text(quote?.changePercent.map(percentText) ?? "--").font(.caption.bold()).monospacedDigit().foregroundStyle(quote?.changePercent.map(Palette.trend) ?? Palette.muted).frame(width: 58, alignment: .trailing)
                                 }.contentShape(Rectangle())
-                            }.buttonStyle(.plain)
+                            }
                             Button { store.favorite(fund.id) } label: { Image(systemName: "star.fill").foregroundStyle(Palette.orange) }.buttonStyle(.plain).frame(width: 30).accessibilityLabel("取消自選 \(fund.id)")
                         }
                         .foregroundStyle(Palette.ink)
@@ -384,7 +393,7 @@ struct FundDetail: View {
     @State private var range = ChartRange.year
     @State private var busy = false
     @State private var error: String?
-    private var quote: Quote? { store.data.quotes[fund.id] }
+    private var quote: Quote? { store.quote(fund.id) }
     private var stats: PerformanceStats? {
         guard let history = store.data.histories?[fund.id] else { return nil }
         return try? PerformanceStats(history)

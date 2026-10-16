@@ -145,6 +145,8 @@ struct Portfolio: Codable {
     var fees: [String: FeeRecord]? = nil
     /// Absent in files written before the trade log existed.
     var trades: [Trade]? = nil
+    /// 個股＋ETF 組合試算 settings and simulated mix; absent in older files.
+    var combo: ComboSettings? = nil
     var cost: Double { holdings.reduce(0) { $0 + $1.cost } }
     /// Appends to the trade log, keeping the most recent 5,000 entries.
     mutating func log(_ action: TradeAction, _ holding: Holding, date: Date = Date(), amount: Double? = nil) {
@@ -174,7 +176,8 @@ struct Portfolio: Codable {
               value.quotes.allSatisfy({ $0.key == $0.value.symbol && $0.value.isValid }),
               (value.trades?.count ?? 0) <= 50000,
               Set((value.trades ?? []).map(\.id)).count == (value.trades?.count ?? 0),
-              (value.trades ?? []).allSatisfy(\.isValid)
+              (value.trades ?? []).allSatisfy(\.isValid),
+              value.combo?.isValid ?? true
         else { throw StoreError.unsupportedBackup }
         try value.legacyPlan?.validate()
         for d in (value.legacyDividends ?? [:]).values { try d.validate() }
@@ -214,6 +217,13 @@ struct Portfolio: Codable {
             Dividend(symbol: "00919", date: day(18, months: -3), amount: 3450, status: .paid),
             Dividend(symbol: "0050", date: day(20, months: -4), amount: 1900, status: .paid)
         ]
+        for (symbol, name, shares, fallback) in [("2330", "台積電", 40.0, 2000.0), ("6488", "環球晶", 50.0, 800.0)] {
+            var quote = StockSnapshot.bundled?.close(symbol) ?? Quote(symbol: symbol, price: fallback, changePercent: 0.5, date: "", fetchedAt: Date(), currency: "TWD")
+            quote.date = "示範資料"; quote.fetchedAt = Date()
+            value.quotes[symbol] = quote
+            value.holdings.append(Holding(symbol: symbol, name: name, shares: shares, unitCost: (quote.price * 0.85 * 100).rounded() / 100, broker: "富邦證券", strategy: .unclassified))
+            value.favorites.insert(symbol)
+        }
         let moves: [String: (Double, Double)] = ["0050": (0.65, 186), "00878": (0.54, 12458), "00919": (-0.22, 8730)]
         for (symbol, move) in moves {
             guard var quote = value.quotes[symbol] else { continue }
@@ -277,6 +287,8 @@ enum StoreError: LocalizedError {
     @Published private(set) var official = OfficialDividends.bundled()
     @Published var officialRefreshing = false
     @Published var officialMessage: String?
+    /// Live 加權 / 櫃買 index quotes from the viewer's key, keyed "taiex" and "tpex".
+    @Published var indices: [String: Quote] = [:]
     var funds: [Fund] { isDemo ? Fund.starters : (catalog?.funds ?? []) }
     let isDemo: Bool
     private let url: URL
@@ -365,12 +377,12 @@ enum StoreError: LocalizedError {
     /// a sell reduces it at its average cost, records the realised result and removes it at zero.
     func applyTrade(_ action: TradeAction, symbol: String, date: Date, shares: Double, amount: Double, broker: String) throws {
         guard action == .buy || action == .sell else { return }
-        guard DataChecks.code(symbol) else { throw AppDataError("請輸入正確的 ETF 代號。") }
+        guard DataChecks.code(symbol) else { throw AppDataError("請輸入正確的股票或 ETF 代號。") }
         guard shares.isFinite, shares > 0, shares <= 1e10, amount.isFinite, amount >= 0, amount <= 1e12 else { throw AppDataError("請填寫股數與成交金額。") }
         var next = data
         let same = next.holdings.indices.filter { next.holdings[$0].symbol == symbol }
         let target = broker.isEmpty ? (same.count == 1 ? same.first : same.first(where: { next.holdings[$0].broker.isEmpty })) : same.first(where: { next.holdings[$0].broker == broker })
-        let fundName = funds.first { $0.id == symbol }?.name
+        let fundName = funds.first { $0.id == symbol }?.name ?? stock(symbol)?.name
         var realized: Double? = nil
         if action == .buy {
             if let i = target {
@@ -378,8 +390,9 @@ enum StoreError: LocalizedError {
                 next.holdings[i].shares += shares
                 next.holdings[i].unitCost = total / next.holdings[i].shares
             } else {
-                guard let fundName, let fund = funds.first(where: { $0.id == symbol }) else { throw AppDataError("清單沒有這檔 ETF，請先用「新增持有」填寫名稱。") }
-                next.holdings.append(Holding(symbol: symbol, name: fundName, shares: shares, unitCost: amount / shares, broker: broker, strategy: fund.strategy, purchaseDate: date))
+                guard let fundName else { throw AppDataError("清單沒有這檔，請先用「新增持有」填寫名稱。") }
+                let strategy = funds.first(where: { $0.id == symbol })?.strategy ?? .unclassified
+                next.holdings.append(Holding(symbol: symbol, name: fundName, shares: shares, unitCost: amount / shares, broker: broker, strategy: strategy, purchaseDate: date))
             }
         } else {
             guard let i = target else { throw AppDataError(same.count > 1 ? "這檔在多個券商都有持有，請填寫券商。" : "找不到這檔的持有，無法賣出。") }
@@ -428,6 +441,7 @@ enum StoreError: LocalizedError {
             if let i = next.trades?.firstIndex(where: { $0.id == item.id }) { next.trades?[i] = item } else { next.trades?.append(item) }
         }
         next.favorites.formUnion(incoming.favorites)
+        next.combo = incoming.combo ?? next.combo
         next.comparison = incoming.comparison ?? next.comparison
         next.legacyPlan = incoming.legacyPlan ?? next.legacyPlan
         next.legacyPrices = (next.legacyPrices ?? [:]).merging(incoming.legacyPrices ?? [:]) { _, new in new }

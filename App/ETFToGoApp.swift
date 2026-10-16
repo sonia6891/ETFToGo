@@ -35,7 +35,7 @@ struct RootView: View {
         }
         .environment(\.tabBarMinimize) { value in if minimized != value { minimized = value } }
         .onChange(of: tab) { _, _ in minimized = false }
-        .task { if !ProcessInfo.processInfo.arguments.contains("--ui-testing") { await store.refreshCatalog() } }
+        .task { if !ProcessInfo.processInfo.arguments.contains("--ui-testing") { await store.refreshCatalog(); await store.refreshIndices() } }
         .task(id: store.data.dividends.map(\.id)) { await DividendReminders.syncIfEnabled(store.data.dividends) }
         .onAppear {
             let args = ProcessInfo.processInfo.arguments
@@ -59,7 +59,7 @@ struct HomeView: View {
     @State private var overview = false
     @AppStorage("hideAmounts") private var hidden = false
     @AppStorage("readNotices") private var readNotices = ""
-    private var summary: PortfolioSummary { PortfolioSummary(store.data) }
+    private var summary: PortfolioSummary { store.summary }
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         return hour < 11 ? "早安！" : (hour < 18 ? "午安！" : "晚安！")
@@ -72,6 +72,8 @@ struct HomeView: View {
         Page {
             header
             DemoBar()
+            MarketSection()
+            WatchSection()
             hero
             HStack(spacing: 10) {
                 NavigationLink(value: AppRoute.monthDividends(next: false)) { iconTile("本月已領配息", value: summary.monthPaid, icon: "dollarsign", colors: [Color(red: 1, green: 0.78, blue: 0.3), Color(red: 0.96, green: 0.64, blue: 0.06)]) }
@@ -161,7 +163,7 @@ struct HomeView: View {
         .shadow(color: Palette.blue.opacity(0.06), radius: 10, y: 3)
     }
     private var trend: some View {
-        let points = TrendMath.slice(TrendMath.portfolio(store.data), range)
+        let points = TrendMath.slice(TrendMath.portfolio(store.effectiveData), range)
         let change = points.count >= 2 ? (points.last!.value / max(points.first!.value, 0.000001) - 1) * 100 : nil
         return Card(padding: 14) {
             HStack {

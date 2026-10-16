@@ -8,6 +8,7 @@ enum AppRoute: Hashable {
     case holdingDetail(UUID), holdingForm(id: UUID?, symbol: String?), tradeForm
     case watchlist, basis(String)
     case plan, goal, calculator, comparison, exposure, backup, broker, connection, reminders
+    case stock(String), combo, comboSettings, comboResult, trades, allocation
 }
 struct RouteView: View {
     let route: AppRoute
@@ -39,6 +40,12 @@ struct RouteView: View {
         case .broker: BrokerView()
         case .connection: ConnectionView()
         case .reminders: ReminderCenterView()
+        case .stock(let symbol): StockDetailView(symbol: symbol)
+        case .combo: ComboView()
+        case .comboSettings: ComboSettingsView()
+        case .comboResult: ComboResultView()
+        case .trades: Page { TradeLogSection() }.navigationTitle("交易紀錄").navigationBarTitleDisplayMode(.inline)
+        case .allocation: Page { AllocationSection() }.navigationTitle("資產配置").navigationBarTitleDisplayMode(.inline)
         }
     }
 }
@@ -137,10 +144,10 @@ struct OverviewView: View {
         }
     }
     var body: some View {
-        let summary = PortfolioSummary(store.data)
+        let summary = store.summary
         let useValue = summary.marketValue != nil
-        let value: (Holding) -> Double = { h in useValue ? (store.data.quotes[h.symbol].map { $0.price * h.shares } ?? 0) : h.cost }
-        let points = TrendMath.slice(TrendMath.portfolio(store.data), range)
+        let value: (Holding) -> Double = { h in useValue ? (store.quote(h.symbol).map { $0.price * h.shares } ?? 0) : h.cost }
+        let points = TrendMath.slice(TrendMath.portfolio(store.effectiveData), range)
         let total = store.data.holdings.reduce(0.0) { $0 + value($1) }
         let structure = makeSlices(store.data.holdings, key: { fund($0).assetKind }, value: value)
         Page {

@@ -52,12 +52,30 @@ final class ETFToGoUITests: XCTestCase {
         app.buttons["tab-工具"].tap(); capture(app,"screen-4")
         XCTAssertTrue(app.buttons["tool-backup"].waitForExistence(timeout: 5))
     }
+    func testStockDetailAndComboSimulation() {
+        let app = XCUIApplication(); app.launchArguments = ["--demo", "--tab", "1"]; app.launch()
+        XCTAssertTrue(app.buttons["個股"].waitForExistence(timeout: 10))
+        app.buttons["個股"].tap()
+        let search = app.textFields["fund-search"]; XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap(); search.typeText("2317\n")
+        let row = app.staticTexts["鴻海"].firstMatch; XCTAssertTrue(row.waitForExistence(timeout: 5)); capture(app, "stock-search")
+        row.tap()
+        XCTAssertTrue(app.buttons["stock-add-combo"].waitForExistence(timeout: 5)); capture(app, "stock-detail")
+        app.buttons["財務"].tap(); capture(app, "stock-finance")
+        app.buttons["股利"].tap(); capture(app, "stock-dividends")
+        app.buttons["stock-add-combo"].tap()
+        XCTAssertTrue(app.buttons["combo-settings"].waitForExistence(timeout: 5)); capture(app, "combo")
+        app.buttons["combo-settings"].tap()
+        XCTAssertTrue(app.buttons["combo-run"].waitForExistence(timeout: 5)); capture(app, "combo-settings")
+        app.buttons["combo-run"].tap()
+        XCTAssertTrue(app.navigationBars["試算結果"].waitForExistence(timeout: 5)); capture(app, "combo-result")
+    }
     func testHoldingSurvivesRelaunch() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-testing", "--reset"]; app.launch()
         app.buttons["home-add-holding"].tap()
         app.textFields["holding-symbol"].tap(); app.textFields["holding-symbol"].typeText("0050")
         let name = app.textFields["holding-name"]
-        if (name.value as? String) == "ETF 名稱" { name.tap(); name.typeText("Test ETF") }
+        if (name.value as? String) == "名稱（清單沒有時填寫）" { name.tap(); name.typeText("Test ETF") }
         app.textFields["holding-shares"].tap(); app.textFields["holding-shares"].typeText("1000")
         app.textFields["holding-cost"].tap(); app.textFields["holding-cost"].typeText("50")
         app.textFields["holding-broker"].tap(); app.textFields["holding-broker"].typeText("Test Broker")
@@ -67,9 +85,11 @@ final class ETFToGoUITests: XCTestCase {
         XCTAssertFalse(app.buttons["home-add-holding"].exists, "The empty-portfolio prompt disappears once a holding is saved")
         app.terminate(); app.launchArguments = ["--ui-testing", "--tab", "2"]; app.launch()
         XCTAssertTrue(app.staticTexts["0050"].waitForExistence(timeout: 10))
-        app.buttons["交易"].tap()
+        app.buttons["holdings-trades"].tap()
         XCTAssertTrue(app.staticTexts["買進"].waitForExistence(timeout: 5), "Saving a new holding is recorded in the trade log")
-        app.buttons["配置"].tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["holdings-allocation"].waitForExistence(timeout: 5))
+        app.buttons["holdings-allocation"].tap()
         XCTAssertTrue(app.staticTexts["券商帳戶"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Test Broker"].exists)
     }

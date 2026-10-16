@@ -86,6 +86,50 @@ final class PortfolioTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: exported) }
         XCTAssertEqual(try Data(contentsOf: exported), original)
     }
+    /// Same numbers as the design: 300,000 now (stocks 120,000 / ETFs 180,000), 10,000 a month split 40/60, 5% a year.
+    func testComboProjectionMatchesTemplate() {
+        var settings = ComboSettings()
+        settings.monthly = 10000; settings.stockReturn = 5; settings.etfReturn = 5
+        for (years, expected) in [(3, 734180.51), (5, 1061021.85), (10, 2032300.0)] {
+            let result = ComboMath.project(stockStart: 120000, etfStart: 180000, settings: settings, stockShare: 0.4, years: years, scenario: .base)
+            XCTAssertEqual(result.end, expected, accuracy: 1)
+            XCTAssertEqual(result.invested, 10000 * Double(years * 12), accuracy: 0.001)
+        }
+        XCTAssertEqual(ComboMath.project(stockStart: 120000, etfStart: 180000, settings: settings, stockShare: 0.4, years: 5, scenario: .stress).end, 908735.8, accuracy: 1)
+        var flat = settings; flat.stockReturn = 0; flat.etfReturn = 0
+        XCTAssertEqual(ComboMath.project(stockStart: 120000, etfStart: 180000, settings: flat, stockShare: 0.4, years: 10, scenario: .base).end, 1500000, accuracy: 0.01)
+        var cash = settings; cash.reinvest = false; cash.stockYield = 2; cash.etfYield = 4
+        XCTAssertEqual(ComboMath.project(stockStart: 120000, etfStart: 180000, settings: cash, stockShare: 0.4, years: 5, scenario: .base).end, 1050621.51, accuracy: 1)
+        XCTAssertEqual(ComboScenario.conservative.rate(5), -2); XCTAssertEqual(ComboScenario.optimistic.rate(5), 8)
+    }
+    func testBundledStocksAndCloses() throws {
+        let snapshot = try XCTUnwrap(StockSnapshot.bundled, "stock-data.json is bundled")
+        XCTAssertEqual(snapshot.byID["2330"]?.market, "TWSE")
+        XCTAssertEqual(snapshot.byID["6488"]?.market, "TPEx")
+        XCTAssertGreaterThan(snapshot.stocks.count, 1500)
+        let quote = try XCTUnwrap(snapshot.close("2330"))
+        XCTAssertGreaterThan(quote.price, 0); XCTAssertEqual(quote.currency, "TWD"); XCTAssertTrue(quote.isValid)
+        XCTAssertNotNil(snapshot.indices["taiex"]?.close)
+        XCTAssertNotNil(snapshot.indices["tpex"]?.close)
+    }
+    @MainActor func testStockHoldingIsValuedAndComboPersists() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let url = directory.appendingPathComponent("data.json")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = PortfolioStore(url: url)
+        let holding = Holding(symbol: "2330", name: "台積電", shares: 10, unitCost: 100, broker: "", strategy: .unclassified)
+        try store.save(holding)
+        XCTAssertTrue(store.isStock("2330")); XCTAssertFalse(store.isStock("0050")); XCTAssertFalse(store.isStock("00878"))
+        XCTAssertNotNil(store.marketValue(of: holding), "A stock without a Fugle quote is valued at the bundled close")
+        XCTAssertNotNil(store.summary.marketValue)
+        var combo = store.combo
+        combo.source = 1; combo.simulated = [ComboItem(symbol: "2330", amount: 50000), ComboItem(symbol: "0050", amount: 30000)]; combo.years = 10
+        store.saveCombo(combo)
+        let reopened = PortfolioStore(url: url)
+        XCTAssertEqual(reopened.combo, combo)
+        XCTAssertEqual(reopened.comboStarts(reopened.combo).stock, 50000, accuracy: 0.001)
+        XCTAssertEqual(reopened.comboStarts(reopened.combo).etf, 30000, accuracy: 0.001)
+    }
     func testQuoteValidation() throws {
         let bytes = Data(#"{"symbol":"0050","date":"2026-10-15","closePrice":55.0,"changePercent":0.4}"#.utf8)
         XCTAssertEqual(try Fugle.decode(bytes, expectedSymbol: "0050").price, 55)
