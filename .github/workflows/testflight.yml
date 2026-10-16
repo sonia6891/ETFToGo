@@ -13,6 +13,10 @@ on:
         description: App name to set in App Store Connect (blank keeps it)
         required: false
         default: 投資袋著走
+      build:
+        description: Build number to hand to testers when not uploading (blank for the newest)
+        required: false
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -156,8 +160,10 @@ jobs:
         env:
           APP_NAME: ${{ inputs.app_name }}
         run: '"$RUNNER_TEMP/asc-venv/bin/python" Scripts/asc_app.py rename "$APP_NAME"'
-      - name: Wait for the newest build and give it to internal testers
-        run: '"$RUNNER_TEMP/asc-venv/bin/python" Scripts/asc_app.py testflight'
+      - name: Wait for the build and give it to internal testers
+        env:
+          BUILD: ${{ needs.upload.result == 'success' && format('3.{0}', github.run_number) || inputs.build }}
+        run: '"$RUNNER_TEMP/asc-venv/bin/python" Scripts/asc_app.py testflight "$BUILD"'
       - name: Remove the key
         if: always()
         run: rm -rf "$RUNNER_TEMP/etf-signing"

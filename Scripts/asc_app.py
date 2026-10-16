@@ -1,7 +1,8 @@
 """App Store Connect chores with the same API key as the TestFlight upload (see asc_signing.py for the token).
 
 rename <name>: sets the app's name on every editable App Information localization.
-testflight: waits for the newest build to finish processing, then makes sure every internal TestFlight group has it.
+testflight [build]: waits for that build (default: the newest) to appear and finish processing, then makes sure every
+internal TestFlight group has it. A just-uploaded build takes a few minutes to show up at all, so name it.
 
 Environment: ASC_KEY_ID, ASC_ISSUER_ID, ETF_BUNDLE_ID, RUNNER_TEMP (the key in $RUNNER_TEMP/etf-signing/AuthKey.p8).
 """
@@ -41,13 +42,18 @@ def rename(name: str) -> None:
     print(f"Renamed {changed} localization(s).")
 
 
-def testflight() -> None:
+def testflight(version: str = "") -> None:
     app = app_id()
     deadline = time.time() + 45 * 60
     while True:
-        builds = call("GET", f"builds?filter[app]={app}&sort=-uploadedDate&limit=1")["data"]
+        query = f"builds?filter[app]={app}&sort=-uploadedDate&limit=1" + (f"&filter[version]={urllib.parse.quote(version)}" if version else "")
+        builds = call("GET", query)["data"]
         if not builds:
-            raise ApiError("還沒有任何組建。")
+            if version and time.time() < deadline:
+                print(f"Build {version}: not listed yet")
+                time.sleep(60)
+                continue
+            raise ApiError(f"找不到組建 {version or ''}。".replace(" 。", "。"))
         build = builds[0]
         state = build["attributes"]["processingState"]
         print(f"Build {build['attributes']['version']}: {state}")
@@ -75,7 +81,7 @@ if __name__ == "__main__":
         if sys.argv[1] == "rename":
             rename(sys.argv[2])
         elif sys.argv[1] == "testflight":
-            testflight()
+            testflight(sys.argv[2] if len(sys.argv) > 2 else "")
         else:
             raise SystemExit("usage: asc_app.py rename <name> | testflight")
     except ApiError as error:
