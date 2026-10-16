@@ -164,6 +164,9 @@ private let etfColors: [Color] = [Palette.blue, Color(red: 0.37, green: 0.64, bl
 
 struct ComboView: View {
     @EnvironmentObject var store: PortfolioStore
+    /// A stock or ETF to put into the simulated mix when the screen opens (from a detail page's 加入試算).
+    var adding: String? = nil
+    @State private var added = false
     @AppStorage("hideAmounts") private var hidden = false
     @State private var editing: ComboItem?
     @State private var adding: Bool?
@@ -192,6 +195,7 @@ struct ComboView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .principal) { VStack(spacing: 0) { Text("組合試算").font(.headline).foregroundStyle(Palette.ink); Text("個股＋ETF 一起試算").font(.caption2).foregroundStyle(Palette.muted) } } }
+        .onAppear { if let adding, !added { added = true; add(adding) } }
         .sheet(item: $editing) { item in ComboItemSheet(existing: item, isStock: store.isStock(item.symbol)) }
         .sheet(isPresented: Binding(get: { adding != nil }, set: { if !$0 { adding = nil } })) { ComboItemSheet(existing: nil, isStock: adding ?? true) }
     }
@@ -260,6 +264,15 @@ struct ComboView: View {
             Button { remove(line.symbol) } label: { Image(systemName: "xmark").font(.caption).foregroundStyle(Palette.muted).frame(width: 26, height: 30) }.buttonStyle(.plain).accessibilityLabel("從試算移除 \(line.symbol)")
             SymbolLink(symbol: line.symbol) { Image(systemName: "chevron.right").font(.caption).foregroundStyle(Palette.muted).frame(width: 20, height: 30) }
         }
+    }
+    private func add(_ symbol: String) {
+        var next = store.comboWithSimulation(store.combo)
+        if !next.simulated.contains(where: { $0.symbol == symbol }) {
+            let price = store.quote(symbol)?.price ?? 0
+            let shares: Double = price > 500 ? 10 : 1000
+            next.simulated.append(ComboItem(symbol: symbol, amount: price > 0 ? (price * shares).rounded() : 10000))
+        }
+        store.saveCombo(next)
     }
     private func remove(_ symbol: String) {
         var next = store.combo

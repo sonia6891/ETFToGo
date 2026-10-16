@@ -213,7 +213,6 @@ struct StockDetailView: View {
     @State private var range = ChartRange.year
     @State private var busy = false
     @State private var error: String?
-    @State private var openCombo = false
     var body: some View {
         let info = store.stock(symbol), quote = store.quote(symbol)
         Page {
@@ -250,7 +249,6 @@ struct StockDetailView: View {
                 ShareLink(item: "\(symbol) \(store.name(for: symbol))｜ETF 袋著走") { Image(systemName: "square.and.arrow.up") }
             }
         }
-        .navigationDestination(isPresented: $openCombo) { ComboView().tabBarSpace() }
     }
     private func sourceInfo(_ quote: Quote?) -> some View {
         var live = false
@@ -415,23 +413,14 @@ struct StockDetailView: View {
                     .foregroundStyle(Palette.blue).background(Palette.card, in: RoundedRectangle(cornerRadius: 14))
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.blue, lineWidth: 1.2))
             }
-            Button { addToCombo() } label: {
+            // A route, not a presented destination: screens pushed from there must stack above it.
+            NavigationLink(value: AppRoute.comboAdding(symbol)) {
                 Label("加入試算", systemImage: "function").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 13)
                     .foregroundStyle(.white).background(Palette.hero, in: RoundedRectangle(cornerRadius: 14))
             }.accessibilityIdentifier("stock-add-combo")
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 16).padding(.vertical, 10)
-    }
-    private func addToCombo() {
-        var next = store.comboWithSimulation(store.combo)
-        if !next.simulated.contains(where: { $0.symbol == symbol }) {
-            let price = store.quote(symbol)?.price ?? 0
-            let shares: Double = price > 500 ? 10 : 1000
-            next.simulated.append(ComboItem(symbol: symbol, amount: price > 0 ? (price * shares).rounded() : 10000))
-        }
-        store.saveCombo(next)
-        openCombo = true
     }
 }
 
