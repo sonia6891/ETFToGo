@@ -42,7 +42,7 @@ struct RouteView: View {
         case .reminders: ReminderCenterView()
         case .stock(let symbol): StockDetailView(symbol: symbol)
         case .combo: ComboView()
-        case .comboAdding(let symbol): ComboView(adding: symbol)
+        case .comboAdding(let symbol): ComboView(addSymbol: symbol)
         case .comboSettings: ComboSettingsView()
         case .comboResult: ComboResultView()
         case .trades: Page { TradeLogSection() }.navigationTitle("交易紀錄").navigationBarTitleDisplayMode(.inline)

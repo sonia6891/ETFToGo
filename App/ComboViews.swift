@@ -165,7 +165,7 @@ private let etfColors: [Color] = [Palette.blue, Color(red: 0.37, green: 0.64, bl
 struct ComboView: View {
     @EnvironmentObject var store: PortfolioStore
     /// A stock or ETF to put into the simulated mix when the screen opens (from a detail page's 加入試算).
-    var adding: String? = nil
+    var addSymbol: String? = nil
     @State private var added = false
     @AppStorage("hideAmounts") private var hidden = false
     @State private var editing: ComboItem?
@@ -195,7 +195,7 @@ struct ComboView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .principal) { VStack(spacing: 0) { Text("組合試算").font(.headline).foregroundStyle(Palette.ink); Text("個股＋ETF 一起試算").font(.caption2).foregroundStyle(Palette.muted) } } }
-        .onAppear { if let adding, !added { added = true; add(adding) } }
+        .onAppear { if let addSymbol, !added { added = true; add(addSymbol) } }
         .sheet(item: $editing) { item in ComboItemSheet(existing: item, isStock: store.isStock(item.symbol)) }
         .sheet(isPresented: Binding(get: { adding != nil }, set: { if !$0 { adding = nil } })) { ComboItemSheet(existing: nil, isStock: adding ?? true) }
     }
