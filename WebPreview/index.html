@@ -785,8 +785,8 @@ function issuerOf(f) {
   for (const n of names) { const hit = ISSUERS.find(([k]) => n.startsWith(k)); if (hit) return hit[1]; }
   return "";
 }
-/* Official distributions: TWSE ETF 收益分配 (listed ETFs) and the TPEx ex-dividend notice (OTC ETFs), bundled
-   in etf-data.json; listed ETFs can be refreshed in the browser because TWSE allows cross-site reads. */
+/* Official distributions from the exchanges' ex-rights and ex-dividend notices (open data), bundled in etf-data.json
+   by build_data.py. Browsers cannot read the open data directly (no cross-site headers), so 立即更新 reloads that file. */
 let DIVS = { sources: {}, events: {}, freq: {} };
 const freqOf = (sym) => DIVS.freq[sym] || null;
 const officialEvents = (sym) => (DIVS.events[sym] || []).map(([ex, pay, amount]) => ({ ex, pay, amount }));
@@ -898,7 +898,7 @@ async function loadCatalog() {
     FUND_MAP = new Map(FUNDS.map((f) => [f.id, f]));
     CATALOG_INFO = { listedDate: j.catalog.listedDate, fetchedDay: j.catalog.fetchedDay };
     FEES = j.fees;
-    if (j.dividends && j.dividends.events) { DIVS = j.dividends; loadOfficialCache(); }
+    if (j.dividends && j.dividends.events) DIVS = j.dividends;
     fillSymbolOptions();
     renderScreen();
     if (CAN_FUGLE && fugleKey()) refreshMarket({ silent: true });
@@ -1600,48 +1600,21 @@ const P = {
 };
 const icon = (name, fill) => `<svg viewBox="0 0 24 24" fill="${fill ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[name]}</svg>`;
 /* ---------- official data, ETF components and notices ---------- */
-const OFFICIAL_KEY = "etftogo-web-official", COMP_KEY = "etftogo-web-components";
-const rocDay = (t) => { const m = /^(\d{2,3})年(\d{1,2})月(\d{1,2})日$/.exec(String(t || "").trim()); return m ? `${Number(m[1]) + 1911}-${pad(m[2])}-${pad(m[3])}` : ""; };
-function freqFrom(list) {
-  const from = new Date(); from.setFullYear(from.getFullYear() - 1); const f = dayStr(from), t = today();
-  const n = list.filter((e) => e[0] > f && e[0] <= t).length;
-  return n >= 9 ? "月配" : n >= 5 ? "雙月配" : n >= 3 ? "季配" : n === 2 ? "半年配" : n === 1 ? "年配" : null;
-}
-function loadOfficialCache() {
-  try {
-    const c = JSON.parse(localStorage.getItem(OFFICIAL_KEY) || "null");
-    if (!c || !c.events || !c.twse || c.twse < (DIVS.sources.twse || "")) return;
-    Object.assign(DIVS.events, c.events); Object.assign(DIVS.freq, c.freq || {});
-    DIVS.sources = Object.assign({}, DIVS.sources, { twse: c.twse, twseAt: c.at });
-  } catch (e) { /* no cache */ }
-}
+const COMP_KEY = "etftogo-web-components";
+// Distributions read from the TWSE website used to be cached here; they now come only from etf-data.json.
+try { localStorage.removeItem("etftogo-web-official"); } catch (e) { /* storage blocked */ }
 async function refreshOfficial() {
   if (busy) { toast("正在取得資料，請稍候。"); return; }
   busy = "official"; renderScreen();
   try {
-    const now = new Date(); const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 400);
-    const url = `https://www.twse.com.tw/rwd/zh/ETF/etfDiv?stkNo=&startDate=${dayStr(start).replace(/-/g, "")}&endDate=${now.getFullYear() + 1}1231&response=json`;
     let res;
-    try { res = await fetch(url, { cache: "no-store" }); } catch (e) { throw new Error(CAN_FUGLE ? "連不上配息資料服務，請稍後再試。" : "Claude 連結版無法取得配息資料，請改用網頁版 App。"); }
+    try { res = await fetch("etf-data.json", { cache: "no-store" }); } catch (e) { throw new Error("連不上配息資料，請稍後再試。"); }
     if (!res.ok) throw new Error(`配息資料暫時無法取得（${res.status}），保留原本資料。`);
     const j = await res.json();
-    if (j.status !== "ok" || !Array.isArray(j.data) || !Array.isArray(j.fields) || j.fields[2] !== "除息交易日") throw new Error("配息資料格式不符，保留原本資料。");
-    const events = {};
-    j.data.forEach((r) => {
-      const sym = String(r[0]).trim(), ex = rocDay(r[2]); if (!FUND_MAP.has(sym) || !ex) return;
-      const amt = Number(String(r[5] == null ? "" : r[5]).replace(/,/g, ""));
-      (events[sym] = events[sym] || []).push([ex, rocDay(r[4]), amt > 0 ? amt : null]);
-    });
-    Object.keys(events).forEach((sym) => {
-      const seen = new Set(events[sym].map((e) => e[0]));
-      (DIVS.events[sym] || []).forEach((e) => { if (!seen.has(e[0])) events[sym].push(e); });
-      events[sym].sort((a, b) => b[0].localeCompare(a[0]));
-    });
-    const freq = {}; Object.keys(events).forEach((sym) => { const f = freqFrom(events[sym]); if (f) freq[sym] = f; });
-    Object.assign(DIVS.events, events); Object.assign(DIVS.freq, freq);
-    DIVS.sources = Object.assign({}, DIVS.sources, { twse: today(), twseAt: Date.now() });
-    try { localStorage.setItem(OFFICIAL_KEY, JSON.stringify({ at: Date.now(), twse: today(), events, freq })); } catch (e) { /* cache only */ }
-    toast(`已更新官方配息資料（${Object.keys(events).length} 檔）`);
+    if (!j.dividends || !j.dividends.events) throw new Error("配息資料格式不符，保留原本資料。");
+    const was = DIVS.sources || {}, now = j.dividends.sources || {};
+    DIVS = j.dividends;
+    toast(was.twse === now.twse && was.tpex === now.tpex ? "配息資料已是最新。" : `已更新官方配息資料（上市 ${now.twse ? ymd(now.twse) : "—"}・上櫃 ${now.tpex ? ymd(now.tpex) : "—"}）`);
   } catch (e) { toast(e.message); }
   busy = null; renderScreen();
 }
@@ -2056,7 +2029,7 @@ VIEWS.about = () => ({
   title: "關於 投資袋著走", back: true,
   body: `<div class="card" style="text-align:center"><img class="art" src="assets/app-icon.png" alt="" style="width:72px;height:72px;margin:0 auto 8px;border-radius:18px"><b style="font-size:18px">投資袋著走</b><p class="note">網頁版・2026-10-16 介面</p></div>
     <div class="card"><b>使用說明</b><p class="note" style="margin-top:6px">策略分類依 ETF 名稱規則整理，不是投資建議或收益保證。沒有可靠資料的欄位不顯示估計值；試算結果是情境假設。</p></div>
-    <div class="card about-src"><b>資料來源與授權</b><p class="note">每日開盤、收盤價與指數衍生自臺灣證券交易所「上市個股日成交資訊」「每日收盤行情－大盤統計資訊」及證券櫃檯買賣中心「上櫃股票行情」「櫃買指數歷史資料」，該資料係依據政府資料開放授權條款（Open Government Data License）進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。</p><p class="note"><a href="https://data.gov.tw/license" target="_blank" rel="noopener noreferrer">政府資料開放授權條款：data.gov.tw/license</a></p><p class="note">公司基本資料、ETF 名單與配息資訊取自臺灣證券交易所與證券櫃檯買賣中心公開資訊。使用你自己的富果金鑰時，盤中行情由富果提供；資訊來源：臺灣證券交易所、證券櫃檯買賣中心。</p><p class="note">本網頁與上述機構沒有合作或背書關係；資料僅供參考，交易請以券商與交易所公告為準。</p></div>
+    <div class="card about-src"><b>資料來源與授權</b><p class="note">每日開盤、收盤價與指數衍生自臺灣證券交易所「上市個股日成交資訊」「每日收盤行情－大盤統計資訊」及證券櫃檯買賣中心「上櫃股票行情」「櫃買指數歷史資料」，該資料係依據政府資料開放授權條款（Open Government Data License）進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。</p><p class="note"><a href="https://data.gov.tw/license" target="_blank" rel="noopener noreferrer">政府資料開放授權條款：data.gov.tw/license</a></p><p class="note">公司基本資料、ETF 名單（臺灣證券交易所「基金基本資料彙總表」）與配息公告（「上市股票除權除息預告表」「上櫃股票除權除息預告表」）同樣取自兩所的開放資料。使用你自己的富果金鑰時，盤中行情由富果提供；資訊來源：臺灣證券交易所、證券櫃檯買賣中心。</p><p class="note">本網頁與上述機構沒有合作或背書關係；資料僅供參考，交易請以券商與交易所公告為準。</p></div>
     ${CAN_FUGLE ? "" : `<div class="card"><b>網頁版 App（可連線行情）</b><p class="num" style="margin:6px 0 10px;overflow-wrap:anywhere;user-select:all">${PAGES_URL}</p><button type="button" class="btn soft block" data-act="copy" data-text="${PAGES_URL}">複製網址</button></div>`}`,
 });
 /* ---------- discover ---------- */
@@ -2329,7 +2302,7 @@ function stockDividends(sym, x, q, d) {
       <p class="note" style="margin-top:6px">${yieldPct == null ? (x.market === "TPEx" ? "上櫃公司目前只收錄近期除權息預告。" : "近一年沒有純除息紀錄。") : `依現價 ${priceText(q.price)} 計算；除權息同時進行的不計入。`}</p></div>
     ${pol.length ? `<div class="card">${sectionHead("最新股利政策")}<div class="kv-list" style="margin-top:6px">${pol.slice(0, 4).map((y) => `<div><span><b>${Number(y[0]) + 1911 || esc(y[0])} 年${y[1] === "年度" ? "度" : " " + esc(y[1])}</b><br>${progressPill(y[5] || "")}${y[4] ? ` <span class="tiny muted">股東會 ${ymd(y[4])}</span>` : ""}</span><span class="num">現金 <b>${dec(y[2])}</b> 元／股${y[3] ? `<br>股票 <b>${dec(y[3])}</b> 元／股` : ""}</span></div>`).join("")}</div></div>` : ""}
     ${next.length ? `<div class="card">${sectionHead("近期除權息")}<div class="kv-list" style="margin-top:6px">${next.map(([day, cash, k]) => `<div><span class="num">${ymd(day)}（${esc(k)}）</span><b class="num">${cash ? dec(cash) + " 元" : "—"}</b></div>`).join("")}</div></div>` : ""}
-    <div class="card tight">${hist.length ? `<table class="grid"><thead><tr><th>除權息日</th><th>類型</th><th class="r">權值＋息值</th></tr></thead><tbody>${hist.slice(0, 12).map(([day, v, k]) => `<tr><td class="num">${ymd(day)}</td><td>${esc(k)}</td><td class="r num bold">${dec(v)} 元</td></tr>`).join("")}</tbody></table>` : `<p class="note" style="padding:12px 0">${x.market === "TPEx" ? "上櫃公司的除權息歷史尚未收錄。" : "近兩年沒有除權息紀錄。"}</p>`}</div>
+    <div class="card tight">${hist.length ? `<table class="grid"><thead><tr><th>除權息日</th><th>類型</th><th class="r">權值＋息值</th></tr></thead><tbody>${hist.slice(0, 12).map(([day, v, k]) => `<tr><td class="num">${ymd(day)}</td><td>${esc(k)}</td><td class="r num bold">${v == null ? "—" : dec(v) + " 元"}</td></tr>`).join("")}</tbody></table>` : `<p class="note" style="padding:12px 0">${x.market === "TPEx" ? "上櫃公司的除權息歷史尚未收錄。" : "近兩年沒有除權息紀錄。"}</p>`}</div>
     <button type="button" class="btn primary block" data-act="push" data-view="divForm" data-sym="${esc(sym)}">${icon("plus")}記錄這檔配息</button>
     ${items.length ? `<div class="stack">${items.map(divRow).join("")}</div>` : ""}`;
 }

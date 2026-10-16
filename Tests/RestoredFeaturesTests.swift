@@ -48,16 +48,52 @@ final class RestoredFeaturesTests: XCTestCase {
     }
     func testCatalogRejectsMissingMarketAndDuplicates() {
         let rows = Data(#"[{"基金代號":"0050","基金簡稱":"元大台灣50","出表日期":"1151014","上市日期":"0920630"}]"#.utf8)
-        let active = Data(#"{"status":"success","data":[{"stockNo":"0050","stockName":"元大台灣50","listingDate":"2003.06.30"}]}"#.utf8)
-        XCTAssertThrowsError(try CatalogAPI.decode(listed:rows,otc:Data(#"{"status":"success","data":[]}"#.utf8),active:active))
-        XCTAssertThrowsError(try CatalogAPI.decode(listed:rows,otc:active,active:active))
+        let twse = Data(#"[{"Date":"1151015","Code":"0050","Name":"元大台灣50"}]"#.utf8)
+        let otc = Data(#"[{"Date":"1151016","SecuritiesCompanyCode":"00679B","CompanyName":"元大美債20年"}]"#.utf8)
+        let stocksOnly = Data(#"[{"Date":"1151016","SecuritiesCompanyCode":"6488","CompanyName":"環球晶"}]"#.utf8)
+        XCTAssertNoThrow(try CatalogAPI.decode(listed: rows, twse: twse, otc: otc, today: "2026-10-15"))
+        XCTAssertThrowsError(try CatalogAPI.decode(listed: rows, twse: twse, otc: Data("[]".utf8)), "An empty OTC list is refused")
+        XCTAssertThrowsError(try CatalogAPI.decode(listed: rows, twse: twse, otc: stocksOnly), "An OTC list without ETFs is refused")
+        XCTAssertThrowsError(try CatalogAPI.decode(listed: rows, twse: twse, otc: Data(#"[{"SecuritiesCompanyCode":"0050","CompanyName":"元大台灣50"}]"#.utf8)), "A code in both markets is refused")
+        XCTAssertThrowsError(try CatalogAPI.decode(listed: rows, twse: Data(#"[{"Date":"1151015","Symbol":"0050","Title":"元大台灣50"}]"#.utf8), otc: otc), "Renamed fields are refused")
+        let twice = Data(#"[{"基金代號":"0050","出表日期":"1151014"},{"基金代號":"0050","出表日期":"1151014"}]"#.utf8)
+        XCTAssertThrowsError(try CatalogAPI.decode(listed: twice, twse: twse, otc: otc), "A fund listed twice is refused")
     }
-    func testCatalogExcludesHistoricalAndFutureListings() throws {
-        let rows = Data(#"[{"基金代號":"0054","出表日期":"1151014"}]"#.utf8)
-        let active = Data(#"{"status":"success","data":[{"stockNo":"0050","stockName":"元大台灣50","listingDate":"2003.06.30"},{"stockNo":"00415A","stockName":"尚未掛牌","listingDate":"2026.10.20"}]}"#.utf8)
-        let otc = Data(#"{"status":"success","data":[{"stockNo":"00679B","stockName":"元大美債20年","listingDate":"20170117"}]}"#.utf8)
-        let result = try CatalogAPI.decode(listed:rows,otc:otc,active:active,today:"2026-10-15")
-        XCTAssertEqual(result.funds.map(\.id),["0050","00679B"])
+    func testCatalogFromOpenData() throws {
+        // Shapes of October 2026: TWSE 基金基本資料彙總表 (ROC dates, some HTML entities, funds that left the market stay
+        // in it), 上市個股日成交資訊 (with a byte order mark) and TPEx 上櫃股票收盤行情 (stocks, ETFs and ETNs together).
+        let listed = Data(#"""
+        [{"出表日期":"1151015","基金代號":"0050","基金簡稱":"元大台灣50","基金類型":"國內成分證券指數股票型基金","基金中文名稱":"元大台灣卓越50證券投資信託基金","上市日期":"0920630"},
+         {"出表日期":"1151015","基金代號":"00646","基金簡稱":"元大S&amp;P500","基金類型":"國外成分證券指數股票型基金","基金中文名稱":"元大標普500證券投資信託基&#63754;","上市日期":"1041216"},
+         {"出表日期":"1151014","基金代號":"0054","基金簡稱":"元大台商50","基金類型":"國內成分證券指數股票型基金","基金中文名稱":"元大台商收成證券投資信託基金","上市日期":"0960814"}]
+        """#.utf8)
+        let twse = Data([0xEF, 0xBB, 0xBF]) + Data(#"""
+        [{"Date":"1151015","Code":"0050","Name":"元大台灣50","ClosingPrice":"108.90"},
+         {"Date":"1151015","Code":"00646","Name":"元大S&P500","ClosingPrice":"70.00"},
+         {"Date":"1151015","Code":"00415A","Name":"主動新掛牌","ClosingPrice":"10.00"},
+         {"Date":"1151015","Code":"2330","Name":"台積電","ClosingPrice":"1450.00"}]
+        """#.utf8)
+        let otc = Data(#"""
+        [{"Date":"1151016","SecuritiesCompanyCode":"00679B","CompanyName":"元大美債20年","Close":"25.74"},
+         {"Date":"1151016","SecuritiesCompanyCode":"009999","CompanyName":"新上櫃債","Close":"10.00"},
+         {"Date":"1151016","SecuritiesCompanyCode":"6488","CompanyName":"環球晶","Close":"430.50"},
+         {"Date":"1151016","SecuritiesCompanyCode":"020001","CompanyName":"富邦特選蘋果N","Close":"20.00"}]
+        """#.utf8)
+        let previous = CatalogSnapshot(funds: [Fund(id: "00679B", name: "元大美債20年", strategy: .unclassified, market: "TPEx", fullName: "元大美國政府20年期(以上)債券證券投資信託基金", fundType: "指數股票型", listingDate: "2017-01-17")],
+                                       listedDate: "2026-10-01", fetchedDay: "2026-10-01", sources: [])
+        let result = try CatalogAPI.decode(listed: listed, twse: twse, otc: otc, previous: previous, today: "2026-10-16")
+        XCTAssertEqual(result.funds.map(\.id), ["00415A", "0050", "00646", "00679B", "009999"], "0054 left the market; stocks and ETNs are not ETFs")
+        let tw50 = try XCTUnwrap(result.funds.first { $0.id == "0050" })
+        XCTAssertEqual(tw50.market, "TWSE"); XCTAssertEqual(tw50.listingDate, "2003-06-30"); XCTAssertEqual(tw50.strategy, .saving)
+        XCTAssertEqual(tw50.fullName, "元大台灣卓越50證券投資信託基金"); XCTAssertEqual(tw50.fundType, "國內成分證券指數股票型基金")
+        let sp = try XCTUnwrap(result.funds.first { $0.id == "00646" })
+        XCTAssertEqual(sp.name, "元大S&P500"); XCTAssertEqual(sp.fullName, "元大標普500證券投資信託基\u{F90A}"); XCTAssertEqual(sp.listingDate, "2015-12-16")
+        XCTAssertNil(result.funds.first { $0.id == "00415A" }?.listingDate, "Not in the fund list yet")
+        let bond = try XCTUnwrap(result.funds.first { $0.id == "00679B" })
+        XCTAssertEqual(bond.market, "TPEx"); XCTAssertEqual(bond.listingDate, "2017-01-17"); XCTAssertEqual(bond.fullName, "元大美國政府20年期(以上)債券證券投資信託基金")
+        XCTAssertEqual(result.funds.first { $0.id == "009999" }?.market, "TPEx"); XCTAssertNil(result.funds.first { $0.id == "009999" }?.listingDate)
+        XCTAssertEqual(result.listedDate, "2026-10-15"); XCTAssertEqual(result.fetchedDay, "2026-10-16")
+        XCTAssertEqual(result.sources, [CatalogAPI.listedURL, CatalogAPI.twseURL, CatalogAPI.otcURL])
     }
     func snapshot(_ symbol: String, _ values: [(String, Double)]) -> ComponentSnapshot {
         ComponentSnapshot(symbol: symbol, date: "2026-10-01", components: values.map { FundComponent(symbol: $0.0, name: $0.0, weight: $0.1) }, source: "test")

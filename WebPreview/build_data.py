@@ -2,9 +2,10 @@
 
 Run from the repository root:  python -I WebPreview/build_data.py
 
-Distributions come from two official sources:
-- TWSE "ETF 收益分配" (listed ETFs): ex-dividend, payment date and amount per unit, about two years back.
-- TPEx 除權除息預告表 (OTC ETFs): upcoming ex-dividend dates and cash amounts only, so no payment date or history.
+Distributions come from the exchanges' open data (政府資料開放授權條款): TWSE 上市股票除權除息預告表 (TWT48U_ALL) for
+listed ETFs and TPEx 上櫃股票除權除息預告表 for OTC ETFs. Both list upcoming ex-dividend dates and cash amounts only, with
+no payment date, so each build adds them to the previous snapshot: a known ex-dividend date keeps its payment date,
+and its amount until the notice sets one. Dates more than about two years back are dropped.
 If a source cannot be reached, the previous snapshot of that source is kept.
 """
 import json
@@ -43,7 +44,10 @@ def roc(text):
     if not m:
         return ""
     y, mo, d = (int(x) for x in m.groups())
-    return date(y + 1911, mo, d).isoformat()
+    try:
+        return date(y + 1911, mo, d).isoformat()
+    except ValueError:
+        return ""
 
 
 def amount(text):
@@ -56,46 +60,36 @@ def amount(text):
 
 today = date.today()
 old = previous.get("dividends") or {}
-events = {}
+events = {sym: {item[0]: list(item) for item in items} for sym, items in (old.get("events") or {}).items() if sym in market}
 sources = {}
 
-try:
-    start = (today - timedelta(days=760)).strftime("%Y%m%d")
-    end = date(today.year + 1, 12, 31).strftime("%Y%m%d")
-    twse = get_json(f"https://www.twse.com.tw/rwd/zh/ETF/etfDiv?stkNo=&startDate={start}&endDate={end}&response=json")
-    if twse.get("status") != "ok" or twse.get("fields", [])[:3] != ["證券代號", "證券簡稱", "除息交易日"]:
-        raise ValueError("unexpected TWSE response")
-    for row in twse["data"]:
-        sym, ex, pay = row[0].strip(), roc(row[2]), roc(row[4])
-        if sym in market and ex:
-            events.setdefault(sym, []).append([ex, pay, amount(row[5])])
-    sources["twse"] = today.isoformat()
-except Exception as error:  # keep the previous TWSE snapshot
-    print("TWSE distributions not refreshed:", error)
-    for sym, items in (old.get("events") or {}).items():
-        if market.get(sym) == "TWSE":
-            events[sym] = items
-    if (old.get("sources") or {}).get("twse"):
-        sources["twse"] = old["sources"]["twse"]
+NOTICES = [
+    # (source, market, URL, code field, ex-date field, kind field)
+    ("twse", "TWSE", "https://openapi.twse.com.tw/v1/exchangeReport/TWT48U_ALL", "Code", "Date", "Exdividend"),
+    ("tpex", "TPEx", "https://www.tpex.org.tw/openapi/v1/tpex_exright_prepost", "SecuritiesCompanyCode", "ExRrightsExDividendDate", "ExRrightsExDividend"),
+]
+for key, wanted, url, code_field, day_field, kind_field in NOTICES:
+    try:
+        rows = get_json(url)
+        if not isinstance(rows, list) or (rows and not {code_field, day_field} <= set(rows[0])):
+            raise ValueError(f"unexpected {key} response")
+        for row in rows:
+            sym, ex = str(row.get(code_field, "")).strip(), roc(row.get(day_field))
+            if market.get(sym) == wanted and ex and "息" in str(row.get(kind_field, "")):
+                known = events.setdefault(sym, {}).get(ex)
+                value = amount(row.get("CashDividend"))
+                events[sym][ex] = [ex, known[1] if known else "", value if value is not None else (known[2] if known else None)]
+        sources[key] = today.isoformat()
+    except Exception as error:  # keep the previous snapshot of this source
+        print(f"{wanted} distributions not refreshed:", error)
+        if (old.get("sources") or {}).get(key):
+            sources[key] = old["sources"][key]
 
-try:
-    tpex = get_json("https://www.tpex.org.tw/openapi/v1/tpex_exright_prepost")
-    for row in tpex:
-        sym, ex = str(row.get("SecuritiesCompanyCode", "")).strip(), roc(row.get("ExRrightsExDividendDate"))
-        if market.get(sym) == "TPEx" and ex and "息" in str(row.get("ExRrightsExDividend", "")):
-            events.setdefault(sym, []).append([ex, "", amount(row.get("CashDividend"))])
-    sources["tpex"] = today.isoformat()
-except Exception as error:  # keep the previous TPEx snapshot
-    print("TPEx announcements not refreshed:", error)
-    for sym, items in (old.get("events") or {}).items():
-        if market.get(sym) == "TPEx":
-            events[sym] = items
-    if (old.get("sources") or {}).get("tpex"):
-        sources["tpex"] = old["sources"]["tpex"]
-
-for sym in events:
-    unique = {item[0]: item for item in events[sym]}
-    events[sym] = sorted(unique.values(), key=lambda item: item[0], reverse=True)
+oldest = (today - timedelta(days=760)).isoformat()
+for sym in list(events):
+    events[sym] = sorted((item for item in events[sym].values() if item[0] >= oldest), key=lambda item: item[0], reverse=True)
+    if not events[sym]:
+        del events[sym]
 
 
 def frequency(sym):

@@ -6,8 +6,9 @@ struct OfficialDistribution: Codable, Hashable {
     var pay: String
     var amount: Double?
 }
-/// Official distributions from TWSE "ETF 收益分配" (listed ETFs, about two years) and the TPEx ex-dividend notice
-/// (OTC ETFs, upcoming only). Bundled as official-dividends.json and refreshable on the device.
+/// Official distributions from the ex-rights and ex-dividend notices in the exchanges' open data, TWSE 上市股票除權除息
+/// 預告表 and TPEx 上櫃股票除權除息預告表: upcoming ex-dividend days and cash amounts, without the payment day. Each
+/// refresh adds to what is known, so the record builds up; the bundled official-dividends.json carries the earlier record.
 struct OfficialDividends: Codable {
     var sources: [String: String] = [:]
     var events: [String: [OfficialDistribution]] = [:]
@@ -53,45 +54,51 @@ struct OfficialDividends: Codable {
         guard parts.count == 3, (1...12).contains(parts[1]), (1...31).contains(parts[2]) else { return nil }
         return String(format: "%04d-%02d-%02d", parts[0] + 1911, parts[1], parts[2])
     }
-    /// Fetches both official sources; a source that fails keeps the previous data.
+    static let twseURL = URL(string: "https://openapi.twse.com.tw/v1/exchangeReport/TWT48U_ALL")!
+    static let tpexURL = URL(string: "https://www.tpex.org.tw/openapi/v1/tpex_exright_prepost")!
+    /// The notice's ETFs among `markets` with a cash dividend (息, 權息): ex-dividend day and amount per unit, nil until
+    /// set. TWSE names the fields Code, Date and Exdividend; TPEx SecuritiesCompanyCode, ExRrightsExDividendDate and
+    /// ExRrightsExDividend. Both write dates in ROC years ("1151022").
+    static func decode(_ bytes: Data, market: String, markets: [String: String]) throws -> [String: [OfficialDistribution]] {
+        let keys = market == "TPEx" ? ("SecuritiesCompanyCode", "ExRrightsExDividendDate", "ExRrightsExDividend") : ("Code", "Date", "Exdividend")
+        var data = bytes
+        if data.starts(with: [0xEF, 0xBB, 0xBF]) { data = data.dropFirst(3) }
+        guard let rows = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]], rows.first.map({ $0[keys.0] != nil && $0[keys.1] != nil }) ?? true
+        else { throw AppDataError(market == "TPEx" ? "上櫃配息資料格式不符。" : "上市配息資料格式不符。") }
+        var events: [String: [OfficialDistribution]] = [:]
+        for row in rows {
+            guard let symbol = (row[keys.0] as? String)?.trimmingCharacters(in: .whitespaces), market == "TPEx" ? markets[symbol] == "TPEx" : markets[symbol] != nil,
+                  (row[keys.2] as? String ?? "").contains("息"), let ex = rocDay(row[keys.1] as? String ?? "") else { continue }
+            let amount = Double((row["CashDividend"] as? String ?? "").replacingOccurrences(of: ",", with: "")).flatMap { $0 > 0 ? $0 : nil }
+            events[symbol, default: []].append(OfficialDistribution(ex: ex, pay: "", amount: amount))
+        }
+        return events
+    }
+    /// Adds announcements to the known ones: a known ex-dividend day keeps its payment day, and its amount until the
+    /// notice sets one. With `frequency` the label is worked out again from the past year.
+    func merging(_ fresh: [String: [OfficialDistribution]], frequency: Bool) -> OfficialDividends {
+        var next = self
+        for (symbol, items) in fresh {
+            var byDay = Dictionary(list(symbol).map { ($0.ex, $0) }, uniquingKeysWith: { first, _ in first })
+            for item in items { byDay[item.ex] = OfficialDistribution(ex: item.ex, pay: byDay[item.ex]?.pay ?? "", amount: item.amount ?? byDay[item.ex]?.amount) }
+            next.events[symbol] = byDay.values.sorted { $0.ex > $1.ex }
+            if frequency, let label = Self.frequency(of: next.events[symbol] ?? []) { next.freq[symbol] = label }
+        }
+        return next
+    }
+    /// Fetches both exchanges' notices; a source that fails keeps the previous data. Only listed ETFs have the earlier
+    /// record (bundled from TWSE) to tell the frequency from.
     static func fetch(merging old: OfficialDividends, markets: [String: String]) async throws -> OfficialDividends {
         var next = old
-        var events: [String: [OfficialDistribution]] = [:]
         var errors: [String] = []
-        let calendar = Calendar(identifier: .gregorian)
-        let start = calendar.date(byAdding: .day, value: -400, to: Date()) ?? Date()
-        let startText = DataChecks.day(start).replacingOccurrences(of: "-", with: "")
-        let year = calendar.component(.year, from: Date()) + 1
-        do {
-            let bytes = try await PublicHTTP.get(URL(string: "https://www.twse.com.tw/rwd/zh/ETF/etfDiv?stkNo=&startDate=\(startText)&endDate=\(year)1231&response=json")!)
-            guard let root = try JSONSerialization.jsonObject(with: bytes) as? [String: Any], root["status"] as? String == "ok",
-                  let fields = root["fields"] as? [String], fields.count > 5, fields[2] == "除息交易日", let rows = root["data"] as? [[Any]] else { throw AppDataError("上市配息資料格式不符。") }
-            for row in rows where row.count > 5 {
-                guard let symbol = (row[0] as? String)?.trimmingCharacters(in: .whitespaces), markets[symbol] != nil, let ex = rocDay(row[2] as? String ?? "") else { continue }
-                let amount = Double((row[5] as? String ?? "").replacingOccurrences(of: ",", with: "")).flatMap { $0 > 0 ? $0 : nil }
-                events[symbol, default: []].append(OfficialDistribution(ex: ex, pay: rocDay(row[4] as? String ?? "") ?? "", amount: amount))
-            }
-            for (symbol, fresh) in events {
-                let seen = Set(fresh.map(\.ex))
-                let merged = fresh + old.list(symbol).filter { !seen.contains($0.ex) }
-                next.events[symbol] = merged.sorted { $0.ex > $1.ex }
-                if let label = frequency(of: next.events[symbol] ?? []) { next.freq[symbol] = label }
-            }
-            next.sources["twse"] = DataChecks.day()
-        } catch { errors.append("上市：\(error.localizedDescription)") }
-        do {
-            let bytes = try await PublicHTTP.get(URL(string: "https://www.tpex.org.tw/openapi/v1/tpex_exright_prepost")!)
-            guard let rows = try JSONSerialization.jsonObject(with: bytes) as? [[String: Any]] else { throw AppDataError("上櫃配息資料格式不符。") }
-            for row in rows {
-                guard let symbol = (row["SecuritiesCompanyCode"] as? String)?.trimmingCharacters(in: .whitespaces), markets[symbol] == "TPEx",
-                      (row["ExRrightsExDividend"] as? String ?? "").contains("息"), let ex = rocDay(row["ExRrightsExDividendDate"] as? String ?? "") else { continue }
-                let amount = Double((row["CashDividend"] as? String ?? "").replacingOccurrences(of: ",", with: "")).flatMap { $0 > 0 ? $0 : nil }
-                var list = next.list(symbol).filter { $0.ex != ex }
-                list.append(OfficialDistribution(ex: ex, pay: "", amount: amount))
-                next.events[symbol] = list.sorted { $0.ex > $1.ex }
-            }
-            next.sources["tpex"] = DataChecks.day()
-        } catch { errors.append("上櫃：\(error.localizedDescription)") }
+        for (market, url, label) in [("TWSE", twseURL, "上市"), ("TPEx", tpexURL, "上櫃")] {
+            do {
+                let bytes = try await PublicHTTP.get(url)
+                let fresh = try decode(bytes, market: market, markets: markets)
+                next = next.merging(fresh, frequency: market == "TWSE")
+                next.sources[market.lowercased()] = DataChecks.day()
+            } catch { errors.append("\(label)：\(error.localizedDescription)") }
+        }
         if errors.count == 2 { throw AppDataError("無法更新官方配息資料，保留原本資料。\(errors.joined(separator: "；"))") }
         return next
     }

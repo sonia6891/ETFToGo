@@ -412,7 +412,7 @@ enum StoreError: LocalizedError {
         guard !catalogRefreshing else { return }
         catalogRefreshing = true; defer { catalogRefreshing = false }
         do {
-            let next = try await CatalogAPI.fetch()
+            let next = try await CatalogAPI.fetch(previous: catalog)
             if let old = catalog {
                 guard next.listedDate >= old.listedDate else { throw AppDataError("新取得的資料日期比目前舊，未覆寫。") }
                 for market in ["TWSE", "TPEx"] {

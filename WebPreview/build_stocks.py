@@ -7,15 +7,16 @@ ships this snapshot and shows its date. Live prices still come from the viewer's
 
 - Companies: TWSE t187ap03_L and TPEx mopsfin_t187ap03_O (name, full name, industry, listing date).
 - Closes: TWSE STOCK_DAY_ALL and TPEx daily close quotes, for stocks and ETFs, from the last trading day.
-- Indices: TAIEX from TWSE MI_INDEX / FMTQIK (daily history), TPEx index from tpex_index. History is merged
-  with the previous snapshot, so it grows on every build.
+- Indices: TAIEX from TWSE MI_INDEX and MI_5MINS_HIST (this month's daily closes), TPEx index from tpex_index.
+  History is merged with the previous snapshot, so it grows on every build.
 - Monthly revenue (t187ap05), latest quarterly EPS (t187ap06 *_ci), latest dividend decision (TWSE t187ap45_L),
-  TWSE ex-rights/ex-dividend results (TWT49U, about two years) and upcoming ex-dates (TWT48U_ALL, TPEx prepost).
+  upcoming ex-dates (TWT48U_ALL, TPEx prepost) and past ex-dates (about two years), merged with the previous
+  snapshot: TPEx publishes its results table (tpex_exright_daily); TWSE's results table is not open data, so its
+  past ex-dates come from the notice on the day, with the cash dividend of a pure ex-dividend as the value.
 If a source cannot be reached, that part of the previous snapshot is kept.
 """
 import json
 import re
-import time
 import urllib.request
 from datetime import date, timedelta
 from pathlib import Path
@@ -133,22 +134,12 @@ def merged(old, new):
 
 taiex = index.get("taiex") or {"name": "加權指數", "hist": []}
 try:
-    months = []
-    first = date(today.year, today.month, 1)
-    have = {d for d, _ in taiex.get("hist", [])}
-    for back in range(12):
-        m = date(first.year - (1 if first.month - back <= 0 else 0), (first.month - back - 1) % 12 + 1, 1)
-        if back < 2 or m.strftime("%Y-%m") not in {d[:7] for d in have}:
-            months.append(m)
+    # 發行量加權股價指數歷史資料 covers the current month only; earlier months come from the previous snapshot.
     new = []
-    for m in months:
-        j = get_json(f"https://www.twse.com.tw/rwd/zh/afterTrading/FMTQIK?date={m.strftime('%Y%m%d')}&response=json")
-        if j.get("stat") == "OK":
-            for row in j.get("data", []):
-                d, v = roc_day(row[0]), number(row[4])
-                if d and v:
-                    new.append((d, v))
-        time.sleep(1.2)
+    for x in get_json("https://openapi.twse.com.tw/v1/indicesReport/MI_5MINS_HIST"):
+        d, v = roc_day(x.get("Date")), number(x.get("ClosingIndex"))
+        if d and v:
+            new.append((d, v))
     taiex["hist"] = [list(p) for p in merged(taiex.get("hist"), new)]
     for x in get_json("https://openapi.twse.com.tw/v1/exchangeReport/MI_INDEX"):
         if x.get("指數") == "發行量加權股價指數":
@@ -227,22 +218,25 @@ except Exception as error:
 
 ex_hist = previous.get("exHist") or {}
 try:
-    fresh = {}
-    start = today - timedelta(days=730)
-    while start <= today:
-        end = min(start + timedelta(days=90), today)
-        j = get_json(f"https://www.twse.com.tw/rwd/zh/exRight/TWT49U?startDate={start.strftime('%Y%m%d')}&endDate={end.strftime('%Y%m%d')}&response=json")
-        if j.get("stat") == "OK" and j.get("fields", [])[:2] == ["資料日期", "股票代號"]:
-            for row in j.get("data", []):
-                code, d, v = row[1].strip(), roc_day(row[0]), number(row[5])
-                if (code in stock_ids or code in etf_ids) and d and v is not None:
-                    fresh.setdefault(code, []).append([d, v, row[6].strip()])
-        start = end + timedelta(days=1)
-        time.sleep(1.2)
-    if fresh:
-        for code in fresh:
-            fresh[code] = sorted({e[0]: e for e in fresh[code]}.values(), key=lambda e: e[0], reverse=True)
-        ex_hist = fresh
+    happened = []  # (code, ex-date, 權值＋息值 or None, 息 / 權 / 權息)
+    for x in get_json("https://openapi.twse.com.tw/v1/exchangeReport/TWT48U_ALL"):
+        kind = str(x.get("Exdividend") or "").strip()
+        # The 權值 of a stock dividend depends on the price before the ex-date, which the notice does not give.
+        happened.append((x["Code"].strip(), roc_day(x["Date"]), number(x.get("CashDividend")) if kind == "息" else None, kind))
+    for x in get_json("https://www.tpex.org.tw/openapi/v1/tpex_exright_daily"):
+        happened.append((x["SecuritiesCompanyCode"].strip(), roc_day(x["Date"]), number(x.get("StockDividendPlusCashDividend")),
+                         str(x.get("ExRightsDiviend") or "").strip().replace("除", "")))
+    fresh = {code: {e[0]: e for e in items} for code, items in ex_hist.items()}
+    for code, d, v, kind in happened:
+        if (code in stock_ids or code in etf_ids) and d and d <= today.isoformat() and kind and (v is not None or kind != "息"):
+            fresh.setdefault(code, {})[d] = [d, v, kind]
+    oldest = (today - timedelta(days=730)).isoformat()
+    kept = {}
+    for code, by_day in fresh.items():
+        items = sorted((e for e in by_day.values() if e[0] >= oldest), key=lambda e: e[0], reverse=True)
+        if items:
+            kept[code] = items
+    ex_hist = kept
 except Exception as error:
     print("ex-dividend history not refreshed:", error)
 

@@ -97,42 +97,66 @@ struct CatalogSnapshot: Codable {
 }
 enum CatalogAPI {
     static let listedURL = "https://openapi.twse.com.tw/v1/opendata/t187ap47_L"
-    static let otcURL = "https://info.tpex.org.tw/api/etfFilter"
+    static let twseURL = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
+    static let otcURL = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes"
     static func strategy(_ name: String) -> Strategy {
         if name.contains("正2") || name.contains("反1") || name.contains("槓桿") || name.contains("反向") { return .risk }
         if name.contains("高股息") || name.contains("優息") || name.contains("高息") { return .income }
         if ["元大台灣50", "富邦台50", "元大富櫃50"].contains(name) { return .saving }
         return .unclassified
     }
-    struct Listing: Decodable { var stockNo: String; var stockName: String; var listingDate: String }
-    struct MarketList: Decodable { var status: String; var data: [Listing] }
-    static let activeURL = "https://www.twse.com.tw/zh/ETFortune/ajaxProductsResult"
-    static func decode(listed: Data, otc: Data, active: Data, today: String = DataChecks.day()) throws -> CatalogSnapshot {
-        let rows = try JSONDecoder().decode([[String: String]].self, from: listed)
-        let listedActive = try JSONDecoder().decode(MarketList.self, from: active)
-        let otcActive = try JSONDecoder().decode(MarketList.self, from: otc)
-        guard !rows.isEmpty, listedActive.status == "success", otcActive.status == "success", !listedActive.data.isEmpty, !otcActive.data.isEmpty else { throw AppDataError("上市或上櫃資料不完整，保留原名單。") }
-        var details: [String: [String: String]] = [:]; var dates: [String] = []
-        for row in rows {
-            guard let code = row["基金代號"], let day = DataChecks.rocDay(row["出表日期"] ?? ""), day <= today, details[code] == nil else { throw AppDataError("上市基本資料欄位或日期改變，未覆寫。") }
+    /// The ETFs are the codes starting with 00 in each exchange's daily trading list (TWSE 上市個股日成交資訊, TPEx 上櫃股票
+    /// 收盤行情), so funds that left the market or are not listed yet drop out. TWSE 基金基本資料彙總表 adds the full name,
+    /// fund type and listing day of listed ETFs; the open data has none of these for OTC ETFs, so they carry over from
+    /// the previous list.
+    static func decode(listed: Data, twse: Data, otc: Data, previous: CatalogSnapshot? = nil, today: String = DataChecks.day()) throws -> CatalogSnapshot {
+        var details: [String: [String: Any]] = [:]; var dates: [String] = []
+        for row in try rows(listed) {
+            guard let code = text(row["基金代號"]), let day = DataChecks.rocDay(text(row["出表日期"]) ?? ""), day <= today, details[code] == nil else { throw AppDataError("上市基本資料欄位或日期改變，未覆寫。") }
             details[code] = row; dates.append(day)
         }
+        let known = Dictionary((previous?.funds ?? []).map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var funds: [Fund] = []
-        for (market, records) in [("TWSE", listedActive.data), ("TPEx", otcActive.data)] {
-            for item in records {
-                guard let date = DataChecks.rocDay(item.listingDate) else { throw AppDataError("掛牌日期格式改變，未覆寫。") }
-                if date > today { continue }
-                let row = market == "TWSE" ? details[item.stockNo] : nil
-                funds.append(Fund(id: item.stockNo, name: item.stockName, strategy: strategy(item.stockName), market: market, fullName: row?["基金中文名稱"], fundType: row?["基金類型"], listingDate: date))
+        for (market, bytes, codeKey, nameKey) in [("TWSE", twse, "Code", "Name"), ("TPEx", otc, "SecuritiesCompanyCode", "CompanyName")] {
+            let records = try rows(bytes), before = funds.count
+            guard records[0][codeKey] != nil, records[0][nameKey] != nil else { throw AppDataError("每日成交資料欄位改變，未覆寫。") }
+            for row in records {
+                guard let code = text(row[codeKey]), code.hasPrefix("00"), DataChecks.code(code), let name = text(row[nameKey]).map(unescape) else { continue }
+                let detail = market == "TWSE" ? details[code] : nil, old = known[code]
+                funds.append(Fund(id: code, name: name, strategy: strategy(name), market: market,
+                                  fullName: text(detail?["基金中文名稱"]).map(unescape) ?? old?.fullName,
+                                  fundType: text(detail?["基金類型"]) ?? old?.fundType,
+                                  listingDate: DataChecks.rocDay(text(detail?["上市日期"]) ?? "") ?? old?.listingDate))
             }
+            guard funds.count > before else { throw AppDataError("上市或上櫃資料不完整，保留原名單。") }
         }
-        let value = CatalogSnapshot(funds: funds.sorted { $0.id < $1.id }, listedDate: dates.max() ?? today, fetchedDay: today, sources: [listedURL, activeURL, otcURL])
+        let value = CatalogSnapshot(funds: funds.sorted { $0.id < $1.id }, listedDate: dates.max() ?? today, fetchedDay: today, sources: [listedURL, twseURL, otcURL])
         try value.validate(); return value
     }
-    static func fetch() async throws -> CatalogSnapshot {
+    private static func rows(_ bytes: Data) throws -> [[String: Any]] {
+        var data = bytes
+        if data.starts(with: [0xEF, 0xBB, 0xBF]) { data = data.dropFirst(3) }
+        guard let rows = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]], !rows.isEmpty else { throw AppDataError("上市或上櫃資料不完整，保留原名單。") }
+        return rows
+    }
+    private static func text(_ value: Any?) -> String? {
+        guard let text = (value as? String)?.trimmingCharacters(in: .whitespaces), !text.isEmpty else { return nil }
+        return text
+    }
+    /// The TWSE fund list writes some characters as HTML entities ("S&amp;P", "&#63754;").
+    static func unescape(_ text: String) -> String {
+        guard text.contains("&") else { return text }
+        var result = text
+        while let range = result.range(of: "&#[0-9]{1,7};", options: .regularExpression), let scalar = UInt32(result[range].dropFirst(2).dropLast()).flatMap({ Unicode.Scalar($0) }) {
+            result.replaceSubrange(range, with: String(Character(scalar)))
+        }
+        for (entity, character) in [("&lt;", "<"), ("&gt;", ">"), ("&quot;", "\""), ("&#39;", "'"), ("&amp;", "&")] { result = result.replacingOccurrences(of: entity, with: character) }
+        return result
+    }
+    static func fetch(previous: CatalogSnapshot? = nil) async throws -> CatalogSnapshot {
         async let listed = PublicHTTP.get(URL(string: listedURL)!)
+        async let twse = PublicHTTP.get(URL(string: twseURL)!)
         async let otc = PublicHTTP.get(URL(string: otcURL)!)
-        async let active = PublicHTTP.get(URL(string: activeURL)!)
-        return try await decode(listed: listed, otc: otc, active: active)
+        return try await decode(listed: listed, twse: twse, otc: otc, previous: previous)
     }
 }

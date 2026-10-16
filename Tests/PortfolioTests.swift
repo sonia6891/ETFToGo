@@ -188,6 +188,40 @@ final class PortfolioTests: XCTestCase {
         var lagging = day; lagging.indices["taiex"]?.date = "2026-10-15"
         XCTAssertEqual(lagging.settledDay, "2026-10-15"); XCTAssertEqual(day.settledDay, "2026-10-16")
     }
+    func testOpenDataDistributions() throws {
+        // Shapes of October 2026: TWSE 上市股票除權除息預告表 (息/權, amount empty until set, stocks and ETNs too) and
+        // TPEx 上櫃股票除權除息預告表 (除息/除權/除權息).
+        let twse = Data(#"""
+        [{"Date":"1151022","Code":"0056","Name":"元大高股息","Exdividend":"息","StockDividendRatio":"","CashDividend":""},
+         {"Date":"1151019","Code":"00878","Name":"國泰永續高股息","Exdividend":"息","StockDividendRatio":"","CashDividend":"0.400000"},
+         {"Date":"1151020","Code":"1711","Name":"永光","Exdividend":"權","StockDividendRatio":"","CashDividend":"0"},
+         {"Date":"1151104","Code":"020036","Name":"元大金融配息N","Exdividend":"息","StockDividendRatio":"","CashDividend":"0.400000"}]
+        """#.utf8)
+        let tpex = Data(#"""
+        [{"ExRrightsExDividendDate":"1151016","SecuritiesCompanyCode":"00679B","CompanyName":"元大美債20年","ExRrightsExDividend":"除息","CashDividend":"0.36000000"},
+         {"ExRrightsExDividendDate":"1151007","SecuritiesCompanyCode":"6129","CompanyName":"普誠","ExRrightsExDividend":"除權","CashDividend":"0.00000000"},
+         {"ExRrightsExDividendDate":"1151016","SecuritiesCompanyCode":"0056","CompanyName":"不同市場","ExRrightsExDividend":"除息","CashDividend":"1.00000000"}]
+        """#.utf8)
+        let markets = ["0056": "TWSE", "00878": "TWSE", "00679B": "TPEx"]
+        let listed = try OfficialDividends.decode(twse, market: "TWSE", markets: markets)
+        XCTAssertEqual(Set(listed.keys), ["0056", "00878"])
+        XCTAssertEqual(listed["0056"], [OfficialDistribution(ex: "2026-10-22", pay: "", amount: nil)], "Announced before the amount is set")
+        XCTAssertEqual(listed["00878"], [OfficialDistribution(ex: "2026-10-19", pay: "", amount: 0.4)])
+        let otc = try OfficialDividends.decode(tpex, market: "TPEx", markets: markets)
+        XCTAssertEqual(otc, ["00679B": [OfficialDistribution(ex: "2026-10-16", pay: "", amount: 0.36)]])
+        XCTAssertThrowsError(try OfficialDividends.decode(Data("<html>維護中</html>".utf8), market: "TWSE", markets: markets))
+        XCTAssertThrowsError(try OfficialDividends.decode(tpex, market: "TWSE", markets: markets), "TPEx fields under the TWSE name are refused")
+        // A known ex-dividend day keeps its payment day, and its amount until the notice sets one; the record stays.
+        var known = OfficialDividends()
+        known.events["0056"] = [OfficialDistribution(ex: "2026-10-22", pay: "2026-11-11", amount: nil), OfficialDistribution(ex: "2026-07-21", pay: "2026-08-10", amount: 1.35)]
+        known.events["00878"] = [OfficialDistribution(ex: "2026-10-19", pay: "2026-11-14", amount: 0.5)]
+        known.freq["00878"] = "季配"
+        let merged = known.merging(listed, frequency: false).merging(otc, frequency: false)
+        XCTAssertEqual(merged.list("0056"), [OfficialDistribution(ex: "2026-10-22", pay: "2026-11-11", amount: nil), OfficialDistribution(ex: "2026-07-21", pay: "2026-08-10", amount: 1.35)])
+        XCTAssertEqual(merged.list("00878"), [OfficialDistribution(ex: "2026-10-19", pay: "2026-11-14", amount: 0.4)])
+        XCTAssertEqual(merged.list("00679B"), [OfficialDistribution(ex: "2026-10-16", pay: "", amount: 0.36)])
+        XCTAssertEqual(merged.freq, ["00878": "季配"], "Frequencies change only when asked")
+    }
     func testLiveProtocolMessages() throws {
         XCTAssertEqual(LiveProtocol.parse(#"{"event":"authenticated","data":{"message":"Authenticated successfully"}}"#), .authenticated)
         XCTAssertEqual(LiveProtocol.parse(#"{"event":"subscribed","data":{"id":"abc","channel":"aggregates","symbol":"2330"}}"#), .subscribed(["2330": "abc"]))
