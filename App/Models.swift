@@ -497,6 +497,7 @@ enum StoreError: LocalizedError {
         guard !refreshing else { return }
         refreshing = true; defer { refreshing = false }
         message = nil
+        let started = Date()
         do {
             let key = try SecureKey.read()
             let targets = Array(Set(symbols ?? data.holdings.map(\.symbol))).sorted()
@@ -513,18 +514,19 @@ enum StoreError: LocalizedError {
                 do {
                     for symbol in stale { fetched[symbol] = try await Fugle.quote(symbol: symbol, key: key, currency: data.quotes[symbol]?.currency) }
                 } catch {
-                    if !fetched.isEmpty { try? keepFetched(fetched) }
+                    if !fetched.isEmpty { try? keepFetched(fetched, since: started) }
                     throw error
                 }
             }
-            try keepFetched(fetched)
+            try keepFetched(fetched, since: started)
         } catch { message = error.localizedDescription }
     }
     /// Saves refreshed quotes, merged into the current data since the user may have edited holdings meanwhile.
     /// Trial-match prices only show (through liveQuotes) and are never saved as the day's price.
-    private func keepFetched(_ fetched: [String: Quote]) throws {
+    private func keepFetched(_ fetched: [String: Quote], since started: Date) throws {
         let trial = fetched.filter { $0.value.trial == true }
-        if !trial.isEmpty { liveQuotes.merge(trial) { _, new in new } }
+        // A real trade streamed in while the requests were running, or anything newer, is kept.
+        if !trial.isEmpty { liveQuotes.merge(trial) { old, new in (old.trial != true && old.date == new.date && old.fetchedAt >= started) || old.fetchedAt > new.fetchedAt ? old : new } }
         var next = data
         next.quotes.merge(fetched.filter { $0.value.trial != true }) { _, refreshed in refreshed }
         try commit(next)
