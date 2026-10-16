@@ -397,7 +397,7 @@ final class PortfolioTests: XCTestCase {
             .init(symbol: "2330", shares: 2000)
         ], "A cut-off name offers choices; 臺 and a note in brackets still match")
     }
-    func testScreenshotBoxesPagesAndDrafts() throws {
+    func testScreenshotBoxesAndTwoReadings() {
         let boxes: [(text: String, box: CGRect)] = [
             ("1,000", CGRect(x: 0.55, y: 0.795, width: 0.15, height: 0.03)),
             ("台積電 2330", CGRect(x: 0.05, y: 0.8, width: 0.3, height: 0.03)),
@@ -405,20 +405,60 @@ final class PortfolioTests: XCTestCase {
             ("付出成本", CGRect(x: 0.05, y: 0.7, width: 0.2, height: 0.03))
         ]
         XCTAssertEqual(ScreenshotImport.lines(from: boxes), ["台積電 2330 1,000", "付出成本 580,000"])
-        let first: [ScreenshotImport.Row] = [.init(symbol: "0050", shares: 2000, cost: 100000), .init(symbol: "2330", shares: 1000), .init(symbol: "", shares: 500, name: "測試股", choices: ["9991", "9992"])]
-        let second: [ScreenshotImport.Row] = [.init(symbol: "2330", shares: 1000, cost: 580000), .init(symbol: "0050", shares: 2500, cost: 100000), .init(symbol: "", shares: 500, name: "測試股", choices: ["9991", "9992"])]
-        XCTAssertEqual(ScreenshotImport.merge([first, second]), [
-            .init(symbol: "0050", cost: 100000, note: "截圖之間數字不一致（股數 2,000／2,500），請對照確認後填入。"),
-            .init(symbol: "2330", shares: 1000, cost: 580000),
-            .init(symbol: "", shares: 500, name: "測試股", choices: ["9991", "9992"])
-        ], "A holding seen in several screenshots is one row; a figure read differently is left for the user")
-        var drafts = [ScreenshotImport.Draft(.init(symbol: "0050", shares: 2000, cost: 100000)), ScreenshotImport.Draft(.init(symbol: "", shares: 1000, name: "測試股", choices: ["9991", "9992"]))]
-        XCTAssertEqual(drafts[0].shares, "2000"); XCTAssertEqual(drafts[1].cost, ""); XCTAssertEqual(drafts[1].seen, "測試股"); XCTAssertEqual(drafts[1].choices, ["9991", "9992"])
-        XCTAssertThrowsError(try BrokerPreview.make(drafts: drafts, broker: "國泰證券", account: "主要", funds: Fund.starters)) { XCTAssertTrue($0.localizedDescription.contains("代號")) }
-        drafts[1].symbol = "2330"
-        XCTAssertThrowsError(try BrokerPreview.make(drafts: drafts, broker: "國泰證券", account: "主要", funds: Fund.starters)) { XCTAssertTrue($0.localizedDescription.contains("總成本")) }
-        drafts[0].shares = "2張"; drafts[1].cost = "580,000"
-        let preview = try BrokerPreview.make(drafts: drafts, broker: "國泰證券", account: "主要", funds: Fund.starters)
-        XCTAssertEqual(preview.holdings.map(\.shares), [2000, 1000], "2張 is 2,000 shares"); XCTAssertEqual(preview.holdings[1].unitCost, 580)
+        let place = CGRect(x: 0.05, y: 0.5, width: 0.4, height: 0.03), other = CGRect(x: 0.6, y: 0.5, width: 0.2, height: 0.03)
+        let combined = ScreenshotImport.combine(corrected: [("台積電 233O", place), ("付出成本", other)], raw: [("台積霓 2330", place), ("付出成木", other)])
+        XCTAssertEqual(combined.map { $0.text }, ["台積電 2330", "付出成本"], "Words with digits come from the uncorrected reading, the rest from the corrected one")
+    }
+    func testScreenshotLotsKeptAndOverlapsOnce() {
+        let lots = ScreenshotImport.Listing([(code: "00991A", name: "主動測試"), (code: "2330", name: "台積電")])
+        let table = ["名稱 類別 庫存股數 付出成本", "主動測試 00991A 現股 1,000 10,000", "主動測試 00991A 現股 1,000 10,000",
+                     "主動測試 00991A 融資 3,000 33,000", "台積電 2330 融券 1,000 580,000"]
+        XCTAssertEqual(ScreenshotImport.parse(table, in: lots), [
+            .init(symbol: "00991A", shares: 1000, cost: 10000),
+            .init(symbol: "00991A", shares: 1000, cost: 10000),
+            .init(symbol: "00991A", shares: 3000, cost: 33000, kind: .margin),
+            .init(symbol: "2330", shares: 1000, cost: 580000, kind: .short)
+        ], "Every lot in one screenshot is kept, even two with the same figures")
+        XCTAssertEqual(ScreenshotImport.parse(["主動測試 00991A 資", "股數 2,000", "付出成本 22,000", "主動測試 00991A", "股數 1,000", "付出成本 10,500"], in: lots), [
+            .init(symbol: "00991A", shares: 2000, cost: 22000, kind: .margin),
+            .init(symbol: "00991A", shares: 1000, cost: 10500)
+        ], "A card's code seen again after its figures starts the next lot; a lone 資 means 融資")
+        let a = ScreenshotImport.Row(symbol: "00991A", shares: 1000, cost: 10000)
+        let b = ScreenshotImport.Row(symbol: "00991A", shares: 2000, cost: 21000)
+        let m = ScreenshotImport.Row(symbol: "00991A", shares: 3000, cost: 33000, kind: .margin)
+        let s = ScreenshotImport.Row(symbol: "2330", shares: 1000, cost: 580000, kind: .short)
+        let cut = ScreenshotImport.Row(symbol: "2330", shares: 500)
+        let review = ScreenshotImport.review([[a, a, b, cut], [b, m, s, .init(symbol: "2330", shares: 500, cost: 290000)]])
+        XCTAssertEqual(review.rows, [a, a, b, .init(symbol: "2330", shares: 500, note: "這一列可能是截圖邊緣只拍到一部分的重複列；若與其他列是同一批，請刪除。"), m, .init(symbol: "2330", shares: 500, cost: 290000)],
+                       "Rows repeated exactly in a later screenshot appear once; lots within one screenshot all stay")
+        XCTAssertEqual(review.short, [s], "融券 is not a holding and is set apart")
+    }
+    @MainActor func testScreenshotLotsMergeByCodeAndKind() throws {
+        let funds = Fund.starters + [Fund(id: "00991A", name: "主動測試", strategy: .unclassified)]
+        var drafts = [ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 10000)), ScreenshotImport.Draft(.init(symbol: "00991A", shares: 2000, cost: 21000)),
+                      ScreenshotImport.Draft(.init(symbol: "00991A", shares: 3000, cost: 33000, kind: .margin)), ScreenshotImport.Draft(.init(symbol: "0050", cost: 100000))]
+        XCTAssertEqual(drafts[2].kind, .margin); XCTAssertEqual(drafts[3].shares, "")
+        XCTAssertThrowsError(try BrokerPreview.make(drafts: drafts, broker: "國泰證券", account: "主要", funds: funds)) { XCTAssertTrue($0.localizedDescription.contains("股數")) }
+        drafts[3].shares = "2張"
+        let preview = try BrokerPreview.make(drafts: drafts, broker: "國泰證券", account: "主要", funds: funds)
+        XCTAssertEqual(preview.holdings.map(\.symbol), ["00991A", "00991A", "0050"])
+        let cash = preview.holdings[0], margin = preview.holdings[1]
+        XCTAssertEqual(cash.shares, 3000); XCTAssertEqual(cash.cost, 31000, accuracy: 0.001); XCTAssertEqual(cash.unitCost, 31000.0 / 3000, accuracy: 1e-9)
+        XCTAssertEqual(cash.broker, "國泰證券")
+        XCTAssertEqual(margin.shares, 3000); XCTAssertEqual(margin.unitCost, 11); XCTAssertEqual(margin.broker, "國泰證券（融資）")
+        XCTAssertNotEqual(cash.id, margin.id, "融資 and 現股 never replace each other")
+        XCTAssertEqual(preview.holdings[2].shares, 2000, "2張 is 2,000 shares")
+        let csv = try BrokerPreview.make(table: CSVTable.parse(Data("code,shares,cost\n00991A,3000,31000".utf8)), mapping: BrokerMapping(symbol: 0, name: -1, shares: 1, cost: 2), broker: "國泰證券", account: "主要", funds: funds)
+        XCTAssertEqual(csv.holdings[0].id, cash.id, "The 現股 holding is the same one a CSV import of the account updates")
+        let named = ScreenshotImport.Draft(.init(symbol: "", shares: 1000, cost: 1, name: "測試股", choices: ["9991", "9992"]))
+        XCTAssertEqual(named.seen, "測試股"); XCTAssertEqual(named.choices, ["9991", "9992"])
+        XCTAssertThrowsError(try BrokerPreview.make(drafts: [named], broker: "國泰證券", account: "主要", funds: funds)) { XCTAssertTrue($0.localizedDescription.contains("代號")) }
+        let short = ScreenshotImport.Draft(.init(symbol: "2330", shares: 1000, cost: 1, kind: .short))
+        XCTAssertThrowsError(try BrokerPreview.make(drafts: [short], broker: "國泰證券", account: "主要", funds: funds)) { XCTAssertTrue($0.localizedDescription.contains("融券")) }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = PortfolioStore(url: dir.appendingPathComponent("p.json"))
+        try store.importBroker(preview, replaceAccount: false); try store.importBroker(preview, replaceAccount: false)
+        XCTAssertEqual(store.data.holdings.count, 3, "Importing the same account again updates the same holdings")
     }
 }

@@ -66,7 +66,7 @@ struct BrokerPreview {
     var broker: String
     var totalCost: Double { holdings.reduce(0) { $0 + $1.cost } }
     /// One position to import; `place` names it in error messages.
-    private struct Entry { var place: String; var code: String; var name: String; var quantity: Double?; var cost: Double? }
+    private struct Entry { var place: String; var code: String; var name: String; var quantity: Double?; var cost: Double?; var margin = false }
     /// ETFs take the fund list's name and strategy; stocks are named from the stock list and left unclassified, as in the 新增持有 form.
     static func make(table: CSVTable, mapping: BrokerMapping, broker: String, account: String, funds: [Fund], stock: (String) -> StockInfo? = { StockSnapshot.bundled?.byID[$0] }) throws -> Self {
         guard [mapping.symbol, mapping.shares, mapping.cost].allSatisfy({ table.headers.indices.contains($0) }),
@@ -77,16 +77,24 @@ struct BrokerPreview {
         }
         return try build(entries, lots: mapping.lots, totalCost: mapping.totalCost, broker: broker, account: account, funds: funds, stock: stock)
     }
-    /// The rows the user checked after reading screenshots: shares and total cost, both required.
+    /// The lots the user checked after reading screenshots, each with shares and total cost. Lots of one code and
+    /// kind (現股 or 融資) become one holding: shares and costs are added, so the average cost is total ÷ shares.
     static func make(drafts: [ScreenshotImport.Draft], broker: String, account: String, funds: [Fund], stock: (String) -> StockInfo? = { StockSnapshot.bundled?.byID[$0] }) throws -> Self {
         guard !drafts.isEmpty else { throw AppDataError("沒有要匯入的持有。") }
         var entries: [Entry] = []
         for (offset, draft) in drafts.enumerated() {
             let code = draft.symbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(), place = "第 \(offset + 1) 筆"
             guard !code.isEmpty else { throw AppDataError("\(place)還沒有代號，請填入或刪除這一筆。") }
+            guard draft.kind != .short else { throw AppDataError("\(place) \(code) 是融券（放空部位），不匯入；請刪除這一筆。") }
             guard let quantity = shareCount(draft.shares) else { throw AppDataError("\(place) \(code) 還沒有股數，請對照截圖填入。") }
             guard let cost = number(draft.cost) else { throw AppDataError("\(place) \(code) 還沒有總成本，請對照截圖填入。") }
-            entries.append(Entry(place: place, code: code, name: "", quantity: quantity, cost: cost))
+            guard quantity.isFinite, quantity > 0, cost.isFinite, cost >= 0 else { throw AppDataError("\(place) \(code) 的股數或總成本不正確。") }
+            let margin = draft.kind == .margin
+            if let i = entries.firstIndex(where: { $0.code == code && $0.margin == margin }) {
+                entries[i].quantity = (entries[i].quantity ?? 0) + quantity; entries[i].cost = (entries[i].cost ?? 0) + cost
+            } else {
+                entries.append(Entry(place: place, code: code, name: "", quantity: quantity, cost: cost, margin: margin))
+            }
         }
         return try build(entries, lots: false, totalCost: true, broker: broker, account: account, funds: funds, stock: stock)
     }
@@ -106,13 +114,14 @@ struct BrokerPreview {
         for entry in entries {
             let code = entry.code
             guard DataChecks.code(code), let qty = entry.quantity, let cost = entry.cost, qty.isFinite, qty > 0, cost.isFinite, cost >= 0 else { throw AppDataError("\(entry.place)有無效代號、數量或成本，整份未匯入。") }
-            guard seen.insert(code).inserted else { throw AppDataError("\(code) 有多列，請先將同帳戶同一檔合併為一筆庫存。") }
+            guard seen.insert(entry.margin ? code + "\u{0}融資" : code).inserted else { throw AppDataError("\(code) 有多列，請先將同帳戶同一檔合併為一筆庫存。") }
             if lots && (code.hasSuffix("C") || code.hasSuffix("K")) { throw AppDataError("\(code) 為外幣級別，交易單位可能不是 1,000 股；請將數量改為實際股數再匯入。") }
             let shares = qty * (lots ? 1000 : 1)
             let fund = funds.first { $0.id == code }
             guard let listed = fund?.name ?? stock(code)?.name else { throw AppDataError("\(entry.place) \(code) 不在目前股票或 ETF 名單；請先更新名單，或移除該列。") }
-            let holding = Holding(id: StableID.make("broker-position", source + "\u{0}" + code), symbol: code, name: entry.name.isEmpty ? listed : entry.name,
-                                  shares: shares, unitCost: totalCost ? cost / shares : cost, broker: name, strategy: fund?.strategy ?? .unclassified, sourceAccount: source)
+            // 融資 is a holding of its own beside 現股, so the two never replace each other on a later import.
+            let holding = Holding(id: StableID.make("broker-position", source + "\u{0}" + code + (entry.margin ? "\u{0}融資" : "")), symbol: code, name: entry.name.isEmpty ? listed : entry.name,
+                                  shares: shares, unitCost: totalCost ? cost / shares : cost, broker: entry.margin ? name + "（融資）" : name, strategy: fund?.strategy ?? .unclassified, sourceAccount: source)
             try holding.validate(); holdings.append(holding)
         }
         return Self(holdings: holdings, sourceAccount: source, broker: name)
@@ -132,9 +141,12 @@ extension PortfolioStore {
 
 /// Reads holdings from the text of a broker's inventory screenshot. The app runs the system's on-device text
 /// recognition and passes the lines here, so this part works on plain text and is tested without images.
-/// A holding is found by a listed code, else by a listed name. A figure the text does not clearly label stays
-/// empty, and a name that fits no single code leaves the code for the user to choose; nothing is estimated.
+/// A holding is found by a listed code, else by a listed name. Each lot (one row or card of the screenshot) stays a
+/// row of its own for review. A figure the text does not clearly label stays empty, and a name that fits no single
+/// code leaves the code for the user to choose; nothing is estimated.
 enum ScreenshotImport {
+    /// 現股 (paid in full), 融資 (bought with a margin loan) or 融券 (sold short, not a holding, never imported).
+    enum Kind: String, CaseIterable { case cash = "現股", margin = "融資", short = "融券" }
     struct Row: Equatable {
         var symbol: String
         var shares: Double? = nil
@@ -142,8 +154,9 @@ enum ScreenshotImport {
         /// The name the screenshot showed when it did not settle on one code; `choices` are the codes it may be.
         var name: String? = nil
         var choices: [String] = []
-        /// Figures that differed between screenshots of the same holding.
+        /// A hint for the user, such as a row cut off at a screenshot's edge.
         var note: String? = nil
+        var kind: Kind = .cash
     }
     /// A row of the editable list the user checks before importing.
     struct Draft: Identifiable, Equatable {
@@ -151,13 +164,14 @@ enum ScreenshotImport {
         var symbol = ""
         var shares = ""
         var cost = ""
+        var kind: Kind = .cash
         var seen = ""
         var choices: [String] = []
         var note: String?
         init() {}
         init(_ row: Row) {
             symbol = row.symbol; shares = row.shares.map(Self.plain) ?? ""; cost = row.cost.map(Self.plain) ?? ""
-            seen = row.name ?? ""; choices = row.choices; note = row.note
+            kind = row.kind; seen = row.name ?? ""; choices = row.choices; note = row.note
         }
         private static func plain(_ value: Double) -> String { value == value.rounded() && abs(value) < 1e15 ? String(Int64(value)) : String(value) }
     }
@@ -214,11 +228,33 @@ enum ScreenshotImport {
     /// Titles of the total amount paid; a per-share average such as 成本均價 is not used.
     static let costLabels: Set<String> = ["付出成本", "持有成本", "總成本", "投資成本", "成本總額"]
 
-    /// Groups recognised text boxes (Vision's normalised boxes, origin at the bottom left) into lines, top to bottom.
+    /// Language correction reads Chinese better but may "correct" codes and figures, so each screenshot is read
+    /// both ways and every word with a digit is taken from the uncorrected reading of the same place.
+    static func combine(corrected: [(text: String, box: CGRect)], raw: [(text: String, box: CGRect)]) -> [(text: String, box: CGRect)] {
+        corrected.map { item -> (text: String, box: CGRect) in
+            guard let twin = raw.max(by: { overlap($0.box, item.box) < overlap($1.box, item.box) }), overlap(twin.box, item.box) >= 0.5 else { return item }
+            let words = item.text.split(separator: " "), plain = twin.text.split(separator: " ")
+            guard words.count == plain.count else { return hasDigit(Substring(twin.text)) ? (text: twin.text, box: item.box) : item }
+            let text = zip(words, plain).map { fixed, read in hasDigit(fixed) || hasDigit(read) ? String(read) : String(fixed) }.joined(separator: " ")
+            return (text: text, box: item.box)
+        }
+    }
+    private static func overlap(_ a: CGRect, _ b: CGRect) -> CGFloat {
+        let shared = a.intersection(b)
+        guard !shared.isNull, shared.width > 0, shared.height > 0 else { return 0 }
+        let both = shared.width * shared.height
+        return both / (a.width * a.height + b.width * b.height - both)
+    }
+    private static func hasDigit(_ word: Substring) -> Bool { word.unicodeScalars.contains { (0x30...0x39).contains($0.value) || (0xFF10...0xFF19).contains($0.value) } }
+
+    /// Groups recognised text boxes (Vision's normalised boxes, origin at the bottom left) into lines, top to bottom:
+    /// a box joins the line whose middle is nearest, if within half the smaller text height.
     static func lines(from boxes: [(text: String, box: CGRect)]) -> [String] {
         var rows: [(middle: CGFloat, height: CGFloat, items: [(x: CGFloat, text: String)])] = []
         for item in boxes.sorted(by: { $0.box.midY > $1.box.midY }) where !item.text.trimmingCharacters(in: .whitespaces).isEmpty {
-            if let i = rows.firstIndex(where: { abs($0.middle - item.box.midY) < min($0.height, item.box.height) / 2 }) {
+            let distance = { (i: Int) in abs(rows[i].middle - item.box.midY) }
+            let near = rows.indices.filter { distance($0) < min(rows[$0].height, item.box.height) / 2 }
+            if let i = near.min(by: { distance($0) < distance($1) }) {
                 rows[i].items.append((x: item.box.minX, text: item.text))
             } else {
                 rows.append((middle: item.box.midY, height: item.box.height, items: [(x: item.box.minX, text: item.text)]))
@@ -227,8 +263,9 @@ enum ScreenshotImport {
         return rows.map { row in row.items.sorted { $0.x < $1.x }.map { $0.text }.joined(separator: " ") }
     }
 
-    /// Holdings in the order they appear. A listed code or name starts a holding; a share count or total cost is
-    /// taken when its title is beside it (付出成本 580,365) or above it in a row of titles.
+    /// The lots in the order they appear. A listed code or name starts a lot; a share count or total cost is taken
+    /// when its title is beside it (付出成本 580,365) or above it in a row of titles. The same holding named again
+    /// before any figure (a card's title and its name line) is the same lot; after a figure it is the next lot.
     static func parse(_ lines: [String], in listing: Listing) -> [Row] {
         var rows: [Row] = []
         var current: Int?
@@ -237,15 +274,18 @@ enum ScreenshotImport {
         for line in lines {
             let words = tokens(line)
             guard !words.isEmpty else { continue }
-            // Totals belong to no single holding.
+            // Totals belong to no single lot.
             if words.contains(where: { $0.contains("合計") || $0.contains("總計") || $0.contains("小計") }) { current = nil; headerFresh = false; continue }
             let found = holding(in: words, listing)
             if let found {
                 let row = Row(symbol: found.code ?? "", name: found.code == nil ? found.name : nil, choices: found.choices)
-                if current.map({ rows[$0].symbol != row.symbol || rows[$0].name != row.name }) ?? true { rows.append(row); current = rows.count - 1 }
+                let continues = current.map { rows[$0].symbol == row.symbol && rows[$0].name == row.name && rows[$0].shares == nil && rows[$0].cost == nil } ?? false
+                if !continues { rows.append(row); current = rows.count - 1 }
             } else if unlisted(words) {
                 current = nil
             }
+            // 融資 or 融券 written anywhere in a lot's lines marks that lot (融券 wins).
+            func mark() { if let i = current, let marked = kind(of: words), marked == .short || rows[i].kind == .cash { rows[i].kind = marked } }
             let fields = words.map(field)
             if fields.contains(where: { $0 != nil }) {
                 var paired = false
@@ -254,7 +294,7 @@ enum ScreenshotImport {
                 }
                 // Titles with no value beside them head the values on the lines below.
                 if !paired && found == nil { header = fields; headerFresh = true } else { headerFresh = false }
-                continue
+                mark(); continue
             }
             // Under a row of titles: the line right below it, or a table row of its own. Values line up from the
             // right, since a name may take two words; a line shorter than the titles is left alone.
@@ -266,7 +306,7 @@ enum ScreenshotImport {
                 }
                 if found == nil && !headerFresh {
                     // A table row whose name fits nothing in the lists: its figures are kept, the code left to the user.
-                    guard figures.shares != nil, let name = leadingName(words) else { headerFresh = false; continue }
+                    guard figures.shares != nil, let name = leadingName(words) else { mark(); headerFresh = false; continue }
                     rows.append(Row(symbol: "", name: name)); current = rows.count - 1
                 }
                 if let current {
@@ -274,34 +314,42 @@ enum ScreenshotImport {
                     if rows[current].cost == nil { rows[current].cost = figures.cost }
                 }
             }
-            headerFresh = false
+            mark(); headerFresh = false
         }
         return rows
     }
 
-    /// One row per holding across all screenshots (a long list is captured in several overlapping ones). A figure
-    /// read differently in different places is left empty, with the readings in a note for the user to check.
-    static func merge(_ pages: [[Row]]) -> [Row] {
-        var result: [Row] = [], shares: [[Double]] = [], costs: [[Double]] = []
-        for row in pages.joined() {
-            let i: Int
-            if let found = result.firstIndex(where: { $0.symbol.isEmpty ? row.symbol.isEmpty && $0.name == row.name : $0.symbol == row.symbol }) {
-                i = found
-            } else {
-                result.append(Row(symbol: row.symbol, name: row.name, choices: row.choices)); shares.append([]); costs.append([]); i = result.count - 1
+    /// All screenshots' lots for review. A long list is captured in several overlapping screenshots, so a row that
+    /// matches an earlier screenshot's row exactly (code, shares, cost and kind) is that row again and appears once;
+    /// rows within one screenshot are separate lots and are all kept. A row with a figure missing that fits a fuller
+    /// row of another screenshot is probably cut off at the edge, and says so. 融券 rows are returned apart.
+    static func review(_ pages: [[Row]]) -> (rows: [Row], short: [Row]) {
+        var result: [Row] = [], page: [Int] = []
+        for (number, rows) in pages.enumerated() {
+            var matched = Set<Int>()
+            for row in rows {
+                if let i = result.indices.first(where: { page[$0] < number && !matched.contains($0) && result[$0] == row }) { matched.insert(i); continue }
+                result.append(row); page.append(number)
             }
-            if let value = row.shares, !shares[i].contains(value) { shares[i].append(value) }
-            if let value = row.cost, !costs[i].contains(value) { costs[i].append(value) }
         }
-        for i in result.indices {
-            result[i].shares = shares[i].count == 1 ? shares[i][0] : nil
-            result[i].cost = costs[i].count == 1 ? costs[i][0] : nil
-            var differing: [String] = []
-            if shares[i].count > 1 { differing.append("股數 " + shares[i].map(grouped).joined(separator: "／")) }
-            if costs[i].count > 1 { differing.append("總成本 " + costs[i].map(grouped).joined(separator: "／")) }
-            if !differing.isEmpty { result[i].note = "截圖之間數字不一致（" + differing.joined(separator: "；") + "），請對照確認後填入。" }
+        for i in result.indices where result[i].shares == nil || result[i].cost == nil {
+            if result.indices.contains(where: { page[$0] != page[i] && covers(result[$0], result[i]) }) {
+                result[i].note = "這一列可能是截圖邊緣只拍到一部分的重複列；若與其他列是同一批，請刪除。"
+            }
         }
-        return result
+        return (result.filter { $0.kind != .short }, result.filter { $0.kind == .short })
+    }
+    /// `full` is the same lot as `part` with more of its figures read.
+    private static func covers(_ full: Row, _ part: Row) -> Bool {
+        full.symbol == part.symbol && full.name == part.name && full.kind == part.kind
+            && (part.shares == nil || part.shares == full.shares) && (part.cost == nil || part.cost == full.cost)
+            && [full.shares, full.cost].compactMap { $0 }.count > [part.shares, part.cost].compactMap { $0 }.count
+    }
+    /// 融券 when a lot's text says 融券, 券賣 or a lone 券; 融資 when it says 融資, 資買 or a lone 資.
+    private static func kind(of words: [String]) -> Kind? {
+        if words.contains(where: { $0.contains("融券") || $0.contains("券賣") || $0 == "券" }) { return .short }
+        if words.contains(where: { $0.contains("融資") || $0.contains("資買") || $0 == "資" }) { return .margin }
+        return nil
     }
 
     /// The holding a line names: a listed code, else a listed name of up to three words (the longest first), else
@@ -328,10 +376,10 @@ enum ScreenshotImport {
         }
         return nil
     }
-    /// A word that may be part of a name: not a title, amount, code, signed figure or percentage. A trailing
+    /// A word that may be part of a name: not a title, amount, code, kind, signed figure or percentage. A trailing
     /// note in brackets, as in 台積電(現股), is dropped.
     private static func namePart(_ word: String) -> String? {
-        guard field(word) == nil, amount(word) == nil, !DataChecks.code(word.uppercased()),
+        guard field(word) == nil, amount(word) == nil, !DataChecks.code(word.uppercased()), kind(of: [word]) == nil, word != "現股",
               !word.contains(","), !word.contains("%"), !word.hasPrefix("+"), !word.hasPrefix("-") else { return nil }
         return word.replacingOccurrences(of: #"[(（][^)）]*[)）]$"#, with: "", options: .regularExpression)
     }
@@ -400,9 +448,5 @@ enum ScreenshotImport {
             let shares = value.number * (kind == .lots || value.lots ? 1000 : 1)
             if row.shares == nil, shares > 0, shares == shares.rounded() { row.shares = shares }
         }
-    }
-    private static func grouped(_ value: Double) -> String {
-        let formatter = NumberFormatter(); formatter.locale = Locale(identifier: "en_US"); formatter.numberStyle = .decimal; formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: value)) ?? String(value)
     }
 }
