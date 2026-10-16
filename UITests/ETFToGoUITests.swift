@@ -81,8 +81,8 @@ final class ETFToGoUITests: XCTestCase {
         done.tap()
         app.buttons["tab-首頁"].tap()
         XCTAssertTrue(app.buttons["home-add-favorite"].waitForExistence(timeout: 5))
-        app.swipeUp()
-        app.buttons["試算 10 年"].tap()
+        app.swipeUp(); capture(app, "home-lower")
+        app.buttons["試算 10 年"].tap(); capture(app, "home-combo-10y")
         app.buttons["home-combo"].tap()
         XCTAssertTrue(app.buttons["combo-settings"].waitForExistence(timeout: 5), "The combined simulation opens from the home page")
     }
