@@ -4,6 +4,15 @@ name: Sign and upload native ETF app
 # App Store profile through the API (Scripts/asc_signing.py) and removes both at the end.
 on:
   workflow_dispatch:
+    inputs:
+      upload:
+        description: Build and upload a new build
+        type: boolean
+        default: true
+      app_name:
+        description: App name to set in App Store Connect (blank keeps it)
+        required: false
+        default: 投資袋著走
 permissions:
   contents: read
 concurrency:
@@ -29,6 +38,7 @@ jobs:
           [[ "$ETF_BUNDLE_ID" != "tw.sonia.etftogo.uireview" ]]
   upload:
     needs: prerequisites
+    if: inputs.upload
     runs-on: macos-26
     timeout-minutes: 40
     env:
@@ -113,3 +123,41 @@ jobs:
           if [[ -n "${PROFILE_UUID:-}" ]]; then rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$PROFILE_UUID.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"; fi
           if [[ -x "$RUNNER_TEMP/asc-venv/bin/python" && -f "$RUNNER_TEMP/etf-signing/AuthKey.p8" ]]; then "$RUNNER_TEMP/asc-venv/bin/python" Scripts/asc_signing.py cleanup || true; fi
           rm -rf "$RUNNER_TEMP/etf-signing"
+  # Renames the app in App Store Connect, waits for the newest build to finish processing and gives it to the
+  # internal TestFlight testers (Scripts/asc_app.py), with the same API key.
+  app:
+    needs: [prerequisites, upload]
+    if: always() && needs.prerequisites.result == 'success' && (needs.upload.result == 'success' || needs.upload.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      ETF_BUNDLE_ID: ${{ vars.ETF_BUNDLE_ID }}
+      ASC_KEY_ID: ${{ secrets.APPLE_ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.APPLE_ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare the API key
+        env:
+          ASC_KEY_P8: ${{ secrets.APPLE_ASC_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/etf-signing"
+          python3 - <<'PY'
+          import os, pathlib, re
+          body = re.sub(r"-----[A-Z ]+-----|\s", "", os.environ["ASC_KEY_P8"].strip())
+          pem = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(body[i:i + 64] for i in range(0, len(body), 64)) + "\n-----END PRIVATE KEY-----\n"
+          (pathlib.Path(os.environ["RUNNER_TEMP"]) / "etf-signing" / "AuthKey.p8").write_text(pem)
+          PY
+          python3 -m venv "$RUNNER_TEMP/asc-venv"
+          "$RUNNER_TEMP/asc-venv/bin/pip" install --quiet cryptography
+      - name: Rename the app
+        if: inputs.app_name != ''
+        env:
+          APP_NAME: ${{ inputs.app_name }}
+        run: '"$RUNNER_TEMP/asc-venv/bin/python" Scripts/asc_app.py rename "$APP_NAME"'
+      - name: Wait for the newest build and give it to internal testers
+        run: '"$RUNNER_TEMP/asc-venv/bin/python" Scripts/asc_app.py testflight'
+      - name: Remove the key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/etf-signing"
