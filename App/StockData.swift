@@ -160,7 +160,12 @@ extension PortfolioStore {
         for symbol in Set(value.holdings.map(\.symbol)) { if let quote = quote(symbol) { value.quotes[symbol] = quote } }
         return value
     }
-    var summary: PortfolioSummary { PortfolioSummary(effectiveData) }
+    /// Totals with 市值 as the holdings list shows it (after the estimated selling costs), when every holding is priced.
+    var summary: PortfolioSummary {
+        let data = effectiveData
+        let values = data.holdings.map { marketValue(of: $0) }
+        return PortfolioSummary(data, marketValue: data.holdings.isEmpty || values.contains { $0 == nil } ? nil : values.reduce(0) { $0 + ($1 ?? 0) })
+    }
     /// Live index quotes with the viewer's key: IX0001 (加權) and IX0043 (櫃買); without one, the latest closes.
     func refreshIndices() async {
         guard let key = try? SecureKey.read(), !key.isEmpty else { await refreshDaily(manual: true); return }

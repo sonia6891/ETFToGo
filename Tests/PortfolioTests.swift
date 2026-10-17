@@ -462,6 +462,18 @@ final class PortfolioTests: XCTestCase {
         try store.importBroker(preview, replaceAccount: false); try store.importBroker(preview, replaceAccount: false)
         XCTAssertEqual(store.data.holdings.count, 3, "Importing the same account again updates the same holdings")
     }
+    func testSellCostsMatchTheBroker() {
+        // 國泰證券 showed 34,653 for 2,000 shares of an ETF at 17.35: fee 34,700 × 0.1425% × 2.8 折 = 13.8 → 13,
+        // tax 0.1% = 34.7 → 34.
+        XCTAssertEqual(SellCosts.net(34700, stock: false, bond: false, discount: 2.8, minimum: 1), 34653)
+        XCTAssertEqual(SellCosts.net(100_000, stock: true, bond: false, discount: 2.8, minimum: 1), 100_000 - 39 - 300, "Stocks pay 0.3% tax")
+        XCTAssertEqual(SellCosts.net(100_000, stock: false, bond: false, discount: 10, minimum: 20), 100_000 - 142 - 100, "No discount")
+        XCTAssertEqual(SellCosts.net(1000, stock: false, bond: false, discount: 2.8, minimum: 20), 1000 - 20 - 1, "The minimum fee applies to a small sale")
+        let day = DataChecks.date("2026-10-17")!, later = DataChecks.date("2027-01-02")!
+        XCTAssertEqual(SellCosts.net(50_000, stock: false, bond: true, discount: 2.8, minimum: 1, on: day), 50_000 - 19, "Bond ETFs pay no tax through 2026")
+        XCTAssertEqual(SellCosts.net(50_000, stock: false, bond: true, discount: 2.8, minimum: 1, on: later), 50_000 - 19 - 50)
+        XCTAssertEqual(SellCosts.net(0, stock: false, bond: false, discount: 2.8, minimum: 20), 0, "Nothing to sell, nothing deducted")
+    }
     @MainActor func testDividendSharesFollowTheHolding() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

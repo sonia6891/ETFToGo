@@ -7,9 +7,12 @@ enum HoldingSort: String, CaseIterable, Identifiable {
 }
 extension PortfolioStore {
     func fund(for holding: Holding) -> Fund { funds.first { $0.id == holding.symbol } ?? Fund(id: holding.symbol, name: holding.name, strategy: holding.strategy) }
+    /// 市值 as brokers show it: after the estimated selling fee and tax (SellCosts), unless that is turned off.
     func marketValue(of holding: Holding) -> Double? {
         guard let quote = quote(holding.symbol), quote.isTWD else { return nil }
-        return quote.price * holding.shares
+        let gross = quote.price * holding.shares
+        guard SellCosts.enabled else { return gross }
+        return SellCosts.net(gross, stock: isStock(holding.symbol), bond: fund(for: holding).assetKind == "債券")
     }
 }
 struct HoldingsView: View {

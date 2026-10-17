@@ -161,10 +161,11 @@ struct PortfolioSummary {
     let monthPaid: Double
     let monthPending: Double
     let symbolCount: Int
-    init(_ data: Portfolio, month: Date = Date()) {
+    init(_ data: Portfolio, month: Date = Date()) { self.init(data, month: month, marketValue: data.marketValue) }
+    init(_ data: Portfolio, month: Date = Date(), marketValue: Double?) {
         let inMonth = data.dividends.filter { Calendar.current.isDate($0.date, equalTo: month, toGranularity: .month) }
         cost = data.cost
-        marketValue = data.marketValue
+        self.marketValue = marketValue
         paidTotal = data.dividends.filter { $0.status == .paid }.reduce(0) { $0 + $1.amount }
         monthPaid = inMonth.filter { $0.status == .paid }.reduce(0) { $0 + $1.amount }
         monthPending = inMonth.filter { $0.status != .paid }.reduce(0) { $0 + $1.amount }

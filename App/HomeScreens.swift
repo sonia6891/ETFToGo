@@ -149,7 +149,7 @@ struct OverviewView: View {
     var body: some View {
         let summary = store.summary
         let useValue = summary.marketValue != nil
-        let value: (Holding) -> Double = { h in useValue ? (store.quote(h.symbol).map { $0.price * h.shares } ?? 0) : h.cost }
+        let value: (Holding) -> Double = { h in useValue ? (store.marketValue(of: h) ?? 0) : h.cost }
         let points = TrendMath.slice(TrendMath.portfolio(store.effectiveData), range)
         let total = store.data.holdings.reduce(0.0) { $0 + value($1) }
         let structure = makeSlices(store.data.holdings, key: { fund($0).assetKind }, value: value)
@@ -269,6 +269,9 @@ struct SettingsView: View {
     @EnvironmentObject var store: PortfolioStore
     @AppStorage("appearance") private var appearance = "light"
     @AppStorage("hideAmounts") private var hidden = false
+    @AppStorage(SellCosts.netKey) private var netValue = true
+    @AppStorage(SellCosts.discountKey) private var discount = 2.8
+    @AppStorage(SellCosts.minimumKey) private var minimumFee = 1.0
     var body: some View {
         Page {
             Card(padding: 12) {
@@ -278,6 +281,33 @@ struct SettingsView: View {
                 Divider()
                 row("eye.fill", Palette.blue, "隱藏金額") { Toggle("隱藏金額", isOn: $hidden).labelsHidden().tint(Palette.blue) }
             }
+            Card(padding: 12) {
+                row("dollarsign.circle.fill", Palette.green, "市值扣除預估賣出費用") { Toggle("市值扣除預估賣出費用", isOn: $netValue).labelsHidden().tint(Palette.blue) }
+                if netValue {
+                    Divider()
+                    row("percent", Palette.teal, "手續費折扣") {
+                        HStack(spacing: 4) {
+                            TextField("2.8", value: $discount, format: .number).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 60)
+                                .accessibilityLabel("手續費折扣（折）")
+                            Text("折").font(.subheadline).foregroundStyle(Palette.muted)
+                        }
+                    }
+                    Divider()
+                    row("arrow.down.to.line", Palette.purple, "最低手續費") {
+                        HStack(spacing: 4) {
+                            TextField("1", value: $minimumFee, format: .number).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 60)
+                                .accessibilityLabel("最低手續費（元）")
+                            Text("元").font(.subheadline).foregroundStyle(Palette.muted)
+                        }
+                    }
+                }
+                Text(netValue ? "市值＝股數 × 收盤價 − 預估賣出手續費（0.1425% × 折扣，無條件捨去）− 證交稅（股票 0.3%、ETF 0.1%、債券 ETF 免稅）。預設 2.8 折、最低 1 元，與國泰證券的算法相同；請依你的券商修改。"
+                     : "市值＝股數 × 收盤價，不扣賣出手續費與證交稅。")
+                    .font(.caption).foregroundStyle(Palette.muted).padding(.top, 6)
+            }
+            .onChange(of: netValue) { _, _ in store.objectWillChange.send() }
+            .onChange(of: discount) { _, _ in store.objectWillChange.send() }
+            .onChange(of: minimumFee) { _, _ in store.objectWillChange.send() }
             Card(padding: 12) {
                 link("cylinder.split.1x2.fill", Palette.blue, "資料更新", "報價、配息與 ETF 名單的更新狀態", .sources)
                 Divider()
