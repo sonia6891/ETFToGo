@@ -83,6 +83,14 @@ def prepare() -> None:
         raise ApiError(f"App Store Connect 找不到 Bundle ID {bundle}；請確認變數 ETF_BUNDLE_ID 與 App Store Connect 的 App 相同。")
     bundle_id, team = found[0]["id"], found[0]["attributes"]["seedId"]
 
+    # What the account already holds: the distribution certificate limit is per team.
+    existing = [c for c in call("GET", "certificates?limit=200")["data"]
+                if c["attributes"].get("certificateType") in ("DISTRIBUTION", "IOS_DISTRIBUTION")]
+    print(f"Distribution certificates on the account: {len(existing)}")
+    for c in existing:
+        a = c["attributes"]
+        print(f"  {a.get('certificateType')} · {a.get('displayName') or a.get('name')} · expires {a.get('expirationDate', '')[:10]} · platform {a.get('platform')}")
+
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     csr = (x509.CertificateSigningRequestBuilder()
            .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "ETFToGo TestFlight")]))
