@@ -76,7 +76,7 @@ struct BrokerView: View {
         }
     }.navigationTitle("券商持有資料").navigationBarTitleDisplayMode(.inline)
         .fileImporter(isPresented: $importing, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
-            preview = nil; table = nil; drafts = []; skipped = []; message = nil
+            preview = nil; table = nil; drafts = []; skipped = []; message = nil; replace = false
             do {
                 let value = try CSVTable.parse(DataChecks.readFile(result.get())); table = value
                 mapping = BrokerMapping(guessing: value)
@@ -207,6 +207,9 @@ struct BrokerView: View {
         }
         let review = ScreenshotImport.review(pages)
         drafts = review.rows.map { ScreenshotImport.Draft($0, price: price($0.symbol)) }; skipped = review.short
+        // Screenshots show the whole inventory, so importing them again replaces what this account imported before
+        // (same stable IDs), which also fixes costs an earlier version read wrongly.
+        replace = true
         var notes: [String] = []
         if !drafts.isEmpty { notes.append("已從 \(pages.count) 張截圖讀出 \(drafts.count) 批，請在上方逐筆對照確認。同一檔分批買進的會分列，匯入時再依現股／融資合併。") }
         let unsure = drafts.filter { $0.costNote != nil }.count

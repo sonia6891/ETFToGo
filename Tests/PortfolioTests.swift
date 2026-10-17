@@ -493,4 +493,26 @@ final class PortfolioTests: XCTestCase {
         XCTAssertEqual(csv.warnings(price: { $0 == "00991A" ? 17.5 : nil }).count, 1, "A CSV price per share imported as a total is warned about")
         XCTAssertTrue(csv.warnings(price: { _ in nil }).isEmpty)
     }
+    @MainActor func testScreenshotReimportFixesEarlierCosts() throws {
+        let funds = Fund.starters + [Fund(id: "00991A", name: "主動測試", strategy: .unclassified)]
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = PortfolioStore(url: dir.appendingPathComponent("p.json"))
+        try store.save(Holding(symbol: "2330", name: "台積電", shares: 10, unitCost: 100, broker: "", strategy: .unclassified))
+        let wrong = try BrokerPreview.make(drafts: [ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 17.35, basis: .total)),
+                                                    ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 18, kind: .margin, basis: .total)),
+                                                    ScreenshotImport.Draft(.init(symbol: "0050", shares: 100, cost: 15000, basis: .total))], broker: "國泰證券", account: "主要", funds: funds)
+        try store.importBroker(wrong, replaceAccount: true)
+        XCTAssertEqual(try XCTUnwrap(store.data.holdings.first { $0.symbol == "00991A" && $0.broker == "國泰證券" }).unitCost, 0.01735, accuracy: 1e-9)
+        let fixed = try BrokerPreview.make(drafts: [ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 17.35, basis: .perShare)),
+                                                    ScreenshotImport.Draft(.init(symbol: "00991A", shares: 1000, cost: 18, kind: .margin, basis: .perShare))], broker: "國泰證券", account: "主要", funds: funds)
+        XCTAssertEqual(fixed.holdings.map(\.id), Array(wrong.holdings.prefix(2)).map(\.id), "The same lots of the same account keep their stable IDs")
+        try store.importBroker(fixed, replaceAccount: true)
+        let lots = store.data.holdings.filter { $0.symbol == "00991A" }
+        XCTAssertEqual(lots.count, 2, "Re-importing overwrites the earlier 現股 and 融資 holdings instead of adding new ones")
+        XCTAssertEqual(try XCTUnwrap(lots.first { $0.broker == "國泰證券" }).unitCost, 17.35, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(lots.first { $0.broker == "國泰證券（融資）" }).unitCost, 18, accuracy: 1e-9)
+        XCTAssertFalse(store.data.holdings.contains { $0.symbol == "0050" }, "Replacing the account drops what the new screenshots no longer show")
+        XCTAssertTrue(store.data.holdings.contains { $0.symbol == "2330" }, "Holdings entered by hand stay")
+    }
 }
