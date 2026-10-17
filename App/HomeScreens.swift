@@ -270,8 +270,7 @@ struct SettingsView: View {
     @AppStorage("appearance") private var appearance = "light"
     @AppStorage("hideAmounts") private var hidden = false
     @AppStorage(SellCosts.netKey) private var netValue = true
-    @AppStorage(SellCosts.discountKey) private var discount = 2.8
-    @AppStorage(SellCosts.minimumKey) private var minimumFee = 1.0
+    @State private var feeRates: [String: FeeRate] = [:]
     var body: some View {
         Page {
             Card(padding: 12) {
@@ -284,30 +283,18 @@ struct SettingsView: View {
             Card(padding: 12) {
                 row("dollarsign.circle.fill", Palette.green, "市值扣除預估賣出費用") { Toggle("市值扣除預估賣出費用", isOn: $netValue).labelsHidden().tint(Palette.blue) }
                 if netValue {
-                    Divider()
-                    row("percent", Palette.teal, "手續費折扣") {
-                        HStack(spacing: 4) {
-                            TextField("2.8", value: $discount, format: .number).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 60)
-                                .accessibilityLabel("手續費折扣（折）")
-                            Text("折").font(.subheadline).foregroundStyle(Palette.muted)
-                        }
-                    }
-                    Divider()
-                    row("arrow.down.to.line", Palette.purple, "最低手續費") {
-                        HStack(spacing: 4) {
-                            TextField("1", value: $minimumFee, format: .number).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 60)
-                                .accessibilityLabel("最低手續費（元）")
-                            Text("元").font(.subheadline).foregroundStyle(Palette.muted)
-                        }
+                    // The brokers in the holdings, then a default for any other.
+                    ForEach(Set(store.data.holdings.map { SellCosts.brokerKey($0.broker) }).filter { !$0.isEmpty }.sorted() + [""], id: \.self) { broker in
+                        Divider()
+                        feeRow(broker)
                     }
                 }
-                Text(netValue ? "市值＝股數 × 收盤價 − 預估賣出手續費（0.1425% × 折扣，無條件捨去）− 證交稅（股票 0.3%、ETF 0.1%、債券 ETF 免稅）。預設 2.8 折、最低 1 元，與國泰證券的算法相同；請依你的券商修改。"
+                Text(netValue ? "市值＝股數 × 收盤價 − 預估賣出手續費（0.1425% × 折扣，無條件捨去，不低於最低手續費）− 證交稅（股票 0.3%、ETF 0.1%、債券 ETF 免稅）。每家券商、每個帳戶的優惠不同，請填你自己的折扣；沒填的用原價（不打折、最低 20 元）。融資部位用同一家券商的折扣。"
                      : "市值＝股數 × 收盤價，不扣賣出手續費與證交稅。")
                     .font(.caption).foregroundStyle(Palette.muted).padding(.top, 6)
             }
             .onChange(of: netValue) { _, _ in store.objectWillChange.send() }
-            .onChange(of: discount) { _, _ in store.objectWillChange.send() }
-            .onChange(of: minimumFee) { _, _ in store.objectWillChange.send() }
+            .onAppear { feeRates = SellCosts.rates() }
             Card(padding: 12) {
                 link("cylinder.split.1x2.fill", Palette.blue, "資料更新", "報價、配息與 ETF 名單的更新狀態", .sources)
                 Divider()
@@ -321,6 +308,36 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("設定").navigationBarTitleDisplayMode(.inline)
+    }
+    /// One broker's discount and minimum fee; editing either stores the broker's own rate.
+    private func feeRow(_ broker: String) -> some View {
+        let shown = feeRates[broker] ?? (broker.isEmpty ? SellCosts.standard : feeRates[""] ?? SellCosts.standard)
+        func field(_ path: WritableKeyPath<FeeRate, Double>) -> Binding<Double> {
+            Binding(get: { shown[keyPath: path] }, set: { value in
+                var rate = shown; rate[keyPath: path] = value
+                feeRates[broker] = rate.valid
+                SellCosts.save(feeRates)
+                store.objectWillChange.send()
+            })
+        }
+        let name = broker.isEmpty ? "其他券商（預設）" : broker
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text(name).font(.subheadline.bold()).foregroundStyle(Palette.ink)
+                if feeRates[broker] == nil { Text(broker.isEmpty || feeRates[""] == nil ? "未設定・原價" : "未設定・用預設").font(.caption2.bold()).foregroundStyle(Palette.orange) }
+            }
+            HStack(spacing: 6) {
+                Text("折扣").font(.caption).foregroundStyle(Palette.muted)
+                TextField("10", value: field(\.discount), format: .number).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                    .frame(width: 56).textFieldStyle(.roundedBorder).accessibilityLabel("\(name) 手續費折扣（折）")
+                Text("折").font(.caption).foregroundStyle(Palette.muted)
+                Spacer(minLength: 8)
+                Text("最低").font(.caption).foregroundStyle(Palette.muted)
+                TextField("20", value: field(\.minimum), format: .number).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                    .frame(width: 56).textFieldStyle(.roundedBorder).accessibilityLabel("\(name) 最低手續費（元）")
+                Text("元").font(.caption).foregroundStyle(Palette.muted)
+            }
+        }.padding(.vertical, 6)
     }
     private func row<Trailing: View>(_ icon: String, _ color: Color, _ title: String, @ViewBuilder trailing: () -> Trailing) -> some View {
         HStack(spacing: 12) {

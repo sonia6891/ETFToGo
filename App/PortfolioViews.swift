@@ -12,7 +12,7 @@ extension PortfolioStore {
         guard let quote = quote(holding.symbol), quote.isTWD else { return nil }
         let gross = quote.price * holding.shares
         guard SellCosts.enabled else { return gross }
-        return SellCosts.net(gross, stock: isStock(holding.symbol), bond: fund(for: holding).assetKind == "債券")
+        return SellCosts.net(gross, stock: isStock(holding.symbol), bond: fund(for: holding).assetKind == "債券", rate: SellCosts.rate(for: holding.broker))
     }
 }
 struct HoldingsView: View {
@@ -49,6 +49,12 @@ struct HoldingsView: View {
                     Card { Text(kind == 1 ? "還沒有個股持有，按右上角「新增持有」加入。" : "還沒有 ETF 持有，按右上角「新增持有」加入。").font(.subheadline).foregroundStyle(Palette.muted) }
                 }
                 if missing > 0 { Text("\(missing) 筆持有尚缺報價，未計入總市值。").font(.caption).foregroundStyle(Palette.muted) }
+                if SellCosts.enabled, holdings.contains(where: { !SellCosts.isSet(for: $0.broker) }) {
+                    NavigationLink(value: AppRoute.settings) {
+                        Label("市值目前用原價手續費估算，到設定填入你的券商折扣會更準", systemImage: "info.circle").font(.caption).foregroundStyle(Palette.blue)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }.buttonStyle(.plain)
+                }
                 NavigationLink(value: AppRoute.combo) { PrimaryButtonLabel(title: "個股 + ETF 組合試算", icon: "function") }.buttonStyle(.plain).accessibilityIdentifier("holdings-combo")
                 Label("行情更新不等於券商持股同步", systemImage: "info.circle").font(.caption).foregroundStyle(Palette.muted).frame(maxWidth: .infinity)
                 Card(padding: 12) {

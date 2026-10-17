@@ -463,16 +463,34 @@ final class PortfolioTests: XCTestCase {
         XCTAssertEqual(store.data.holdings.count, 3, "Importing the same account again updates the same holdings")
     }
     func testSellCostsMatchTheBroker() {
-        // 國泰證券 showed 34,653 for 2,000 shares of an ETF at 17.35: fee 34,700 × 0.1425% × 2.8 折 = 13.8 → 13,
-        // tax 0.1% = 34.7 → 34.
-        XCTAssertEqual(SellCosts.net(34700, stock: false, bond: false, discount: 2.8, minimum: 1), 34653)
-        XCTAssertEqual(SellCosts.net(100_000, stock: true, bond: false, discount: 2.8, minimum: 1), 100_000 - 39 - 300, "Stocks pay 0.3% tax")
-        XCTAssertEqual(SellCosts.net(100_000, stock: false, bond: false, discount: 10, minimum: 20), 100_000 - 142 - 100, "No discount")
-        XCTAssertEqual(SellCosts.net(1000, stock: false, bond: false, discount: 2.8, minimum: 20), 1000 - 20 - 1, "The minimum fee applies to a small sale")
+        // 國泰證券 showed 34,653 for 2,000 shares of an ETF at 17.35 with its 2.8 折 rate: fee 34,700 × 0.1425% × 0.28
+        // = 13.8 → 13, tax 0.1% = 34.7 → 34.
+        let cathay = FeeRate(discount: 2.8, minimum: 1)
+        XCTAssertEqual(SellCosts.net(34700, stock: false, bond: false, rate: cathay), 34653)
+        XCTAssertEqual(SellCosts.net(100_000, stock: true, bond: false, rate: cathay), 100_000 - 39 - 300, "Stocks pay 0.3% tax")
+        XCTAssertEqual(SellCosts.net(100_000, stock: false, bond: false, rate: SellCosts.standard), 100_000 - 142 - 100, "The list price")
+        XCTAssertEqual(SellCosts.net(1000, stock: false, bond: false, rate: SellCosts.standard), 1000 - 20 - 1, "The minimum fee applies to a small sale")
         let day = DataChecks.date("2026-10-17")!, later = DataChecks.date("2027-01-02")!
-        XCTAssertEqual(SellCosts.net(50_000, stock: false, bond: true, discount: 2.8, minimum: 1, on: day), 50_000 - 19, "Bond ETFs pay no tax through 2026")
-        XCTAssertEqual(SellCosts.net(50_000, stock: false, bond: true, discount: 2.8, minimum: 1, on: later), 50_000 - 19 - 50)
-        XCTAssertEqual(SellCosts.net(0, stock: false, bond: false, discount: 2.8, minimum: 20), 0, "Nothing to sell, nothing deducted")
+        XCTAssertEqual(SellCosts.net(50_000, stock: false, bond: true, rate: cathay, on: day), 50_000 - 19, "Bond ETFs pay no tax through 2026")
+        XCTAssertEqual(SellCosts.net(50_000, stock: false, bond: true, rate: cathay, on: later), 50_000 - 19 - 50)
+        XCTAssertEqual(SellCosts.net(0, stock: false, bond: false, rate: SellCosts.standard), 0, "Nothing to sell, nothing deducted")
+    }
+    func testFeeRatesPerBroker() throws {
+        let suite = "SellCostsTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        XCTAssertEqual(SellCosts.rate(for: "國泰證券", in: defaults), SellCosts.standard, "Nothing set: the list price, not one broker's discount")
+        XCTAssertFalse(SellCosts.isSet(for: "國泰證券", in: defaults))
+        SellCosts.save(["國泰證券": FeeRate(discount: 2.8, minimum: 1)], in: defaults)
+        XCTAssertEqual(SellCosts.rate(for: "國泰證券", in: defaults).discount, 2.8)
+        XCTAssertEqual(SellCosts.rate(for: "國泰證券（融資）", in: defaults).discount, 2.8, "融資 sells through the same broker")
+        XCTAssertEqual(SellCosts.rate(for: "富邦證券", in: defaults), SellCosts.standard, "Another broker keeps the list price")
+        XCTAssertFalse(SellCosts.isSet(for: "富邦證券", in: defaults))
+        SellCosts.save(["國泰證券": FeeRate(discount: 2.8, minimum: 1), "": FeeRate(discount: 6, minimum: 20)], in: defaults)
+        XCTAssertEqual(SellCosts.rate(for: "富邦證券", in: defaults).discount, 6, "The viewer's default for other brokers")
+        XCTAssertTrue(SellCosts.isSet(for: "富邦證券", in: defaults))
+        SellCosts.save(["": FeeRate(discount: 25, minimum: -3)], in: defaults)
+        XCTAssertEqual(SellCosts.rate(for: "", in: defaults), FeeRate(discount: 10, minimum: 0), "Out-of-range entries are clamped")
     }
     @MainActor func testDividendSharesFollowTheHolding() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
