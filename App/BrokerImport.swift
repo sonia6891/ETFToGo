@@ -280,8 +280,9 @@ enum ScreenshotImport {
     static let lotLabels: Set<String> = ["張數", "庫存張數", "持有張數", "現股張數"]
     /// Titles of the total amount paid.
     static let costLabels: Set<String> = ["付出成本", "持有成本", "總成本", "成本金額", "投資成本", "成本總額"]
-    /// Titles of a price per share.
-    static let unitCostLabels: Set<String> = ["成本價", "均價", "平均成本", "平均成本價", "成交均價", "買進均價", "持有均價", "成本均價", "平均價", "成本單價"]
+    /// Titles of a price per share. 國泰證券's holdings screen calls the price paid per share 成交價.
+    static let unitCostLabels: Set<String> = ["成本價", "均價", "平均成本", "平均成本價", "成交均價", "買進均價", "持有均價", "成本均價", "平均價", "成本單價",
+                                              "成交價", "成交單價", "成交價格", "買進價", "買入價", "買進單價"]
 
     /// Language correction reads Chinese better but may "correct" codes and figures, so each screenshot is read
     /// both ways and every word with a digit is taken from the uncorrected reading of the same place.

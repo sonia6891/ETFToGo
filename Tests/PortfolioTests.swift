@@ -467,6 +467,8 @@ final class PortfolioTests: XCTestCase {
         let lots = ScreenshotImport.Listing([(code: "00991A", name: "主動測試")])
         let read = ScreenshotImport.parse(["主動測試 00991A", "股數 1,000", "成本價 17.35"], in: lots)
         XCTAssertEqual(read, [.init(symbol: "00991A", shares: 1000, cost: 17.35, basis: .perShare)])
+        XCTAssertEqual(ScreenshotImport.parse(["主動測試 00991A", "現股庫存 1,000", "成交價 17.35"], in: lots), read, "國泰證券 calls the price paid per share 成交價")
+        XCTAssertEqual(ScreenshotImport.parse(["主動測試 00991A", "現股庫存 成交價", "1,000 17.35"], in: lots), read, "Titles in a row above the figures")
         let labelled = ScreenshotImport.Draft(read[0], price: 17.5)
         XCTAssertTrue(labelled.perShare)
         XCTAssertEqual(try XCTUnwrap(labelled.totalCost), 17350, accuracy: 0.001, "成本價 17.35 × 1,000 shares")
