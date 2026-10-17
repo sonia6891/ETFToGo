@@ -21,13 +21,6 @@ struct LiveQuoteButton: View {
     }
 }
 
-/// The web version, which anyone can open: shared links point here, and its link preview shows the app icon.
-enum WebApp {
-    static let site = URL(string: "https://sonia6891.github.io/etftogo-web/")!
-    /// A page of the web version, e.g. `stock-2330` or `detail-0050`.
-    static func link(_ page: String) -> URL { URL(string: site.absoluteString + "#" + page) ?? site }
-}
-
 struct SafariSheet: UIViewControllerRepresentable {
     let url: URL
     func makeUIViewController(context: Context) -> SFSafariViewController {

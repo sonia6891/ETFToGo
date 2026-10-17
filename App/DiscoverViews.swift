@@ -456,7 +456,7 @@ struct FundDetail: View {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 LiveQuoteButton(symbol: fund.id, market: fund.market)
                 Button { store.favorite(fund.id) } label: { Image(systemName: store.data.favorites.contains(fund.id) ? "star.fill" : "star").foregroundStyle(Palette.orange) }.accessibilityLabel("切換收藏")
-                ShareLink(item: WebApp.link("detail-\(fund.id)"), subject: Text("\(fund.id) \(fund.name)"), message: Text("\(fund.id) \(fund.name)｜投資袋著走")) { Image(systemName: "square.and.arrow.up") }.accessibilityLabel("分享")
+                ShareLink(item: "\(fund.id) \(fund.name)｜投資袋著走") { Image(systemName: "square.and.arrow.up") }.accessibilityLabel("分享")
             }
         }
     }

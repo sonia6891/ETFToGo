@@ -132,7 +132,7 @@ struct StockDetailView: View {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 LiveQuoteButton(symbol: symbol, market: store.stock(symbol)?.market)
                 Button { store.favorite(symbol) } label: { Image(systemName: store.data.favorites.contains(symbol) ? "star.fill" : "star").foregroundStyle(Palette.orange) }.accessibilityLabel("切換自選")
-                ShareLink(item: WebApp.link("stock-\(symbol)"), subject: Text("\(symbol) \(store.name(for: symbol))"), message: Text("\(symbol) \(store.name(for: symbol))｜投資袋著走")) { Image(systemName: "square.and.arrow.up") }.accessibilityLabel("分享")
+                ShareLink(item: "\(symbol) \(store.name(for: symbol))｜投資袋著走") { Image(systemName: "square.and.arrow.up") }.accessibilityLabel("分享")
             }
         }
     }
