@@ -99,9 +99,13 @@ def prepare() -> None:
         cert = call("POST", "certificates", {"data": {"type": "certificates", "attributes": {
             "certificateType": "DISTRIBUTION", "csrContent": csr.public_bytes(serialization.Encoding.PEM).decode()}}})["data"]
     except ApiError as error:
-        if "409" in str(error):
-            raise ApiError(f"{error} 帳號的發佈憑證已達上限：到 developer.apple.com 的 Certificates 撤銷一張用不到的 Distribution 憑證再試。") from None
-        raise
+        if "409" not in str(error):
+            raise
+        # The team already holds as many distribution certificates as Apple allows (another app's among them):
+        # leave them alone and let Xcode sign with Apple's cloud-managed certificate instead.
+        print("::notice::The account's distribution certificate limit is reached; signing in the cloud instead.")
+        cloud(bundle, team)
+        return
     write_env(ASC_CERT_ID=cert["id"])  # recorded first, so cleanup revokes it even if a later step fails
     certificate = x509.load_der_x509_certificate(base64.b64decode(cert["attributes"]["certificateContent"]))
     password = secrets.token_hex(16)
@@ -131,6 +135,16 @@ def prepare() -> None:
     (folder / "ExportOptions.plist").write_bytes(plistlib.dumps(export))
     write_env(APPLE_TEAM_ID=team, PROFILE_UUID=uuid, PROFILE_NAME=name, P12_PASSWORD=password)
     print(f"Prepared signing for {bundle} (team {team}) with a temporary certificate and profile.")
+
+
+def cloud(bundle: str, team: str) -> None:
+    """Cloud signing: the archive is built unsigned and the export signs it with the team's cloud-managed distribution
+    certificate through the API key (Admin role), so no certificate is created."""
+    export = dict(method="app-store-connect", destination="upload", teamID=team, signingStyle="automatic",
+                  manageAppVersionAndBuildNumber=False, uploadSymbols=True, stripSwiftSymbols=True)
+    (folder / "ExportOptions.plist").write_bytes(plistlib.dumps(export))
+    write_env(APPLE_TEAM_ID=team, SIGNING="cloud")
+    print(f"Prepared cloud signing for {bundle} (team {team}).")
 
 
 def cleanup() -> None:
