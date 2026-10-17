@@ -21,10 +21,11 @@ struct BrokerView: View {
     @State private var replace = false
     @State private var message: String?
     @State private var costHint: String?
+    @State private var feeRate = SellCosts.standard
     var body: some View { Form {
         Section("所有券商：持有對帳單匯入") {
             Text("可匯入券商匯出的 CSV，再選擇對應欄位；不能匯出 CSV 的券商（例如國泰證券），可改用庫存畫面截圖。這是檔案匯入，尚未連接券商帳戶自動同步。").font(.subheadline)
-            TextField("券商名稱", text: $broker).accessibilityIdentifier("broker-import-name")
+            BrokerFeeRows(broker: $broker, rate: $feeRate, placeholder: "券商名稱", identifier: "broker-import-name", inForm: true)
             TextField("帳戶暱稱（例如主要帳戶）", text: $account).accessibilityIdentifier("broker-import-account")
             Text("同券商同暱稱會更新同一組庫存；請勿輸入完整帳號或密碼。成本請先換算為台幣。").font(.caption).foregroundStyle(.secondary)
             Button("選擇庫存 CSV") { importing = true }
@@ -83,7 +84,7 @@ struct BrokerView: View {
             } catch { message = error.localizedDescription }
         }
         .onChange(of: shots) { _, items in if !items.isEmpty { Task { await read(items) } } }
-        .confirmationDialog("將匯入庫存，並先保存一份復原備份。", isPresented: $confirmation, titleVisibility: .visible) { Button("匯入") { do { if let preview { try store.importBroker(preview, replaceAccount: replace); message = "已匯入 \(preview.holdings.count) 筆。"; self.preview = nil; table = nil; drafts = []; skipped = [] } } catch { message = error.localizedDescription } }; Button("取消", role: .cancel) {} }
+        .confirmationDialog("將匯入庫存，並先保存一份復原備份。", isPresented: $confirmation, titleVisibility: .visible) { Button("匯入") { do { if let preview { SellCosts.remember(feeRate, for: broker); try store.importBroker(preview, replaceAccount: replace); message = "已匯入 \(preview.holdings.count) 筆。"; self.preview = nil; table = nil; drafts = []; skipped = [] } } catch { message = error.localizedDescription } }; Button("取消", role: .cancel) {} }
         .onChange(of: broker) { _, _ in preview = nil }.onChange(of: account) { _, _ in preview = nil }.onChange(of: drafts) { _, _ in preview = nil }
         .onChange(of: mapping.symbol) { _, _ in preview = nil }.onChange(of: mapping.name) { _, _ in preview = nil }.onChange(of: mapping.shares) { _, _ in preview = nil }.onChange(of: mapping.cost) { _, _ in preview = nil }.onChange(of: mapping.lots) { _, _ in preview = nil }.onChange(of: mapping.totalCost) { _, _ in preview = nil }
     }

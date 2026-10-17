@@ -289,7 +289,7 @@ struct SettingsView: View {
                         feeRow(broker)
                     }
                 }
-                Text(netValue ? "市值＝股數 × 收盤價 − 預估賣出手續費（0.1425% × 折扣，無條件捨去，不低於最低手續費）− 證交稅（股票 0.3%、ETF 0.1%、債券 ETF 免稅）。每家券商、每個帳戶的優惠不同，請填你自己的折扣；沒填的用原價（不打折、最低 20 元）。融資部位用同一家券商的折扣。"
+                Text(netValue ? "市值＝股數 × 收盤價 − 預估賣出手續費（0.1425% × 折扣，無條件捨去，不低於最低手續費）− 證交稅（股票 0.3%、ETF 0.1%、債券 ETF 免稅）。國泰、永豐金、元大、富邦、凱基、群益先帶入常見的電子下單優惠，其他券商用原價（不打折、最低 20 元）；每個帳戶的優惠不同，請改成你自己的折扣。融資部位用同一家券商的折扣。"
                      : "市值＝股數 × 收盤價，不扣賣出手續費與證交稅。")
                     .font(.caption).foregroundStyle(Palette.muted).padding(.top, 6)
             }
@@ -311,7 +311,7 @@ struct SettingsView: View {
     }
     /// One broker's discount and minimum fee; editing either stores the broker's own rate.
     private func feeRow(_ broker: String) -> some View {
-        let shown = feeRates[broker] ?? (broker.isEmpty ? SellCosts.standard : feeRates[""] ?? SellCosts.standard)
+        let shown = feeRates[broker] ?? (broker.isEmpty ? SellCosts.standard : SellCosts.preset(for: broker) ?? feeRates[""] ?? SellCosts.standard)
         func field(_ path: WritableKeyPath<FeeRate, Double>) -> Binding<Double> {
             Binding(get: { shown[keyPath: path] }, set: { value in
                 var rate = shown; rate[keyPath: path] = value
@@ -324,7 +324,10 @@ struct SettingsView: View {
         return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Text(name).font(.subheadline.bold()).foregroundStyle(Palette.ink)
-                if feeRates[broker] == nil { Text(broker.isEmpty || feeRates[""] == nil ? "未設定・原價" : "未設定・用預設").font(.caption2.bold()).foregroundStyle(Palette.orange) }
+                if feeRates[broker] == nil {
+                    if SellCosts.preset(for: broker) != nil { Text("常見優惠").font(.caption2.bold()).foregroundStyle(Palette.blue) }
+                    else { Text(broker.isEmpty || feeRates[""] == nil ? "未設定・原價" : "未設定・用預設").font(.caption2.bold()).foregroundStyle(Palette.orange) }
+                }
             }
             HStack(spacing: 6) {
                 Text("折扣").font(.caption).foregroundStyle(Palette.muted)

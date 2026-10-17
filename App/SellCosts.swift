@@ -32,14 +32,52 @@ enum SellCosts {
     static func save(_ rates: [String: FeeRate], in defaults: UserDefaults = .standard) {
         if let bytes = try? JSONEncoder().encode(rates) { defaults.set(bytes, forKey: ratesKey) }
     }
+    /// The viewer's own rate for the broker, else its common online rate, else the viewer's default, else the list price.
     static func rate(for broker: String, in defaults: UserDefaults = .standard) -> FeeRate {
-        let set = rates(in: defaults)
-        return (set[brokerKey(broker)] ?? set[""] ?? standard).valid
+        let set = rates(in: defaults), key = brokerKey(broker)
+        return (set[key] ?? preset(for: key) ?? set[""] ?? standard).valid
     }
-    /// Whether this broker's fee is the viewer's own setting rather than the list price.
+    /// Whether this broker's fee is known (the viewer's own, or a common rate) rather than the list price.
     static func isSet(for broker: String, in defaults: UserDefaults = .standard) -> Bool {
-        let set = rates(in: defaults)
-        return set[brokerKey(broker)] != nil || set[""] != nil
+        let set = rates(in: defaults), key = brokerKey(broker)
+        return set[key] != nil || preset(for: key) != nil || set[""] != nil
+    }
+    /// Keeps the rate the viewer confirmed for a broker (adding a holding, a trade or an import); a rate equal to what
+    /// the broker would get anyway is not stored, so a common rate stays a common rate.
+    static func remember(_ rate: FeeRate, for broker: String, in defaults: UserDefaults = .standard) {
+        let key = brokerKey(broker)
+        guard !key.isEmpty else { return }
+        var set = rates(in: defaults)
+        if set[key] == nil && rate.valid == (preset(for: key) ?? set[""] ?? standard).valid { return }
+        set[key] = rate.valid
+        save(set, in: defaults)
+    }
+    /// Where a broker's rate comes from, in a sentence for the screen.
+    static func rateNote(for broker: String, in defaults: UserDefaults = .standard) -> String {
+        let set = rates(in: defaults), key = brokerKey(broker)
+        if set[key] != nil { return "你為\(key)設定的折扣，用來估算市值。" }
+        if preset(for: key) != nil { return "\(key)常見的電子下單優惠，實際以你的帳戶為準，可直接修改。" }
+        if set[""] != nil { return "用你在設定裡的預設折扣；這家的優惠不同可直接修改。" }
+        return "沒有這家的常見優惠，先用原價（不打折、最低 20 元）；請改成你的折扣。"
+    }
+
+    /// Common online-order (電子下單) rates as reported in 2026. Promotions differ by account, monthly amount and over
+    /// time, so they are only where a broker starts; the viewer's own rate always wins.
+    static let presets: [(name: String, core: String, rate: FeeRate)] = [
+        ("國泰證券", "國泰", FeeRate(discount: 2.8, minimum: 1)),
+        ("永豐金證券", "永豐", FeeRate(discount: 2, minimum: 1)),
+        ("元大證券", "元大", FeeRate(discount: 6, minimum: 20)),
+        ("富邦證券", "富邦", FeeRate(discount: 6, minimum: 20)),
+        ("凱基證券", "凱基", FeeRate(discount: 6, minimum: 20)),
+        ("群益證券", "群益", FeeRate(discount: 6, minimum: 20)),
+    ]
+    /// Other brokers offered for picking; they start at the list price.
+    static let otherBrokers = ["元富證券", "統一證券", "兆豐證券", "第一金證券", "華南永昌證券", "台新證券", "玉山證券", "中國信託證券", "康和證券", "國票證券", "新光證券"]
+    /// 「國泰」, 「國泰證券」 and 「國泰綜合證券」 are the same broker.
+    static func preset(for broker: String) -> FeeRate? {
+        let key = brokerKey(broker)
+        guard !key.isEmpty else { return nil }
+        return presets.first { key.contains($0.core) }?.rate
     }
 
     static func taxRate(stock: Bool, bond: Bool, on day: Date = Date()) -> Double {

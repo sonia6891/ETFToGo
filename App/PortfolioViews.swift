@@ -435,12 +435,12 @@ struct HoldingFormView: View {
     @State private var total = ""
     @State private var date = Date()
     @State private var broker = ""
+    @State private var feeRate = SellCosts.standard
     @State private var error: String?
     @State private var confirmDelete = false
     @State private var loaded = false
     init(id: UUID?, symbol: String?) { self.id = id; _symbol = State(initialValue: symbol ?? "") }
     private var existing: Holding? { id.flatMap { id in store.data.holdings.first { $0.id == id } } }
-    private var brokers: [String] { Array(Set(store.data.holdings.map(\.broker).filter { !$0.isEmpty })).sorted() }
     var body: some View {
         Page {
             Card {
@@ -457,12 +457,7 @@ struct HoldingFormView: View {
                     FieldRow(title: "持有股數") { UnitField(placeholder: "1,000 股 = 1 張", text: $shares, unit: "股", identifier: "holding-shares") }
                     FieldRow(title: "總成本（含手續費）") { UnitField(placeholder: "實際付出金額", text: $total, unit: "元", identifier: "holding-cost") }
                     FieldRow(title: "購入日期") { DatePicker("購入日期", selection: $date, displayedComponents: .date).labelsHidden() }
-                    FieldRow(title: "券商（選填）") {
-                        HStack {
-                            TextField("例如 元大證券", text: $broker).accessibilityIdentifier("holding-broker")
-                            if !brokers.isEmpty { Menu { ForEach(brokers, id: \.self) { b in Button(b) { broker = b } } } label: { Image(systemName: "chevron.down") } }
-                        }
-                    }
+                    BrokerFeeRows(broker: $broker, rate: $feeRate, identifier: "holding-broker")
                 }.padding(.top, 10)
                 if let s = Double(shares.replacingOccurrences(of: ",", with: "")), let t = Double(total.replacingOccurrences(of: ",", with: "")), s > 0, t > 0 { Text("平均成本 \(priceText(t / s)) 元／股").font(.caption).foregroundStyle(Palette.muted).padding(.top, 8) }
                 if let error { Text(error).font(.caption).foregroundStyle(Palette.red).padding(.top, 6) }
@@ -501,6 +496,7 @@ struct HoldingFormView: View {
         guard s > 0 else { error = "持有股數須大於 0。"; return }
         guard t >= 0 else { error = "請填寫總成本（含手續費）。"; return }
         let h = Holding(id: existing?.id ?? UUID(), symbol: code, name: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (fund?.name ?? store.stock(code)?.name ?? "") : name.trimmingCharacters(in: .whitespacesAndNewlines), shares: s, unitCost: t / s, broker: broker.trimmingCharacters(in: .whitespacesAndNewlines), strategy: existing.map { $0.symbol == code ? $0.strategy : (fund?.strategy ?? .unclassified) } ?? (fund?.strategy ?? .unclassified), sourceAccount: existing?.sourceAccount, purchaseDate: date)
+        SellCosts.remember(feeRate, for: broker)
         do { try store.save(h); dismiss() } catch { self.error = error.localizedDescription }
     }
 }
@@ -513,6 +509,7 @@ struct TradeFormView: View {
     @State private var shares = ""
     @State private var amount = ""
     @State private var broker = ""
+    @State private var feeRate = SellCosts.standard
     @State private var error: String?
     var body: some View {
         Page {
@@ -529,7 +526,7 @@ struct TradeFormView: View {
                     FieldRow(title: "交易日期") { DatePicker("交易日期", selection: $date, displayedComponents: .date).labelsHidden() }
                     FieldRow(title: "股數") { UnitField(placeholder: "股數", text: $shares, unit: "股") }
                     FieldRow(title: kind == 1 ? "成交金額（扣除費用後）" : "成交金額（含手續費）") { UnitField(placeholder: "金額", text: $amount, unit: "元") }
-                    FieldRow(title: "券商（選填）") { TextField("例如 元大證券", text: $broker) }
+                    BrokerFeeRows(broker: $broker, rate: $feeRate)
                 }.padding(.top, 10)
                 if let error { Text(error).font(.caption).foregroundStyle(Palette.red).padding(.top, 6) }
             }
@@ -544,6 +541,7 @@ struct TradeFormView: View {
     private func save() {
         error = nil
         guard let s = Double(shares.replacingOccurrences(of: ",", with: "")), let a = Double(amount.replacingOccurrences(of: ",", with: "")) else { error = "請填寫股數與成交金額。"; return }
+        SellCosts.remember(feeRate, for: broker)
         do {
             try store.applyTrade(kind == 1 ? .sell : .buy, symbol: symbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(), date: date, shares: s, amount: a, broker: broker.trimmingCharacters(in: .whitespacesAndNewlines))
             dismiss()
