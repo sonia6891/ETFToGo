@@ -455,9 +455,15 @@ table.cmp thead th:first-child { background: none; }
 .conn.off { color: var(--pink); }
 .conn.close { color: var(--blue); }
 /* Home page (same design as the iPhone app): search, scope tabs, asset card, market, watchlist, dividends and simulation. */
-.home-head { display: flex; align-items: center; gap: 10px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
-.home-head .logo { width: 44px; height: 44px; border-radius: 11px; flex: none; box-shadow: 0 4px 10px rgba(31,107,255,.2); }
-.home-head .name { flex: 1; min-width: 0; font-size: 24px; font-weight: 900; letter-spacing: .5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Header: a white card with the pocket (soft shadow), 「投資」 in blue, 「袋著走」 in ink and the tagline. */
+.home-head { display: flex; align-items: center; gap: 10px; margin-top: calc(6px + env(safe-area-inset-top, 0px)); padding: 12px 8px 12px 14px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
+.home-head .logo { width: 50px; height: 50px; object-fit: contain; flex: none; filter: drop-shadow(0 4px 6px rgba(20,50,120,.25)); }
+.home-head .brand { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.home-head .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; }
+.home-head .wm-a { font-size: 30px; font-weight: 900; color: var(--blue); letter-spacing: .5px; }
+.home-head .wm-b { font-size: 26px; font-weight: 900; color: var(--ink); letter-spacing: .5px; }
+.home-head .brand-tag { font-size: 11.5px; font-weight: 500; color: var(--muted); letter-spacing: .3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-head .icon-btn { width: 36px; flex: none; }
 .home-search { display: flex; align-items: center; gap: 10px; width: 100%; height: 46px; padding: 0 16px; border-radius: 99px; background: var(--card); box-shadow: var(--shadow); color: var(--muted); font-size: 15px; text-align: left; }
 .home-search svg { width: 20px; height: 20px; color: var(--ink); flex: none; }
 .home-tabs { display: flex; gap: 26px; padding-left: 12px; }
@@ -1744,7 +1750,7 @@ VIEWS.home = () => {
   const d = data(), s = summary(d), scope = S.ui.homeScope || 0;
   const unread = notices().filter((n) => !isRead(n)).length;
   const body = `
-    <div class="home-head"><img class="logo" src="assets/app-icon.png" alt=""><span class="name">投資袋著走</span>
+    <div class="home-head"><img class="logo" src="assets/pocket-art.png" alt=""><div class="brand"><span class="name"><b class="wm-a">投資</b><b class="wm-b">袋著走</b></span><span class="brand-tag">台股・ETF・資產規劃，一手掌握</span></div>
       <button type="button" class="icon-btn bell-wrap" data-act="push" data-view="notices" aria-label="通知中心${unread ? "，" + unread + " 則未讀" : ""}">${icon("bell")}${unread ? '<span class="dot"></span>' : ""}</button>
       <button type="button" class="icon-btn" data-act="push" data-view="settings" aria-label="設定">${icon("gear")}</button></div>
     <button type="button" class="home-search" data-act="homeSearch" aria-label="搜尋股票、ETF">${icon("search")}<span>搜尋股票、ETF</span></button>

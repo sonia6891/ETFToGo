@@ -49,16 +49,30 @@ struct HomeView: View {
     private var header: some View {
         let unread = AppNotice.all(store).filter { !readNotices.split(separator: ",").map(String.init).contains($0.id) }.count
         return HStack(spacing: 10) {
-            Image("Pocket").resizable().interpolation(.high).scaledToFit().frame(width: 44, height: 44)
-                .clipShape(RoundedRectangle(cornerRadius: 11)).accessibilityHidden(true)
-            Text("投資袋著走").font(.system(size: 24, weight: .heavy)).foregroundStyle(Palette.ink).lineLimit(1).minimumScaleFactor(0.7)
-            Spacer(minLength: 6)
+            // The pocket on its own (cut out of the icon), lifted off the white card by a soft shadow.
+            Image("PocketArt").resizable().interpolation(.high).scaledToFit().frame(width: 50, height: 50)
+                .shadow(color: Color(red: 0.08, green: 0.2, blue: 0.47).opacity(0.25), radius: 6, x: 0, y: 4)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                (Text("投資").font(.system(size: 30, weight: .black)).foregroundStyle(Palette.blue)
+                 + Text("袋著走").font(.system(size: 26, weight: .heavy)).foregroundStyle(Palette.ink))
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                Text("台股・ETF・資產規劃，一手掌握").font(.system(size: 12, weight: .medium)).tracking(0.3)
+                    .foregroundStyle(Palette.muted).lineLimit(1).minimumScaleFactor(0.7)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("投資袋著走，台股・ETF・資產規劃，一手掌握")
+            Spacer(minLength: 4)
             NavigationLink(value: AppRoute.notices) {
                 Image(systemName: "bell").font(.title3).foregroundStyle(Palette.ink).frame(width: 40, height: 40)
                     .overlay(alignment: .topTrailing) { if unread > 0 { Circle().fill(Palette.red).frame(width: 9, height: 9).offset(x: -8, y: 8) } }
             }.accessibilityLabel(unread > 0 ? "通知中心，\(unread) 則未讀" : "通知中心")
             NavigationLink(value: AppRoute.settings) { Image(systemName: "gearshape").font(.title3).foregroundStyle(Palette.ink).frame(width: 40, height: 40) }.accessibilityLabel("設定")
-        }.padding(.top, 4)
+        }
+        .padding(.leading, 14).padding(.trailing, 8).padding(.vertical, 12)
+        .background(Palette.card, in: RoundedRectangle(cornerRadius: 22))
+        .shadow(color: Palette.blue.opacity(0.07), radius: 10, y: 3)
+        .padding(.top, 4)
     }
     private var searchBar: some View {
         Button { openDiscover(stocks: scope == 0 ? nil : scope == 1, search: true) } label: {
