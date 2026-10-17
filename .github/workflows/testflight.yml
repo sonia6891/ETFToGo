@@ -165,6 +165,8 @@ jobs:
         env:
           APP_NAME: ${{ inputs.app_name }}
         run: '"$RUNNER_TEMP/asc-venv/bin/python" Scripts/asc_app.py rename "$APP_NAME"'
+      - name: List the team's distribution certificates
+        run: '"$RUNNER_TEMP/asc-venv/bin/python" Scripts/asc_app.py certificates'
       - name: Wait for the build and give it to internal testers
         env:
           BUILD: ${{ needs.upload.result == 'success' && format('3.{0}', github.run_number) || inputs.build }}

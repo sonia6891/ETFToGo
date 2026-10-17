@@ -76,10 +76,37 @@ def testflight(version: str = "") -> None:
     print(f"Build {build['attributes']['version']} is ready in TestFlight.")
 
 
+def certificates() -> None:
+    """The team's distribution certificates and where each came from, read only: the request a certificate was made
+    from names its maker (this workflow's temporary ones say ETFToGo TestFlight); one without a request was made by
+    Apple (cloud-managed) or by Xcode."""
+    import base64
+    from cryptography import x509
+    for c in call("GET", "certificates?limit=200")["data"]:
+        a = c["attributes"]
+        if a.get("certificateType") not in ("DISTRIBUTION", "IOS_DISTRIBUTION"):
+            continue
+        maker = "no request on file"
+        csr = a.get("csrContent")
+        if csr:
+            try:
+                text = csr if "BEGIN" in csr else f"-----BEGIN CERTIFICATE REQUEST-----\n{csr}\n-----END CERTIFICATE REQUEST-----\n"
+                maker = "request from " + x509.load_pem_x509_csr(text.encode()).subject.rfc4514_string()
+            except Exception as error:
+                maker = f"request unreadable ({type(error).__name__})"
+        issued = ""
+        if a.get("certificateContent"):
+            cert = x509.load_der_x509_certificate(base64.b64decode(a["certificateContent"]))
+            issued = f"issued {cert.not_valid_before_utc:%Y-%m-%d %H:%M} UTC · subject {cert.subject.rfc4514_string()}"
+        print(f"{a.get('certificateType')} · name {a.get('name')} · {issued} · expires {a.get('expirationDate', '')[:10]} · {maker}")
+
+
 if __name__ == "__main__":
     try:
         if sys.argv[1] == "rename":
             rename(sys.argv[2])
+        elif sys.argv[1] == "certificates":
+            certificates()
         elif sys.argv[1] == "testflight":
             testflight(sys.argv[2] if len(sys.argv) > 2 else "")
         else:
