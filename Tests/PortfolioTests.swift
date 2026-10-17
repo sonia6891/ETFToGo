@@ -462,7 +462,7 @@ final class PortfolioTests: XCTestCase {
         try store.importBroker(preview, replaceAccount: false); try store.importBroker(preview, replaceAccount: false)
         XCTAssertEqual(store.data.holdings.count, 3, "Importing the same account again updates the same holdings")
     }
-    func testDividendSharesFollowTheHolding() throws {
+    @MainActor func testDividendSharesFollowTheHolding() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
