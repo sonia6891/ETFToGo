@@ -158,9 +158,12 @@ struct RecentDividendsView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             HStack(spacing: 6) { Text(entry.symbol).font(.subheadline.bold()); Text(store.name(for: entry.symbol)).font(.subheadline).lineLimit(1) }.foregroundStyle(Palette.ink)
                             Text(officialSummary(entry.event)).font(.caption).foregroundStyle(Palette.muted)
+                            if store.data.holdings.filter({ $0.symbol == entry.symbol }).count > 1 {
+                                Text("\(entry.holding.broker.isEmpty ? "未填券商" : entry.holding.broker)・\(decimal(entry.shares)) 股").font(.caption).foregroundStyle(Palette.muted)
+                            }
                         }
                         Spacer(minLength: 4)
-                        if entry.event.amount != nil { NavigationLink("加入", value: AppRoute.dividendForm(id: nil, symbol: entry.symbol, officialEx: entry.event.ex)).font(.caption.bold()).buttonStyle(.bordered).buttonBorderShape(.capsule) }
+                        if entry.event.amount != nil { NavigationLink("加入", value: AppRoute.dividendForm(id: nil, symbol: entry.symbol, officialEx: entry.event.ex, holding: entry.holding.id)).font(.caption.bold()).buttonStyle(.bordered).buttonBorderShape(.capsule) }
                     }.padding(.vertical, 6)
                 }
             }
@@ -287,8 +290,10 @@ struct DividendFormView: View {
     @State private var error: String?
     @State private var loaded = false
     private let officialEx: String?
-    init(id: UUID?, symbol: String?, officialEx: String?) {
-        self.id = id; self.officialEx = officialEx
+    /// Recorded from one holding: its shares, not every holding of the code.
+    private let holdingID: UUID?
+    init(id: UUID?, symbol: String?, officialEx: String?, holding: UUID? = nil) {
+        self.id = id; self.officialEx = officialEx; self.holdingID = holding
         _symbol = State(initialValue: symbol ?? "")
     }
     private var code: String { symbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() }
@@ -314,6 +319,10 @@ struct DividendFormView: View {
                 }
                 VStack(spacing: 2) {
                     FieldRow(title: "符合資格股數") { UnitField(placeholder: "股數", text: $shares, unit: "股", identifier: "dividend-shares") }
+                    if let one = holdingID.flatMap({ id in store.data.holdings.first { $0.id == id } }) {
+                        Text("這筆持有：\(one.broker.isEmpty ? "未填券商" : one.broker) \(decimal(one.shares)) 股").font(.caption).foregroundStyle(Palette.muted)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     FieldRow(title: "每股配息金額") { UnitField(placeholder: "每股", text: $perShare, unit: "元", identifier: "dividend-per-share") }
                     FieldRow(title: "發放日期") { DatePicker("發放日期", selection: $date, displayedComponents: .date).labelsHidden() }
                     FieldRow(title: "除息日（可選）") { HStack { Toggle("有除息日", isOn: $hasExDate).labelsHidden(); if hasExDate { DatePicker("除息日", selection: $exDate, displayedComponents: .date).labelsHidden() } } }
@@ -353,7 +362,7 @@ struct DividendFormView: View {
         else if shares.isEmpty { fillShares() }
     }
     private func fillShares() {
-        let held = store.data.holdings.filter { $0.symbol == code }.reduce(0) { $0 + $1.shares }
+        let held = store.dividendShares(code, holding: holdingID)
         if held > 0 { shares = String(Int(held)) }
     }
     private func apply(_ event: OfficialDistribution) {
@@ -370,6 +379,7 @@ struct DividendFormView: View {
         let ded = Double(deduction.replacingOccurrences(of: ",", with: "")) ?? 0
         var item = store.data.dividends.first { $0.id == id } ?? Dividend(symbol: code, date: date, amount: 0, status: source.status)
         item.symbol = code; item.date = date; item.status = source.status; item.source = source.rawValue
+        if let holdingID { item.holdingID = holdingID }
         item.exDate = hasExDate ? exDate : nil; item.note = note.isEmpty ? nil : String(note.prefix(80))
         if let s = Double(shares.replacingOccurrences(of: ",", with: "")), let p = Double(perShare), s > 0, p > 0 {
             item.shares = s; item.perShare = p; item.deduction = ded; item.amount = (s * p).rounded() - ded

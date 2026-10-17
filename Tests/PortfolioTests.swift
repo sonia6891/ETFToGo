@@ -462,6 +462,25 @@ final class PortfolioTests: XCTestCase {
         try store.importBroker(preview, replaceAccount: false); try store.importBroker(preview, replaceAccount: false)
         XCTAssertEqual(store.data.holdings.count, 3, "Importing the same account again updates the same holdings")
     }
+    func testDividendSharesFollowTheHolding() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = PortfolioStore(url: dir.appendingPathComponent("p.json"))
+        let cash = Holding(symbol: "0050", name: "元大台灣50", shares: 2000, unitCost: 50, broker: "國泰證券", strategy: .saving)
+        let margin = Holding(symbol: "0050", name: "元大台灣50", shares: 3000, unitCost: 52, broker: "國泰證券（融資）", strategy: .saving)
+        try store.save(cash); try store.save(margin)
+        XCTAssertEqual(store.dividendShares("0050", holding: cash.id), 2000, "Recorded from the 現股 holding: only its 2,000 shares")
+        XCTAssertEqual(store.dividendShares("0050", holding: margin.id), 3000)
+        XCTAssertEqual(store.dividendShares("0050", holding: nil), 5000, "Recorded for the whole code: every holding")
+        var record = Dividend(symbol: "0050", date: Date(), amount: 2000, status: .paid)
+        record.holdingID = cash.id
+        try store.saveDividend(record)
+        let saved = try XCTUnwrap(PortfolioStore(url: dir.appendingPathComponent("p.json")).data.dividends.first)
+        XCTAssertEqual(saved.holdingID, cash.id, "The holding a record belongs to is saved")
+        let old = try JSONDecoder().decode(Dividend.self, from: Data(#"{"id":"6F1A3D9E-0000-4000-8000-000000000001","symbol":"0050","date":0,"amount":10,"status":"已入帳"}"#.utf8))
+        XCTAssertNil(old.holdingID, "Older records have no holding")
+    }
     func testScreenshotCostPerShareOrTotal() throws {
         let funds = Fund.starters + [Fund(id: "00991A", name: "主動測試", strategy: .unclassified)]
         let lots = ScreenshotImport.Listing([(code: "00991A", name: "主動測試")])

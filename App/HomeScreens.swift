@@ -4,7 +4,7 @@ import Charts
 /// Every pushed screen, so all five tab stacks share one set of destinations.
 enum AppRoute: Hashable {
     case overview, monthDividends(next: Bool), notices, settings, sources, privacy, about
-    case recentDividends, yearDividends, dividendDetail(UUID), dividendForm(id: UUID?, symbol: String?, officialEx: String?), dividendDone(UUID)
+    case recentDividends, yearDividends, dividendDetail(UUID), dividendForm(id: UUID?, symbol: String?, officialEx: String?, holding: UUID? = nil), dividendDone(UUID)
     case holdingDetail(UUID), holdingForm(id: UUID?, symbol: String?), tradeForm
     case watchlist, basis(String)
     case plan, goal, calculator, comparison, exposure, backup, broker, connection, reminders
@@ -24,7 +24,7 @@ struct RouteView: View {
         case .recentDividends: RecentDividendsView()
         case .yearDividends: YearDividendsView()
         case .dividendDetail(let id): DividendDetailView(id: id)
-        case .dividendForm(let id, let symbol, let ex): DividendFormView(id: id, symbol: symbol, officialEx: ex)
+        case .dividendForm(let id, let symbol, let ex, let holding): DividendFormView(id: id, symbol: symbol, officialEx: ex, holding: holding)
         case .dividendDone(let id): DividendDoneView(id: id)
         case .holdingDetail(let id): HoldingDetailView(id: id)
         case .holdingForm(let id, let symbol): HoldingFormView(id: id, symbol: symbol)
@@ -78,7 +78,9 @@ struct AppNotice: Identifiable {
             items.append(AppNotice(id: "due-\(x.id.uuidString)-\(DataChecks.day(x.date))", kind: "配息提醒", icon: "bell.fill", color: Palette.orange, text: "\(x.symbol) 預計 \(monthDay(x.date)) 入帳 \(money(x.amount)) 元", day: todayText, route: .dividendDetail(x.id)))
         }
         let horizon = DataChecks.day(calendar.date(byAdding: .day, value: 30, to: today) ?? today)
+        var announced = Set<String>()  // one notice per code and ex-date, however many holdings it has
         for entry in store.officialForHoldings() where entry.event.ex >= todayText && entry.event.ex <= horizon {
+            guard announced.insert(entry.symbol + entry.event.ex).inserted else { continue }
             let ex = entry.event.ex.suffix(5).replacingOccurrences(of: "-", with: "/")
             items.append(AppNotice(id: "ex-\(entry.symbol)-\(entry.event.ex)", kind: "除息公告", icon: "megaphone.fill", color: Palette.blue, text: "\(entry.symbol) 將於 \(ex) 除息\(entry.event.amount.map { "，每單位 \(decimal($0)) 元" } ?? "，金額待公布")", day: todayText, route: .dividendForm(id: nil, symbol: entry.symbol, officialEx: entry.event.ex)))
         }

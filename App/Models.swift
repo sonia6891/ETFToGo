@@ -95,6 +95,9 @@ struct Dividend: Identifiable, Codable {
     var deduction: Double? = nil
     var source: String? = nil
     var note: String? = nil
+    /// The holding the record was made from. 現股 and 融資 (or two brokers) of one code are separate holdings, each
+    /// paid on its own shares; nil for records of the whole code and older ones.
+    var holdingID: UUID? = nil
     /// Shares × amount per unit, before deductions, when both are recorded.
     var gross: Double? {
         guard let shares, let perShare, shares > 0, perShare > 0 else { return nil }

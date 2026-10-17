@@ -343,7 +343,8 @@ struct HoldingDetailView: View {
         Page {
             if let h = store.data.holdings.first(where: { $0.id == id }) {
                 let fund = store.fund(for: h), value = store.marketValue(of: h), gain = value.map { $0 - h.cost }
-                let divs = store.data.dividends.filter { $0.symbol == h.symbol }.sorted { $0.date > $1.date }
+                // This holding's records, and those of the whole code (現股 and 融資 are separate holdings).
+                let divs = store.data.dividends.filter { $0.symbol == h.symbol && ($0.holdingID == nil || $0.holdingID == h.id) }.sorted { $0.date > $1.date }
                 Card {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 6) {
@@ -396,7 +397,7 @@ struct HoldingDetailView: View {
                         }.buttonStyle(.plain)
                     }
                 }
-                NavigationLink(value: AppRoute.dividendForm(id: nil, symbol: h.symbol, officialEx: nil)) { Label("記錄這檔配息", systemImage: "plus").font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.vertical, 12).background(Palette.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 14)) }.buttonStyle(.plain).foregroundStyle(Palette.blue)
+                NavigationLink(value: AppRoute.dividendForm(id: nil, symbol: h.symbol, officialEx: nil, holding: h.id)) { Label("記錄這檔配息", systemImage: "plus").font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.vertical, 12).background(Palette.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 14)) }.buttonStyle(.plain).foregroundStyle(Palette.blue)
                 Text("")
                     .confirmationDialog("刪除這筆持有？配息紀錄會保留。", isPresented: $deleting, titleVisibility: .visible) {
                         Button("確認刪除", role: .destructive) { do { try store.remove(h); dismiss() } catch { store.message = error.localizedDescription } }

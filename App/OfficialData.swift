@@ -104,17 +104,23 @@ struct OfficialDividends: Codable {
     }
 }
 extension PortfolioStore {
-    /// Official announcements for held ETFs (ex-dividend from a week ago onwards) not yet in the user's records.
-    func officialForHoldings() -> [(symbol: String, event: OfficialDistribution, shares: Double)] {
+    /// Official announcements for held ETFs (ex-dividend from a week ago onwards) not yet in the user's records, one per
+    /// holding with its own shares: 現股 and 融資 (or two brokers) of the same code are separate holdings.
+    func officialForHoldings() -> [(symbol: String, event: OfficialDistribution, shares: Double, holding: Holding)] {
         let from = DataChecks.day(Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date())
-        var result: [(symbol: String, event: OfficialDistribution, shares: Double)] = []
-        for symbol in Set(data.holdings.map(\.symbol)).sorted() {
-            let shares = data.holdings.filter { $0.symbol == symbol }.reduce(0) { $0 + $1.shares }
-            for event in official.list(symbol) where event.ex >= from {
-                let recorded = data.dividends.contains { $0.symbol == symbol && ($0.exDate.map(DataChecks.day) == event.ex || (!event.pay.isEmpty && DataChecks.day($0.date) == event.pay)) }
-                if !recorded { result.append((symbol, event, shares)) }
+        var result: [(symbol: String, event: OfficialDistribution, shares: Double, holding: Holding)] = []
+        for holding in data.holdings.sorted(by: { ($0.symbol, $0.broker) < ($1.symbol, $1.broker) }) {
+            for event in official.list(holding.symbol) where event.ex >= from {
+                let recorded = data.dividends.contains { $0.symbol == holding.symbol && ($0.holdingID == nil || $0.holdingID == holding.id)
+                    && ($0.exDate.map(DataChecks.day) == event.ex || (!event.pay.isEmpty && DataChecks.day($0.date) == event.pay)) }
+                if !recorded { result.append((holding.symbol, event, holding.shares, holding)) }
             }
         }
         return result.sorted { $0.event.ex < $1.event.ex }
+    }
+    /// The shares a dividend record is for: the holding it was recorded from, else every holding of the code.
+    func dividendShares(_ symbol: String, holding: UUID?) -> Double {
+        if let holding, let one = data.holdings.first(where: { $0.id == holding && $0.symbol == symbol }) { return one.shares }
+        return data.holdings.filter { $0.symbol == symbol }.reduce(0) { $0 + $1.shares }
     }
 }
